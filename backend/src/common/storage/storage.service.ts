@@ -11,7 +11,9 @@ export class StorageService implements IStorageService {
   private readonly baseUploadDir: string;
 
   constructor() {
-    this.baseUploadDir = path.resolve(process.cwd(), 'uploads');
+    this.baseUploadDir = process.env.STORAGE_PATH
+      ? path.resolve(process.env.STORAGE_PATH)
+      : path.resolve(process.cwd(), 'uploads');
     if (!fs.existsSync(this.baseUploadDir)) {
       fs.mkdirSync(this.baseUploadDir, { recursive: true });
     }
