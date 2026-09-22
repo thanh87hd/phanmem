@@ -1,0 +1,1325 @@
+[
+  {
+    "name": "Khối Hội sở chính (HO)",
+    "code": "HO",
+    "parent": null,
+    "description": "Hội sở chính LPBank",
+    "status": "Active"
+  },
+  {
+    "name": "Khối Đơn vị kinh doanh (DVKD)",
+    "code": "DVKD",
+    "parent": null,
+    "description": "Các Chi nhánh và Phòng Giao dịch lớn",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Quản trị",
+    "code": "BOD",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Ban Kiểm Soát",
+    "code": "BOS",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Ủy ban Đầu tư",
+    "code": "INC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Ủy ban Chiến lược",
+    "code": "STC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Ủy ban Quản lý rủi ro",
+    "code": "RMC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Ủy ban Nhân sự",
+    "code": "HRC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Ban Điều hành",
+    "code": "BOM",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Xử lý rủi ro",
+    "code": "RHC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Xử lý nợ",
+    "code": "DBC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Tuyển dụng",
+    "code": "REC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Cơ cấu nợ Hội sở",
+    "code": "HDC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Cơ cấu nợ phía Nam",
+    "code": "SDC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Cơ cấu nợ phía Bắc",
+    "code": "NDC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Tín dụng khu vực phía Bắc",
+    "code": "NCC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Tín dụng khu vực phía Nam",
+    "code": "SCC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Tín dụng Hội sở",
+    "code": "HCC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Rủi ro",
+    "code": "RIC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Quản lý vốn",
+    "code": "CMC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng ALCO",
+    "code": "ALC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Hội đồng Thầu và Chi phí",
+    "code": "TEC",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Khối Kiểm toán Nội bộ",
+    "code": "IA",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Kiểm toán Đơn vị kinh doanh",
+    "code": "BUA",
+    "parent": "IA",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Kiểm toán Hội sở và hệ thống",
+    "code": "HOS",
+    "parent": "IA",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Ngân hàng Bán lẻ",
+    "code": "RB",
+    "parent": "HO",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản lý mSME và Hộ kinh doanh",
+    "code": "MSM",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Bán lẻ",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản trị mạng lưới và Tuân thủ",
+    "code": "NET",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Bán lẻ",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản trị hiệu quả và Phân tích kinh doanh",
+    "code": "RPE",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Bán lẻ",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phát triển sản phẩm và giải pháp tài chính",
+    "code": "PDS",
+    "parent": "RB",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Hợp tác kinh doanh bảo hiểm",
+    "code": "BAN",
+    "parent": "RB",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Kinh doanh thẻ và Đơn vị chấp nhận thanh toán",
+    "code": "CDS",
+    "parent": "RB",
+    "description": "Hội đồng / Ban / Khối trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phân khúc và dịch vụ khách hàng cá nhân ưu tiên",
+    "code": "PCS",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Hội sở",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phát triển đối tác và quản trị kênh bán",
+    "code": "PCM",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Hội sở",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phát triển kinh doanh và thúc đẩy bán hợp kênh",
+    "code": "BSP",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Hội sở",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản lý hiệu quả và hỗ trợ kinh doanh",
+    "code": "PBS",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Hội sở",
+    "status": "Active"
+  },
+  {
+    "name": "Vùng Ngân hàng Bán lẻ",
+    "code": "BNW",
+    "parent": "RB",
+    "description": "Phòng/Vùng ban trực thuộc Hội sở",
+    "status": "Active"
+  },
+  {
+    "name": "Ngân hàng Doanh nghiệp",
+    "code": "WB",
+    "parent": "HO",
+    "description": "Khối / Ngân hàng trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Trung tâm Kinh doanh Hội sở",
+    "code": "COB",
+    "parent": "WB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Doanh nghiệp",
+    "status": "Active"
+  },
+  {
+    "name": "Trung tâm Khách hàng Doanh nghiệp Lớn",
+    "code": "LCB",
+    "parent": "WB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Doanh nghiệp",
+    "status": "Active"
+  },
+  {
+    "name": "Trung tâm Khách hàng doanh nghiệp",
+    "code": "MCB",
+    "parent": "WB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Doanh nghiệp",
+    "status": "Active"
+  },
+  {
+    "name": "Hub Kinh doanh - Vùng Khách hàng Doanh nghiệp",
+    "code": "BHC",
+    "parent": "WB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Doanh nghiệp",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Giải pháp",
+    "code": "SOL",
+    "parent": "WB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Doanh nghiệp",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phân tích và quản trị hiệu quả",
+    "code": "APP",
+    "parent": "WB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Doanh nghiệp",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phát triển Đối tác và thúc đẩy bán",
+    "code": "PSP",
+    "parent": "WB",
+    "description": "Phòng/Vùng ban trực thuộc Ngân hàng Doanh nghiệp",
+    "status": "Active"
+  },
+  {
+    "name": "Khối Thị trường và Quản trị tài chính",
+    "code": "MFM",
+    "parent": "HO",
+    "description": "Khối / Ngân hàng trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng ALM",
+    "code": "ALM",
+    "parent": "MFM",
+    "description": "Phòng/Vùng ban trực thuộc Khối Thị trường và Quản trị tài chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Bán Sản phẩm Thị trường tài chính",
+    "code": "FMP",
+    "parent": "MFM",
+    "description": "Phòng/Vùng ban trực thuộc Khối Thị trường và Quản trị tài chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Kế toán và thuế",
+    "code": "ACT",
+    "parent": "MFM",
+    "description": "Phòng/Vùng ban trực thuộc Khối Thị trường và Quản trị tài chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Kinh doanh Thị trường tài chính",
+    "code": "FMS",
+    "parent": "MFM",
+    "description": "Phòng/Vùng ban trực thuộc Khối Thị trường và Quản trị tài chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản trị tài chính",
+    "code": "FMM",
+    "parent": "MFM",
+    "description": "Phòng/Vùng ban trực thuộc Khối Thị trường và Quản trị tài chính",
+    "status": "Active"
+  },
+  {
+    "name": "Khối Quản trị rủi ro",
+    "code": "RISK",
+    "parent": "HO",
+    "description": "Khối / Ngân hàng trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Chính sách và quản trị",
+    "code": "PGV",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Kiểm tra, giám sát nội bộ",
+    "code": "IDC",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Pháp chế",
+    "code": "LEG",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phê duyệt tín dụng",
+    "code": "CAD",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản lý rủi ro",
+    "code": "RMD",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Thẩm định",
+    "code": "APPR",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Thẩm định giá",
+    "code": "VAL",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Thu hồi nợ",
+    "code": "DRC",
+    "parent": "RISK",
+    "description": "Phòng/Vùng ban trực thuộc Khối Quản trị rủi ro",
+    "status": "Active"
+  },
+  {
+    "name": "Khối Vận hành",
+    "code": "OPS",
+    "parent": "HO",
+    "description": "Khối / Ngân hàng trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Vận hành tín dụng",
+    "code": "COD",
+    "parent": "OPS",
+    "description": "Phòng/Vùng ban trực thuộc Khối Vận hành",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản lý Dịch vụ khách hàng và kho quỹ",
+    "code": "CST",
+    "parent": "OPS",
+    "description": "Phòng/Vùng ban trực thuộc Khối Vận hành",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Chuyển tiền, Tài trợ thương mại và hỗ trợ giao dịch nguồn vốn",
+    "code": "FTT",
+    "parent": "OPS",
+    "description": "Phòng/Vùng ban trực thuộc Khối Vận hành",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Dịch vụ vận hành số và thẻ",
+    "code": "DCO",
+    "parent": "OPS",
+    "description": "Phòng/Vùng ban trực thuộc Khối Vận hành",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Tổng đài Chăm sóc khách hàng 24/7",
+    "code": "CCC",
+    "parent": "OPS",
+    "description": "Phòng/Vùng ban trực thuộc Khối Vận hành",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản trị vận hành",
+    "code": "OPM",
+    "parent": "OPS",
+    "description": "Phòng/Vùng ban trực thuộc Khối Vận hành",
+    "status": "Active"
+  },
+  {
+    "name": "Khối Công nghệ Thông tin",
+    "code": "IT",
+    "parent": "HO",
+    "description": "Khối / Ngân hàng trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng An ninh thông tin và tuân thủ",
+    "code": "ISC",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Dữ liệu và phân tích",
+    "code": "DAN",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Kiến trúc và kế hoạch",
+    "code": "APK",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phân tích và kiểm thử",
+    "code": "ATD",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phát triển Ứng dụng",
+    "code": "APD",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản trị dự án và dịch vụ công nghệ thông tin",
+    "code": "PMD",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Vận hành hạ tầng công nghệ thông tin và hỗ trợ",
+    "code": "ITS",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Vận hành ứng dụng và cơ sở dữ liệu",
+    "code": "ADO",
+    "parent": "IT",
+    "description": "Phòng/Vùng ban trực thuộc Khối Công nghệ Thông tin",
+    "status": "Active"
+  },
+  {
+    "name": "Khối Nhân sự và Dịch vụ nội bộ",
+    "code": "HRI",
+    "parent": "HO",
+    "description": "Khối / Ngân hàng trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Hành chính quản trị",
+    "code": "ADM",
+    "parent": "HRI",
+    "description": "Phòng/Vùng ban trực thuộc Khối Nhân sự và Dịch vụ nội bộ",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Phát triển nguồn lực và đào tạo",
+    "code": "HDT",
+    "parent": "HRI",
+    "description": "Phòng/Vùng ban trực thuộc Khối Nhân sự và Dịch vụ nội bộ",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản lý nhân sự",
+    "code": "HRM",
+    "parent": "HRI",
+    "description": "Phòng/Vùng ban trực thuộc Khối Nhân sự và Dịch vụ nội bộ",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Xây dựng cơ bản và phát triển mạng lưới",
+    "code": "CMD",
+    "parent": "HRI",
+    "description": "Phòng/Vùng ban trực thuộc Khối Nhân sự và Dịch vụ nội bộ",
+    "status": "Active"
+  },
+  {
+    "name": "Văn phòng Quản trị",
+    "code": "GOV",
+    "parent": "HO",
+    "description": "Khối / Ngân hàng trực thuộc Hội sở chính",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Trợ lý và thư ký",
+    "code": "ASD",
+    "parent": "GOV",
+    "description": "Phòng/Vùng ban trực thuộc Văn phòng Quản trị",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Marketing và truyền thông",
+    "code": "MKT",
+    "parent": "GOV",
+    "description": "Phòng/Vùng ban trực thuộc Văn phòng Quản trị",
+    "status": "Active"
+  },
+  {
+    "name": "Phòng Quản trị kế hoạch và Hiệu suất",
+    "code": "SPM",
+    "parent": "GOV",
+    "description": "Phòng/Vùng ban trực thuộc Văn phòng Quản trị",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn An Đông",
+    "code": "AĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh An Giang",
+    "code": "AG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn An Phú",
+    "code": "AP",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bắc Giang",
+    "code": "BG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bắc Kạn",
+    "code": "BK",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bạc Liêu",
+    "code": "BL",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bắc Ninh",
+    "code": "BN",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bảo Lộc",
+    "code": "BLO",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Ba Vì",
+    "code": "BV",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bến Tre",
+    "code": "BTR",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bỉm Sơn",
+    "code": "BS",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bình Định",
+    "code": "BĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bình Dương",
+    "code": "BD",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bình Phước",
+    "code": "BP",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Bình Tân",
+    "code": "BT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Bình Tây",
+    "code": "BTA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Bình Thới",
+    "code": "BTH",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bình Thuận",
+    "code": "BTHU",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Cà Mau",
+    "code": "CM",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Cẩm Thủy",
+    "code": "CTH",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Cần Thơ",
+    "code": "CT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Cao Bằng",
+    "code": "CB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Cầu Giấy",
+    "code": "CG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Chợ Lớn",
+    "code": "CL",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Củ Chi",
+    "code": "CC",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Đăk Lăk",
+    "code": "ĐL",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Đăk Nông",
+    "code": "ĐNO",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Đà Nằng",
+    "code": "ĐN",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Điện Biên",
+    "code": "ĐB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Đông Anh",
+    "code": "ĐA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Đông Đô",
+    "code": "ĐĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Đồng Nai",
+    "code": "ĐNA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Đồng Tháp",
+    "code": "ĐT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Đô Thành",
+    "code": "ĐTH",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Gia Lai",
+    "code": "GL",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Gia Lâm",
+    "code": "GLA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Hà Đông",
+    "code": "HĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hà Giang",
+    "code": "HG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hải Dương",
+    "code": "HD",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hải Phòng",
+    "code": "HP",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hà Nam",
+    "code": "HNA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hà Nội",
+    "code": "HN",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hà Tĩnh",
+    "code": "HT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hậu Giang",
+    "code": "HGI",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hòa Bình",
+    "code": "HB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Hoàng Mai",
+    "code": "HM",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Việt Yên",
+    "code": "VY",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Quang Trung",
+    "code": "QTG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Huế",
+    "code": "TTH",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hưng Yên",
+    "code": "HY",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Khánh Hòa",
+    "code": "KH",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Kiên Giang",
+    "code": "KG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Kon Tum",
+    "code": "KT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Lai Châu",
+    "code": "LC",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Lâm Đồng",
+    "code": "LĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Lạng Sơn",
+    "code": "LS",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Lào Cai",
+    "code": "LCA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Long An",
+    "code": "LA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Long Biên",
+    "code": "LB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Mỹ Đình",
+    "code": "MĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Nam Định",
+    "code": "NĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Nam Sài Gòn",
+    "code": "NSG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Nghệ An",
+    "code": "NA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Nhà Bè",
+    "code": "NBE",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Ninh Bình",
+    "code": "NB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Ninh Thuận",
+    "code": "NT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Phú Nhuận",
+    "code": "PN",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Phú Thọ",
+    "code": "PT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Phú Yên",
+    "code": "PY",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Quảng Bình",
+    "code": "QB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Quảng Nam",
+    "code": "QNA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Quảng Ngãi",
+    "code": "QNG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Quảng Ninh",
+    "code": "QN",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Quảng Trị",
+    "code": "QT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Sài Gòn",
+    "code": "SG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Sóc Trăng",
+    "code": "ST",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Sơn La",
+    "code": "SL",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Sơn Tây",
+    "code": "STA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Tân Bình",
+    "code": "TBI",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Tây Hồ",
+    "code": "THO",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Tây Ninh",
+    "code": "TN",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Thái Bình",
+    "code": "TB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Thanh Nhàn",
+    "code": "TNH",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Thanh Hóa",
+    "code": "TH",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Thăng Long",
+    "code": "TL",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Thái Nguyên",
+    "code": "TNG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Thủ Đức",
+    "code": "TĐ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Thường Tín",
+    "code": "TT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Tiền Giang",
+    "code": "TG",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh TP.Hồ Chí Minh",
+    "code": "HCM",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Trà Vinh",
+    "code": "TV",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Trường Chinh",
+    "code": "TC",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "PGD lớn Trung Yên",
+    "code": "TY",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Tuyên Quang",
+    "code": "TQ",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Vĩnh Long",
+    "code": "VL",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Vĩnh Phúc",
+    "code": "VP",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Vũng Tàu",
+    "code": "VT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Xuân Mai",
+    "code": "XM",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Yên Bái",
+    "code": "YB",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Tây Nghệ An",
+    "code": "TNA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Bắc Hà Tĩnh",
+    "code": "BHT",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Hoài Nhơn",
+    "code": "HNO",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Móng Cái",
+    "code": "MCA",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  },
+  {
+    "name": "Chi nhánh Mộc Châu",
+    "code": "MC",
+    "parent": "DVKD",
+    "description": "Đơn vị kinh doanh (Chi nhánh / PGD lớn)",
+    "status": "Active"
+  }
+]

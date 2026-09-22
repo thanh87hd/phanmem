@@ -1,0 +1,4 @@
+# Thư mục này chứa file uploads runtime (bằng chứng kiểm toán, báo cáo, tài liệu).
+# KHÔNG commit file upload thực tế vào Git (ADR-0012).
+# File uploads được lưu trữ tại MinIO/NAS chuyên dụng (xem .env: STORAGE_PATH).
+# Retention policy: tối thiểu 10 năm theo VSA 500 / IIA Standard 2330.

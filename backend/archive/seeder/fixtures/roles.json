@@ -1,0 +1,77 @@
+[
+  {
+    "name": "Admin",
+    "description": "Quản trị viên toàn hệ thống",
+    "permissions": "dashboard,personnel,roles,audit_trail,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,sign_report,recommendations,summary_reports,continuous_monitoring,quality_control,audit_committee,regulatory_exams,general_tasks,audit_expenses,training_cpe"
+  },
+  {
+    "name": "Trưởng Ban kiểm soát",
+    "description": "Trưởng Ban kiểm soát",
+    "permissions": "dashboard,audit_committee,summary_reports,regulatory_exams,independence_tracker"
+  },
+  {
+    "name": "Phó Trưởng Ban kiểm soát",
+    "description": "Phó Trưởng Ban kiểm soát",
+    "permissions": "dashboard,audit_committee,summary_reports,regulatory_exams,independence_tracker"
+  },
+  {
+    "name": "Thành viên Ban kiểm soát",
+    "description": "Thành viên Ban kiểm soát",
+    "permissions": "dashboard,audit_committee,summary_reports,regulatory_exams,independence_tracker"
+  },
+  {
+    "name": "Giám đốc Khối kiểm toán nội bộ",
+    "description": "Giám đốc Khối kiểm toán nội bộ (CAE)",
+    "permissions": "dashboard,audit_trail,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,sign_report,recommendations,summary_reports,continuous_monitoring,quality_control,audit_committee,regulatory_exams,general_tasks,audit_expenses,training_cpe"
+  },
+  {
+    "name": "Phó Giám đốc Khối kiểm toán nội bộ",
+    "description": "Phó Giám đốc Khối kiểm toán nội bộ",
+    "permissions": "dashboard,audit_trail,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,sign_report,recommendations,summary_reports,continuous_monitoring,quality_control,audit_committee,regulatory_exams,general_tasks,audit_expenses,training_cpe"
+  },
+  {
+    "name": "Trưởng phòng kiểm toán hội sở hệ thống",
+    "description": "Trưởng phòng kiểm toán hội sở hệ thống",
+    "permissions": "dashboard,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,recommendations,summary_reports,continuous_monitoring,quality_control,general_tasks,audit_expenses,training_cpe"
+  },
+  {
+    "name": "Phó phòng kiểm toán hội sở hệ thống",
+    "description": "Phó phòng kiểm toán hội sở hệ thống",
+    "permissions": "dashboard,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,recommendations,summary_reports,continuous_monitoring,quality_control,general_tasks,audit_expenses,training_cpe"
+  },
+  {
+    "name": "Trưởng phòng kiểm toán đơn vị kinh doanh",
+    "description": "Trưởng phòng kiểm toán đơn vị kinh doanh",
+    "permissions": "dashboard,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,recommendations,summary_reports,continuous_monitoring,quality_control,general_tasks,audit_expenses,training_cpe"
+  },
+  {
+    "name": "Phó phòng kiểm toán đơn vị kinh doanh",
+    "description": "Phó phòng kiểm toán đơn vị kinh doanh",
+    "permissions": "dashboard,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,recommendations,summary_reports,continuous_monitoring,quality_control,general_tasks,audit_expenses,training_cpe"
+  },
+  {
+    "name": "Chuyên gia",
+    "description": "Chuyên gia kiểm toán",
+    "permissions": "dashboard,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,recommendations,continuous_monitoring,general_tasks,training_cpe"
+  },
+  {
+    "name": "Kiểm toán viên cao cấp",
+    "description": "Kiểm toán viên cao cấp",
+    "permissions": "dashboard,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,recommendations,continuous_monitoring,general_tasks,training_cpe"
+  },
+  {
+    "name": "Kiểm toán viên chính",
+    "description": "Kiểm toán viên chính",
+    "permissions": "dashboard,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,recommendations,general_tasks,training_cpe"
+  },
+  {
+    "name": "Kiểm toán viên",
+    "description": "Kiểm toán viên",
+    "permissions": "dashboard,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,recommendations,general_tasks,training_cpe"
+  },
+  {
+    "name": "Đơn vị được kiểm toán",
+    "description": "Đơn vị nhận kiến nghị",
+    "permissions": "dashboard,auditee_portal,recommendations"
+  }
+]

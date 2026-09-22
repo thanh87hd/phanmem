@@ -1,0 +1,418 @@
+[
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Thẩm định giá",
+    "processName": "Quy trình Định giá Tài sản bảo đảm",
+    "description": "Định giá và tái định giá tài sản bảo đảm vượt thẩm quyền của ĐVKD và theo yêu cầu đặc biệt của Ban lãnh đạo.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Thẩm định giá",
+    "processName": "Quản lý Hệ thống & Cơ sở dữ liệu định giá",
+    "description": "Xây dựng biểu mẫu, hướng dẫn nghiệp vụ, cập nhật cơ sở dữ liệu giá thị trường và công cụ hỗ trợ định giá.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Kiểm tra, giám sát nội bộ",
+    "processName": "Hoạt động Giám sát từ xa & Kiểm soát tuân thủ Tuyến 2",
+    "description": "Giám sát từ xa các hoạt động nghiệp vụ (tín dụng, kế toán, kho quỹ, bảo hiểm...) tại các đơn vị kinh doanh.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Kiểm tra, giám sát nội bộ",
+    "processName": "Điều tra Gian lận & Giải quyết Khiếu nại Tố cáo",
+    "description": "Đầu mối xác minh đơn thư khiếu nại, tố cáo, điều tra các sự vụ có dấu hiệu gian lận nội bộ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Thẩm định",
+    "processName": "Quy trình Thẩm định Tín dụng Doanh nghiệp & Bán lẻ",
+    "description": "Thẩm định độc lập và tái thẩm định các hồ sơ cấp tín dụng vượt thẩm quyền của ĐVKD.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Phê duyệt tín dụng",
+    "processName": "Quy trình Phê duyệt Tín dụng & Quản trị thẩm quyền",
+    "description": "Phê duyệt tín dụng theo hạn mức ủy quyền của Tổng Giám đốc và quản trị hệ thống phân quyền phê duyệt toàn hệ thống.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Thu hồi nợ",
+    "processName": "Quy trình Quản lý & Thu hồi nợ xấu Hội sở",
+    "description": "Trực tiếp xử lý nợ xấu, nợ cần xử lý theo phân công, và tham mưu hoạt động của Hội đồng xử lý nợ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Pháp chế",
+    "processName": "Tư vấn Pháp lý & Quản trị rủi ro pháp luật",
+    "description": "Tham mưu pháp lý cho HĐQT, Ban điều hành, giải quyết tranh chấp pháp lý và rà soát tính pháp lý của văn bản định chế.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Quản lý rủi ro",
+    "processName": "Quản trị rủi ro tích hợp & Tính toán vốn an toàn (ICAAP)",
+    "description": "Thiết lập khung quản trị rủi ro trọng yếu (tín dụng, thị trường, thanh khoản, hoạt động...) và theo dõi hạn mức rủi ro.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Chính sách và quản trị",
+    "processName": "Quản lý Chính sách Tín dụng & Hệ thống xếp hạng nội bộ",
+    "description": "Xây dựng chính sách tín dụng, quy định tài sản bảo đảm, và vận hành hệ thống xếp hạng tín dụng nội bộ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Quản trị rủi ro",
+    "blockCode": "QTRR",
+    "department": "Phòng Chính sách và quản trị",
+    "processName": "Công tác Phòng chống rửa tiền (AML) & Tuân thủ FATCA",
+    "description": "Xây dựng chính sách, giám sát giao dịch đáng ngờ, tuân thủ cấm vận và báo cáo phòng chống rửa tiền.",
+    "category": "ChuyenDe"
+  },
+  {
+    "block": "Khối Thị trường và Quản trị tài chính",
+    "blockCode": "TT& QTTC",
+    "department": "Phòng Kinh doanh Thị trường tài chính",
+    "processName": "Nghiệp vụ Kinh doanh Nguồn vốn & Ngoại hối (Treasury)",
+    "description": "Kinh doanh ngoại tệ, vàng, tiền tệ trên thị trường liên ngân hàng và phái sinh tài chính.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Thị trường và Quản trị tài chính",
+    "blockCode": "TT& QTTC",
+    "department": "Phòng Bán Sản phẩm Thị trường tài chính",
+    "processName": "Nghiệp vụ Phân phối & Bán chéo sản phẩm nguồn vốn",
+    "description": "Phân phối các sản phẩm thị trường tài chính (ngoại tệ, phái sinh...) cho khách hàng doanh nghiệp và cá nhân.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Thị trường và Quản trị tài chính",
+    "blockCode": "TT& QTTC",
+    "department": "Phòng ALM",
+    "processName": "Quản trị khe hở nhạy cảm lãi suất & Thanh khoản (ALM)",
+    "description": "Quản trị bảng cân đối kế toán, rủi ro thanh khoản, rủi ro lãi suất sổ ngân hàng, và điều hành tỷ giá nội bộ (FTP).",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Thị trường và Quản trị tài chính",
+    "blockCode": "TT& QTTC",
+    "department": "Phòng Kế toán và thuế",
+    "processName": "Quy trình Lập Báo cáo tài chính & Kê khai thuế",
+    "description": "Đầu mối lập báo cáo tài chính toàn hàng, thực hiện nghĩa vụ thuế và quản trị hệ thống chứng từ kế toán.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Thị trường và Quản trị tài chính",
+    "blockCode": "TT& QTTC",
+    "department": "Phòng Quản trị tài chính",
+    "processName": "Quản trị chi phí hoạt động & Lập ngân sách toàn hàng",
+    "description": "Lập kế hoạch tài chính, phân bổ ngân sách, quản lý định mức chi tiêu và phân tích hiệu quả tài chính.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Doanh nghiệp",
+    "blockCode": "NH DN",
+    "department": "Phòng Phân tích và quản trị hiệu quả",
+    "processName": "Phân tích Dữ liệu Khách hàng & Đo lường hiệu quả kinh doanh DN",
+    "description": "Quản lý hiệu quả danh mục, đo lường năng suất bán hàng và lập báo cáo phân tích định kỳ mảng Doanh nghiệp.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Doanh nghiệp",
+    "blockCode": "NH DN",
+    "department": "Phòng Giải pháp",
+    "processName": "Nghiên cứu & Thiết kế giải pháp tài chính Khách hàng DN",
+    "description": "Thiết kế gói sản phẩm tín dụng, thanh toán, quản lý dòng tiền dành riêng cho phân khúc doanh nghiệp.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Doanh nghiệp",
+    "blockCode": "NH DN",
+    "department": "Phòng Phát triển Đối tác và thúc đẩy bán",
+    "processName": "Quản trị Kênh phân phối & Hợp tác chiến lược Doanh nghiệp",
+    "description": "Đầu mối hợp tác liên kết doanh nghiệp lớn, phát triển chuỗi giá trị và thúc đẩy bán hàng chéo.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Doanh nghiệp",
+    "blockCode": "NH DN",
+    "department": "Trung tâm Kinh doanh Hội sở",
+    "processName": "Quản lý Danh mục cấp tín dụng tập trung Hội sở",
+    "description": "Trực tiếp cấp tín dụng và quản lý các giao dịch lớn của khách hàng doanh nghiệp tại Trung tâm Kinh doanh Hội sở.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Doanh nghiệp",
+    "blockCode": "NH DN",
+    "department": "Trung tâm Khách hàng Doanh nghiệp Lớn",
+    "processName": "Phát triển & Chăm sóc Khách hàng Doanh nghiệp lớn (Corporate)",
+    "description": "Khai thác, thiết kế giải pháp tài chính và quản lý danh mục khách hàng doanh nghiệp lớn cấp tập đoàn.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Doanh nghiệp",
+    "blockCode": "NH DN",
+    "department": "Trung tâm Khách hàng doanh nghiệp",
+    "processName": "Quản lý Phân khúc Khách hàng Doanh nghiệp vừa và nhỏ (SME)",
+    "description": "Thúc đẩy kinh doanh phân khúc SME, xây dựng sản phẩm đặc thù và hỗ trợ ĐVKD bán hàng.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Phân khúc và dịch vụ khách hàng cá nhân ưu tiên",
+    "processName": "Quy trình Dịch vụ Khách hàng Cá nhân Ưu tiên (VIP/Affluent)",
+    "description": "Phát triển chính sách, sản phẩm, và giám sát tiêu chuẩn chất lượng dịch vụ dành riêng cho KH ưu tiên.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Quản lý mSME và Hộ kinh doanh",
+    "processName": "Phát triển Phân khúc Khách hàng Tiểu thương & mSME",
+    "description": "Xây dựng sản phẩm tín dụng, thanh toán và mô hình bán hàng tập trung cho nhóm tiểu thương và hộ kinh doanh.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Phát triển sản phẩm và giải pháp tài chính",
+    "processName": "Thiết kế sản phẩm Tín dụng Cá nhân & Huy động vốn bán lẻ",
+    "description": "Nghiên cứu thị trường, xây dựng tính năng sản phẩm cho vay cá nhân, huy động và các giải pháp thanh toán bán lẻ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Quản trị mạng lưới và Tuân thủ",
+    "processName": "Quản trị mạng lưới Bán lẻ & Giám sát tuân thủ hoạt động",
+    "description": "Thiết lập tiêu chuẩn mạng lưới phòng giao dịch, giám sát chất lượng và kiểm soát tuân thủ mảng bán lẻ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Phát triển kinh doanh và thúc đẩy bán hợp kênh",
+    "processName": "Quy trình Bán hàng Hợp kênh (Omni-channel) & Marketing bán lẻ",
+    "description": "Triển khai các chiến dịch thúc đẩy bán hàng chéo hợp kênh và truyền thông sản phẩm bán lẻ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Kinh doanh thẻ và Đơn vị chấp nhận thanh toán",
+    "processName": "Nghiệp vụ Phát hành & Thanh toán Thẻ (Card Business)",
+    "description": "Quản lý vòng đời sản phẩm thẻ (tín dụng, ghi nợ), hợp tác với tổ chức thẻ quốc tế và phát triển ĐV chấp nhận thanh toán (POS/mPOS).",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Hợp tác kinh doanh bảo hiểm",
+    "processName": "Quy trình Kinh doanh Bảo hiểm liên kết (Bancassurance)",
+    "description": "Đầu mối hợp tác với đối tác bảo hiểm, đào tạo chứng chỉ, quản lý hoa hồng và giám sát tuân thủ bán chéo bảo hiểm.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Ngân hàng Bán lẻ",
+    "blockCode": "NHBL",
+    "department": "Phòng Quản trị hiệu quả và Phân tích kinh doanh",
+    "processName": "Phân tích Hiệu quả Kinh doanh & Quản lý KPI Bán lẻ",
+    "description": "Theo dõi chỉ tiêu kinh doanh bán lẻ, lập báo cáo phân tích hiệu quả chiến dịch bán hàng và phân bổ KPI chi tiết.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Vận hành",
+    "blockCode": "KVH",
+    "department": "Phòng Vận hành tín dụng",
+    "processName": "Nghiệp vụ Hỗ trợ tín dụng & Giải ngân tập trung Hội sở",
+    "description": "Kiểm tra hồ sơ pháp lý sau phê duyệt, thực hiện thủ tục giải ngân, quản lý hạn mức và lưu kho TSBĐ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Vận hành",
+    "blockCode": "KVH",
+    "department": "Phòng Quản lý Dịch vụ khách hàng và kho quỹ",
+    "processName": "Quản lý Dịch vụ Khách hàng & An toàn Kho quỹ tập trung",
+    "description": "Thiết lập tiêu chuẩn dịch vụ, điều chuyển tiền mặt toàn hệ thống, quản lý hạn mức quỹ và kiểm kê kho quỹ an toàn.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Vận hành",
+    "blockCode": "KVH",
+    "department": "Phòng Chuyển tiền, Tài trợ thương mại và hỗ trợ giao dịch nguồn vốn",
+    "processName": "Quy trình Thanh toán Quốc tế & Tài trợ thương mại Hội sở",
+    "description": "Thực hiện các giao dịch L/C, bảo lãnh quốc tế, chuyển tiền quốc tế qua SWIFT và hỗ trợ giao dịch nguồn vốn.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Vận hành",
+    "blockCode": "KVH",
+    "department": "Phòng Chuyển tiền, Tài trợ thương mại và hỗ trợ giao dịch nguồn vốn",
+    "processName": "Quy trình Chuyển tiền & Thanh toán trong nước tập trung",
+    "description": "Xử lý các giao dịch chuyển tiền điện tử trong nước, CITAD, thanh toán bù trừ song phương.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Vận hành",
+    "blockCode": "KVH",
+    "department": "Phòng Dịch vụ vận hành số và thẻ",
+    "processName": "Quy trình Vận hành Dịch vụ ngân hàng số & Vận hành Thẻ",
+    "description": "Duyệt hồ sơ mở tài khoản online (eKYC), xử lý tra soát, khiếu nại giao dịch thẻ và ngân hàng số.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Vận hành",
+    "blockCode": "KVH",
+    "department": "Phòng Tổng đài Chăm sóc khách hàng 24/7",
+    "processName": "Vận hành Tổng đài Call Center 24/7 & Chăm sóc khách hàng",
+    "description": "Tiếp nhận yêu cầu khóa thẻ khẩn cấp, tư vấn giải đáp thắc mắc và tiếp nhận khiếu nại của khách hàng qua Hotline.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Vận hành",
+    "blockCode": "KVH",
+    "department": "Phòng Quản trị vận hành",
+    "processName": "Quản trị quy trình Vận hành & SLA toàn hệ thống",
+    "description": "Thiết lập cam kết chất lượng dịch vụ (SLA) nội bộ, chuẩn hóa quy trình vận hành và đo lường năng suất lao động.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Nhân sự và Dịch vụ nội bộ",
+    "blockCode": "NS &DVNB",
+    "department": "Phòng Quản lý nhân sự",
+    "processName": "Quy trình Tính lương, Thưởng & Quản lý quan hệ lao động",
+    "description": "Lập bảng lương định kỳ, quản lý BHXH, thuế TNCN, khen thưởng, kỷ luật và ký kết hợp đồng lao động.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Nhân sự và Dịch vụ nội bộ",
+    "blockCode": "NS &DVNB",
+    "department": "Phòng Phát triển nguồn lực và đào tạo",
+    "processName": "Quy trình Tuyển dụng & Đào tạo phát triển nhân sự",
+    "description": "Lập kế hoạch tuyển dụng, tổ chức đào tạo tân tuyển, đào tạo nghiệp vụ định kỳ và quản lý ngân sách đào tạo.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Nhân sự và Dịch vụ nội bộ",
+    "blockCode": "NS &DVNB",
+    "department": "Phòng Xây dựng cơ bản và phát triển mạng lưới",
+    "processName": "Quản trị Dự án Đầu tư Xây dựng & Mua sắm tài sản cố định",
+    "description": "Đầu mối thẩm định thiết kế, đấu thầu thi công xây dựng, sửa chữa trụ sở và phát triển mạng lưới chi nhánh.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Nhân sự và Dịch vụ nội bộ",
+    "blockCode": "NS &DVNB",
+    "department": "Phòng Hành chính quản trị",
+    "processName": "Công tác Lưu trữ Văn thư, Quản lý ấn chỉ & Hậu cần Hội sở",
+    "description": "Quản lý con dấu, văn thư đi/đến, quản trị đội xe, mua sắm văn phòng phẩm và công tác hậu cần phục vụ.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng Kiến trúc và kế hoạch",
+    "processName": "Quản trị Kiến trúc Công nghệ & Lập kế hoạch CNTT",
+    "description": "Xây dựng lộ trình phát triển CNTT, phê duyệt kiến trúc ứng dụng và dữ liệu toàn ngân hàng.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng Quản trị dự án và dịch vụ công nghệ thông tin",
+    "processName": "Quản lý danh mục Dự án CNTT & Chất lượng dịch vụ",
+    "description": "Quản trị vòng đời dự án công nghệ, quản lý nhà thầu IT, và giám sát cam kết SLA của dịch vụ công nghệ.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng Phát triển Ứng dụng",
+    "processName": "Quy trình Phát triển ứng dụng & Quản lý mã nguồn (SDLC)",
+    "description": "Phát triển phần mềm, xây dựng API kết nối, kiểm soát mã nguồn và quản lý quy trình chuyển giao phần mềm.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng Phân tích và kiểm thử",
+    "processName": "Quy trình Kiểm thử chất lượng phần mềm (Testing/QA)",
+    "description": "Kiểm thử hộp đen, kiểm thử hiệu năng, và quản lý quy trình UAT phần mềm trước khi golive.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng Dữ liệu và phân tích",
+    "processName": "Quản trị cơ sở dữ liệu lớn & Báo cáo quản trị (Data Warehouse)",
+    "description": "Xây dựng kho dữ liệu dùng chung, quản trị chất lượng dữ liệu và hỗ trợ trích xuất dữ liệu phân tích.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng Vận hành ứng dụng và cơ sở dữ liệu",
+    "processName": "Quản trị cơ sở dữ liệu lớn & Báo cáo quản trị (Data Warehouse)",
+    "description": "Xây dựng kho dữ liệu dùng chung, quản trị chất lượng dữ liệu và hỗ trợ trích xuất dữ liệu phân tích.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng Vận hành hạ tầng công nghệ thông tin và hỗ trợ",
+    "processName": "Quản lý Vận hành hạ tầng phần cứng, mạng & Helpdesk IT",
+    "description": "Bảo trì hệ thống máy chủ, mạng WAN/LAN, quản trị tổng đài nội bộ và hỗ trợ sự cố người dùng (Helpdesk).",
+    "category": "HeThong"
+  },
+  {
+    "block": "Khối Công nghệ Thông tin",
+    "blockCode": "CNTT",
+    "department": "Phòng An ninh thông tin và tuân thủ",
+    "processName": "Quản trị An ninh thông tin & Đánh giá lỗ hổng bảo mật",
+    "description": "Đánh giá an ninh ứng dụng (Pentest), giám sát ATTT qua SOC, quản lý quyền truy cập và kiểm soát tuân thủ ISO 27001.",
+    "category": "HeThong"
+  },
+  {
+    "block": "Văn phòng Quản trị",
+    "blockCode": "VP HĐQT",
+    "department": "Phòng Trợ lý và thư ký",
+    "processName": "Quản trị Thư ký HĐQT & Quan hệ cổ đông",
+    "description": "Tổ chức các cuộc họp Đại hội đồng cổ đông, HĐQT, lưu trữ nghị quyết và công bố thông tin theo quy định.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Văn phòng Quản trị",
+    "blockCode": "VP HĐQT",
+    "department": "Phòng Marketing và truyền thông",
+    "processName": "Quy trình Quản trị Thương hiệu & Truyền thông đối ngoại",
+    "description": "Xây dựng chiến dịch thương hiệu, xử lý khủng hoảng truyền thông, tổ chức sự kiện và quản lý báo chí.",
+    "category": "HoiSo"
+  },
+  {
+    "block": "Văn phòng Quản trị",
+    "blockCode": "VP HĐQT",
+    "department": "Phòng Quản trị kế hoạch và Hiệu suất",
+    "processName": "Lập Kế hoạch Chiến lược & Đo lường KPI toàn hàng",
+    "description": "Tham mưu lập kế hoạch chiến lược 5 năm, giao chỉ tiêu KPI hàng năm và đánh giá hiệu suất các đơn vị.",
+    "category": "HoiSo"
+  }
+]

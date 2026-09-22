@@ -1,0 +1,2 @@
+# Thư mục chứa SQL backup từ tính năng backup DB trong ứng dụng.
+# KHÔNG commit file *.sql vào Git (ADR-0012).

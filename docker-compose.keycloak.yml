@@ -1,0 +1,16 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: lpbank_keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./deploy/keycloak/keycloak-realm-lpbank.json:/opt/keycloak/data/import/keycloak-realm-lpbank.json:ro
+    restart: unless-stopped

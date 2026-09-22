@@ -1,0 +1,33 @@
+{
+  "cookies": [
+    {
+      "name": "jwt",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjo3OSwicm9sZSI6IkFkbWluIiwiaWF0IjoxNzg5OTExODUwLCJleHAiOjE3ODk5NDA2NTB9.kiz94jdfZ1iyCWL_6TfkDa_fd2YnX4TErUBmZap0x4A",
+      "domain": "localhost",
+      "path": "/api/auth",
+      "expires": 1818711850.115969,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "i18nextLng",
+          "value": "vi-VN"
+        },
+        {
+          "name": "token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjo3OSwicm9sZSI6IkFkbWluIiwiaWF0IjoxNzg5OTExODUwLCJleHAiOjE3ODk5NDA2NTB9.kiz94jdfZ1iyCWL_6TfkDa_fd2YnX4TErUBmZap0x4A"
+        },
+        {
+          "name": "user",
+          "value": "{\"id\":79,\"username\":\"admin\",\"fullName\":\"Hệ thống Quản trị\",\"role\":\"Admin\",\"permissions\":\"dashboard,personnel,roles,audit_trail,departments,audit_universe,risk_assessment,audit_plan,resource_calendar,audit_engagements,working_papers,audit_findings,timesheet,data_analytics,audit_templates,audit_reports,sign_report,recommendations,summary_reports,continuous_monitoring,quality_control,audit_committee,regulatory_exams,general_tasks,audit_expenses,training_cpe\",\"mustChangePassword\":false,\"isPasswordExpired\":false}"
+        }
+      ]
+    }
+  ]
+}

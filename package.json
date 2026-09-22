@@ -1,0 +1,45 @@
+{
+  "name": "phan-mem-ktnb",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "ci:check": "npm run lint && npm run build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "test:load": "node scripts/load-test/run-load-test-comprehensive.js --scenario=load",
+    "test:load:smoke": "node scripts/load-test/run-load-test-comprehensive.js --scenario=smoke",
+    "test:load:heavy": "node scripts/load-test/run-load-test-comprehensive.js --scenario=heavy",
+    "test:load:stress": "node scripts/load-test/run-load-test-comprehensive.js --scenario=stress",
+    "test:load:all": "node scripts/load-test/run-load-test-comprehensive.js --scenario=all",
+    "test:security": "node scripts/security/run-security-suite.js",
+    "test:security:vps": "node scripts/security/run-security-suite.js --target=vps",
+    "test:subagents": "node scripts/subagent_multirole_audit_test.mjs",
+    "test:audit-team": "playwright test e2e/tests/e2e_audit_team_lifecycle.spec.ts --project=chromium",
+    "package:ubuntu": "node scripts/package-for-ubuntu.js",
+    "assemble:ubuntu": "node scripts/assemble-deploy-folder.js",
+    "deploy:chinhta": "node scripts/deploy-chinhta.js"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^10.1.0",
+    "@playwright/test": "^1.62.1",
+    "pg": "^8.21.0",
+    "playwright": "^1.62.1"
+  },
+  "devDependencies": {
+    "@dietrichgebert/ponytail": "^4.8.4",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2"
+  },
+  "lint-staged": {
+    "backend/**/*.{js,ts}": [
+      "npm --prefix backend run lint"
+    ],
+    "frontend/**/*.{js,jsx,ts,tsx}": [
+      "npm --prefix frontend run lint"
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+services:
+  postgres-db:
+    image: postgres:14
+    container_name: ktnb_postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-ktnb_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis-db:
+    image: redis:7-alpine
+    container_name: ktnb_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  ocr-service:
+    build:
+      context: ./ocr-service
+    container_name: ktnb_ocr
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  backend:
+    build: 
+      context: ./backend
+    container_name: ktnb_backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=postgres-db
+      - DB_PORT=5432
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - DB_NAME=${DB_NAME:-ktnb_db}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required and must be at least 32 characters}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-8h}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:5173}
+      - ENABLE_DEMO_SEED=${ENABLE_DEMO_SEED:-false}
+      - OCR_SERVICE_URL=http://ocr-service:8000/extract
+    depends_on:
+      - postgres-db
+      - redis-db
+      - ocr-service
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: ktnb_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:

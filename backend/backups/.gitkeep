@@ -1,0 +1,4 @@
+# Thư mục này chứa database backups runtime.
+# KHÔNG commit file *.sql, *.dump, *.sql.gz vào Git (ADR-0012).
+# Backups phải được lưu trữ tại NAS/S3/MinIO chuyên dụng của ngân hàng.
+# Retention policy: tối thiểu 10 năm (Thông tư 13/2018/TT-NHNN).

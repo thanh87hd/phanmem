@@ -1,0 +1,799 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --lpbank-gold: #f59e0b;
+  --lpbank-gold-hover: #d97706;
+  --lpbank-gold-active: #b45309;
+  --lpbank-gold-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #ea580c 100%);
+  --lpbank-gold-light: #fef3c7;
+  --lpbank-gold-subtle: #fffbeb;
+  --lpbank-gold-border: #fde68a;
+  
+  --lpbank-sidebar-bg: #ffffff;
+  --lpbank-sidebar-border: #fde68a;
+  --lpbank-text-primary: #0f172a;
+  --lpbank-text-secondary: #475569;
+  --lpbank-text-muted: #64748b;
+  --lpbank-canvas-bg: #faf8f5;
+  --lpbank-card-border: #fef08a;
+  --lpbank-table-header: #fef9ee;
+  
+  --primary-gold: #f59e0b;
+  --earth-brown: #b45309;
+  --dark-brown: #92400e;
+  --light-gold: #fef3c7;
+  --cream-bg: #faf8f5;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #faf8f5; /* LPBank Imperial Gold Warm Canvas */
+  color: #0f172a;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Sidebar Custom Styling - LPBank Imperial Light Gold */
+.ant-layout-sider {
+  background-color: #ffffff !important;
+  border-right: 1px solid #fde68a !important;
+}
+
+.ant-layout-sider-trigger {
+  background-color: #fef3c7 !important;
+  color: #d97706 !important;
+  border-top: 1px solid #fde68a !important;
+  font-weight: 700 !important;
+}
+
+/* Sidebar Menu Custom Styling */
+.ant-menu {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-inline-end: none !important;
+}
+
+.ant-menu-item-group-title {
+  color: #b45309 !important; /* Rich amber gold for section titles */
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding-top: 16px !important;
+  border-top: 1px solid rgba(245, 158, 11, 0.15);
+  margin-top: 12px;
+}
+
+.ant-menu-item {
+  color: #334155 !important;
+  margin-block: 4px !important;
+  border-radius: 10px !important;
+  margin-inline: 8px !important;
+  width: calc(100% - 16px) !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-menu-item:hover:not(.ant-menu-item-selected) {
+  color: #b45309 !important;
+  background-color: #fef3c7 !important;
+}
+
+.ant-menu-item .anticon {
+  color: #d97706 !important;
+  font-size: 16px;
+  transition: color 0.2s ease;
+}
+
+.ant-menu-item:hover:not(.ant-menu-item-selected) .anticon {
+  color: #b45309 !important;
+}
+
+.ant-menu-item-selected {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35) !important;
+}
+
+.ant-menu-item-selected .anticon {
+  color: #ffffff !important;
+}
+
+/* Button & Card Accent Polish */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border-color: #d97706 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45) !important;
+}
+
+/* Main Layout Content Area styling */
+.ant-layout-content {
+  background: #ffffff !important;
+  border: 1px solid #fde68a !important;
+}
+
+/* LPBank Card Styling */
+.ant-card {
+  border-color: #fef08a !important;
+  border-radius: 14px !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+.ant-card-head {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #fef08a !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 🏦 LPBANK CORPORATE UTILITY CLASSES & SYSTEM HERO STYLING       */
+/* ═══════════════════════════════════════════════════════════════ */
+
+.lpbank-hero-gradient {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 45%, #ea580c 100%);
+  color: #ffffff;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 28px -6px rgba(245, 158, 11, 0.4);
+}
+
+.lpbank-hero-gradient::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.lpbank-floating-card {
+  background: #ffffff;
+  border: 1px solid #fef08a;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px -4px rgba(245, 158, 11, 0.12), 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.lpbank-gold-pill-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-radius: 20px !important;
+  padding: 6px 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.4) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.lpbank-gold-pill-btn:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5) !important;
+  color: #ffffff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 🌟 LPBANK UNIFIED GOLD BUTTON SYSTEM (MINIMAL & ACCESSIBLE)   */
+/* ═══════════════════════════════════════════════════════════════ */
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) {
+  background-color: #f59e0b !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
+  background-color: #d97706 !important;
+  border-color: #d97706 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45) !important;
+  transform: translateY(-0.5px);
+}
+
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):active {
+  background-color: #b45309 !important;
+  border-color: #b45309 !important;
+  color: #ffffff !important;
+  transform: translateY(0);
+}
+
+.ant-btn-default:not(:disabled):hover {
+  color: #d97706 !important;
+  border-color: #f59e0b !important;
+  background-color: #fffbeb !important;
+}
+
+.lpbank-speech-bubble {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea9105 100%);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 6px 20px rgba(234, 145, 5, 0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  animation: lpbank-float-gentle 3s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.lpbank-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 22px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #ea9105;
+}
+
+@keyframes lpbank-float-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 🏦 MODERN BANKING ENTERPRISE UI & TABLE OPTIMIZATIONS          */
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* 1. Sleek Custom Scrollbars (Density 8/10 Minimalist) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 2. Global Table Header: Chống chữ chạy dọc & tràn màn hình */
+.ant-table-wrapper {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.ant-table-container {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Tiêu đề bảng không bao giờ bị bẻ dọc từng chữ */
+.ant-table-thead > tr > th,
+.ant-table-thead > tr > th .ant-table-column-title,
+.ant-table-thead > tr > th .ant-table-filter-column {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  text-overflow: ellipsis;
+  vertical-align: middle !important;
+  font-weight: 600 !important;
+  color: #2d1808 !important;
+  background-color: #fffbf5 !important;
+  border-bottom: 1px solid #f1e5d8 !important;
+}
+
+/* Lớp hỗ trợ ngắt dòng an toàn có giới hạn min-width cho tiêu đề dài */
+.ant-table-thead > tr > th.wrap-header {
+  white-space: normal !important;
+  min-width: 150px !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f8f1e8 !important;
+  color: #334155;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: #fff8ed !important;
+}
+
+.ant-table {
+  font-size: 13px;
+}
+
+/* Card titles: Không bị ép ngắt dọc */
+.ant-card-head-title {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  font-weight: 700 !important;
+}
+
+/* 3. Responsive Mobile Tabs with Smooth Horizontal Swipe */
+.ant-tabs-nav-wrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.ant-tabs-nav-list {
+  min-width: max-content;
+}
+
+/* 3. Mobile Breakpoint (< 768px) */
+@media (max-width: 768px) {
+  /* Prevent iOS input auto-zoom */
+  input, select, textarea, .ant-input, .ant-select-selection-item, .ant-input-number-input {
+    font-size: 16px !important;
+  }
+
+  /* Compact content wrapper */
+  .ant-layout-content {
+    margin: 6px !important;
+    padding: 10px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Page Header auto-wrapping on mobile */
+  .ant-layout-content > div > .flex.justify-between.items-center,
+  .ant-layout-content > div > div > .flex.justify-between.items-center,
+  .ant-layout-content > div > .flex.justify-between,
+  .ant-layout-content > div > div > .flex.justify-between {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  /* Compact Card padding */
+  .ant-card {
+    margin-bottom: 12px !important;
+    border-radius: 8px !important;
+  }
+
+  .ant-card-head {
+    padding: 0 10px !important;
+    min-height: 40px !important;
+  }
+
+  .ant-card-head-wrapper {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 6px 0 !important;
+  }
+
+  .ant-card-extra {
+    margin-left: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+
+  .ant-card-extra .ant-space {
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+
+  .ant-card-body {
+    padding: 10px !important;
+  }
+
+  .ant-card-head-title {
+    font-size: 14px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: keep-all !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Responsive Modals */
+  .ant-modal {
+    max-width: calc(100vw - 12px) !important;
+    margin: 6px auto !important;
+    top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .ant-modal-content {
+    padding: 14px !important;
+    max-height: calc(100vh - 24px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ant-modal-body {
+    overflow-y: auto !important;
+    max-height: calc(85vh - 110px) !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Responsive Drawers */
+  .ant-drawer-content-wrapper {
+    max-width: 100vw !important;
+  }
+
+  .ant-drawer .ant-drawer-body {
+    padding: 12px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Mobile Button Touch Target */
+  .ant-btn {
+    min-height: 38px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
+  /* Compact Table Cells */
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 8px 6px !important;
+    font-size: 12px !important;
+  }
+
+  /* Table Pagination */
+  .ant-table-pagination.ant-pagination {
+    margin: 10px 0 !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 4px !important;
+  }
+
+  .ant-pagination-options {
+    display: none !important;
+  }
+
+  /* Mobile Statistic component */
+  .ant-statistic-title {
+    font-size: 12px !important;
+  }
+
+  .ant-statistic-content-value {
+    font-size: 20px !important;
+  }
+
+  /* Global Forms on Mobile */
+  .ant-form-item {
+    margin-bottom: 10px !important;
+  }
+
+  .ant-form-item-label {
+    padding-bottom: 2px !important;
+  }
+
+  .ant-picker {
+    width: 100% !important;
+  }
+
+  .ant-select {
+    max-width: 100% !important;
+  }
+
+  .ant-space {
+    flex-wrap: wrap !important;
+    max-width: 100% !important;
+  }
+
+  /* Descriptions & Steps on Mobile */
+  .ant-descriptions-view {
+    border-radius: 6px !important;
+  }
+
+  .ant-descriptions-item {
+    padding-bottom: 6px !important;
+  }
+
+  .ant-steps-horizontal:not(.ant-steps-label-vertical) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 8px !important;
+  }
+
+  .ant-segmented {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+  }
+
+  /* Typography Headings */
+  h1.ant-typography, .ant-typography h1 {
+    font-size: 18px !important;
+    line-height: 1.3 !important;
+  }
+  h2.ant-typography, .ant-typography h2 {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+  h3.ant-typography, .ant-typography h3 {
+    font-size: 15px !important;
+    line-height: 1.3 !important;
+  }
+  h4.ant-typography, .ant-typography h4 {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Charts Container */
+  .recharts-responsive-container {
+    min-height: 200px !important;
+  }
+
+  /* Utility classes */
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .mobile-w-full {
+    width: 100% !important;
+  }
+
+  .mobile-flex-col {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
+/* 4. Tablet Breakpoint (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .ant-layout-content {
+    margin: 12px !important;
+    padding: 14px !important;
+  }
+
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 10px 8px !important;
+  }
+}
+
+/* 5. Print Mode Styling */
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  .ant-layout-sider,
+  .ant-layout-header,
+  .ant-btn,
+  .no-print {
+    display: none !important;
+  }
+
+  .ant-layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* 6. TipTap Editor Styling */
+.ProseMirror {
+  outline: none;
+  min-height: 140px;
+  font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  color: #1e293b;
+}
+
+.ProseMirror p {
+  margin-bottom: 0.6em;
+}
+
+.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 0.8rem;
+  margin-bottom: 0.4rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.ProseMirror h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #b45309;
+  margin-top: 0.6rem;
+  margin-bottom: 0.3rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #f59e0b;
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: #475569;
+  background-color: #fefce8;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 1.25rem 0;
+}
+
+/* TipTap Tables */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  min-width: 1em;
+  border: 1px solid #cbd5e1;
+  padding: 8px 10px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror table th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #fef9ee;
+  color: #0f172a;
+  border-bottom: 2px solid #fde68a;
+}
+
+.ProseMirror table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(234, 145, 5, 0.15);
+  pointer-events: none;
+}
+
+/* TipTap Task List */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 🏷️ LPBANK UNIFIED STATUS TAG SYSTEM                           */
+/* ═══════════════════════════════════════════════════════════════ */
+
+.lpbank-tag-success {
+  background-color: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+  color: #166534 !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+
+.lpbank-tag-warning {
+  background-color: #fff7ed !important;
+  border-color: #fed7aa !important;
+  color: #ea9105 !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+
+.lpbank-tag-danger {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #991b1b !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+
+.lpbank-tag-draft {
+  background-color: #fefce8 !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* 🌐 LPBANK HEADER CONTROLS (LANG SELECTOR & NOTIF BELL)         */
+/* ═══════════════════════════════════════════════════════════════ */
+
+.lpbank-lang-select .ant-select-selector {
+  border-color: #fde68a !important;
+  border-radius: 8px !important;
+  height: 34px !important;
+  display: flex !important;
+  align-items: center !important;
+  background-color: #ffffff !important;
+  padding: 0 8px !important;
+  box-shadow: none !important;
+}
+
+.lpbank-lang-select:hover .ant-select-selector {
+  border-color: #f59e0b !important;
+  background-color: #fffbeb !important;
+}
+
+.lpbank-lang-select .ant-select-selection-item {
+  display: flex !important;
+  align-items: center !important;
+  line-height: normal !important;
+  padding: 0 !important;
+}
+
+.notification-bell-btn:hover {
+  border-color: #ea9105 !important;
+  background-color: #fef9f5 !important;
+}
+

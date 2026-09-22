@@ -1,0 +1,529 @@
+/* ==========================================
+   KITA AI ASSISTANT PREMIUM STYLING SYSTEM
+   LPBank Corporate Theme (Gold & Earth Brown)
+   ========================================== */
+
+/* 1. PULSING FLOATING GRADIENT CAPSULE BUTTON */
+.kita-floating-button-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  cursor: grab;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.kita-floating-button-container.dragging {
+  cursor: grabbing !important;
+  transition: none !important;
+}
+
+.kita-floating-button-container:hover .kita-floating-button-wrapper {
+  transform: translateY(-6px) scale(1.03);
+  border-color: #f59e0b;
+  box-shadow: 0 12px 40px rgba(245, 158, 11, 0.4), 0 0 25px rgba(245, 158, 11, 0.4);
+}
+
+.kita-floating-button-container.dragging .kita-floating-button-wrapper {
+  transform: none !important;
+  cursor: grabbing !important;
+  transition: none !important;
+}
+
+.kita-floating-button-wrapper {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  border: 1px solid rgba(254, 240, 138, 0.6);
+  border-radius: 40px;
+  padding: 6px 16px 6px 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.35), 0 0 15px rgba(245, 158, 11, 0.2);
+  transition: all 0.3s ease;
+  height: 52px;
+}
+
+.kita-floating-avatar-container {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #f59e0b;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  animation: pulse-avatar-glow 2s infinite alternate;
+}
+
+.kita-floating-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.kita-floating-label {
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pulse-avatar-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(245, 158, 11, 0.4);
+    border-color: #f59e0b;
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.9);
+    border-color: #ffd685;
+  }
+}
+
+/* 2. CHAT DRAWER GLASSMORPHIC SYSTEM */
+.kita-chat-drawer .ant-drawer-content {
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  box-shadow: -10px 0 40px rgba(245, 158, 11, 0.15) !important;
+  border-left: 2px solid rgba(245, 158, 11, 0.4);
+  background: rgba(255, 253, 247, 0.98) !important;
+  backdrop-filter: blur(12px);
+}
+
+.kita-chat-drawer .ant-drawer-header {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
+  border-bottom: 2px solid #fde68a !important;
+  padding: 14px 20px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.kita-chat-drawer .ant-drawer-close {
+  color: #ffffff !important;
+  transition: all 0.3s ease;
+}
+
+.kita-chat-drawer .ant-drawer-close:hover {
+  color: #fef08a !important;
+  transform: rotate(90deg);
+}
+
+/* Drawer Header custom elements */
+.kita-header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.kita-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kita-header-avatar-ring {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #ea9105;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(234, 145, 5, 0.3);
+}
+
+.kita-header-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.kita-header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.kita-header-title {
+  color: #ffffff !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  margin-bottom: 0 !important;
+  letter-spacing: 0.2px;
+}
+
+.kita-header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kita-header-subtitle {
+  color: #cda47e !important;
+  font-size: 11px !important;
+  font-weight: 500;
+}
+
+.kita-active-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #52c41a;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px #52c41a;
+  animation: pulse-active 2s infinite;
+}
+
+@keyframes pulse-active {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px #52c41a; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+/* 3. MESSAGES SCROLL CONTAINER & ANIMATION */
+.kita-chat-messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 12px;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar styling */
+.kita-chat-messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+.kita-chat-messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kita-chat-messages-container::-webkit-scrollbar-thumb {
+  background: rgba(89, 49, 22, 0.15);
+  border-radius: 4px;
+}
+.kita-chat-messages-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(89, 49, 22, 0.3);
+}
+
+.kita-message-row {
+  display: flex;
+  margin-bottom: 16px;
+  width: 100%;
+  animation: kita-fade-in-up 0.4s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+@keyframes kita-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-row {
+  justify-content: flex-end;
+}
+
+.kita-row {
+  justify-content: flex-start;
+}
+
+/* Avatar bubble in Chat List */
+.kita-avatar-bubble {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid #ea9105;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(89, 49, 22, 0.1);
+  overflow: hidden;
+}
+
+.kita-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 4. PREMIUM CHAT BUBBLES REDESIGN */
+.kita-message-bubble {
+  max-width: 80%;
+  padding: 12px 16px;
+  position: relative;
+  word-break: break-word;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s ease;
+}
+
+.user-row .kita-message-bubble {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #0f172a;
+  border-radius: 18px 18px 4px 18px;
+  border: 1px solid #fde68a;
+}
+
+.user-row .kita-message-bubble:hover {
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.12) !important;
+}
+
+.kita-row .kita-message-bubble {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-radius: 18px 18px 18px 4px;
+  border: 1px solid #edf0f2;
+  border-left: 3.5px solid #f59e0b; /* Gorgeous brand accent line */
+}
+
+.kita-row .kita-message-bubble:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+.kita-message-content {
+  font-size: 13px;
+  line-height: 1.6;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.kita-message-content strong {
+  color: #b45309;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Message Time stamp */
+.kita-message-time {
+  font-size: 9px;
+  color: #95a5a6;
+  text-align: right;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+/* 5. HIGH-TECH METADATA BAR */
+.kita-metadata-bar {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px dashed #e8ecef;
+  padding-top: 6px;
+}
+
+.kita-metadata-source {
+  font-size: 10px;
+  color: #7f8c8d;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.kita-metadata-source .icon {
+  font-size: 12px;
+}
+
+.kita-metadata-tag {
+  background: rgba(234, 145, 5, 0.08) !important;
+  color: #ea9105 !important;
+  border: 1px solid rgba(234, 145, 5, 0.15) !important;
+  border-radius: 6px !important;
+  font-size: 9px !important;
+  padding: 1px 6px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+/* 6. GOLDEN WAVE TYPING LOADER */
+.loading-bubble {
+  background-color: #ffffff !important;
+  border: 1px solid #edf0f2 !important;
+  border-left: 3.5px solid #ea9105 !important;
+  padding: 12px 18px !important;
+}
+
+.kita-typing-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kita-typing-wave {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 12px;
+}
+
+.kita-typing-wave .dot {
+  width: 6px;
+  height: 6px;
+  background-color: #ea9105;
+  border-radius: 50%;
+  display: inline-block;
+  animation: typing-wave-anim 1.4s infinite ease-in-out both;
+  box-shadow: 0 0 4px rgba(234, 145, 5, 0.5);
+}
+
+.kita-typing-wave .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.kita-typing-wave .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.kita-typing-text {
+  font-size: 11px;
+  color: #7f8c8d;
+  font-weight: 500;
+  font-style: italic;
+}
+
+@keyframes typing-wave-anim {
+  0%, 80%, 100% { 
+    transform: scale(0.6);
+    opacity: 0.5;
+  } 
+  40% { 
+    transform: scale(1.2);
+    opacity: 1;
+    background-color: #ffd685;
+  }
+}
+
+/* 7. QUICK PROMPT PILLS SECTION */
+.kita-quick-prompts-container {
+  background: #fefce8;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #fef08a;
+}
+
+.kita-quick-prompts-title {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #b45309 !important;
+  display: block;
+  margin-bottom: 6px !important;
+}
+
+.kita-quick-prompts-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kita-quick-prompt-btn {
+  background-color: #ffffff !important;
+  border: 1.2px solid #fde68a !important;
+  color: #0f172a !important;
+  font-size: 11px !important;
+  border-radius: 20px !important; /* Pill style */
+  font-weight: 600 !important;
+  padding: 2px 10px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
+}
+
+.kita-quick-prompt-btn:hover {
+  border-color: #ea9105 !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #ea9105 0%, #d17f04 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(234, 145, 5, 0.2) !important;
+}
+
+.kita-quick-prompt-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* 8. SEARCH-BAR INSPIRED INPUT CONTAINER */
+.kita-input-panel {
+  border-top: 1px solid rgba(89, 49, 22, 0.08);
+  padding-top: 12px;
+}
+
+.kita-input-container {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1.5px solid #edf0f2;
+  border-radius: 24px;
+  padding: 4px 6px 4px 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.kita-input-container:focus-within {
+  border-color: #ea9105;
+  box-shadow: 0 4px 15px rgba(234, 145, 5, 0.12), 0 0 0 3px rgba(234, 145, 5, 0.05);
+}
+
+.kita-input-area {
+  font-size: 13px !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 4px 8px 4px 0 !important;
+  flex: 1;
+  resize: none;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.kita-input-area::placeholder {
+  color: #95a5a6;
+}
+
+.kita-input-area:disabled {
+  color: #bdc3c7;
+}
+
+.kita-send-btn-round {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #ea9105 0%, #d17f04 100%) !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 3px 10px rgba(234, 145, 5, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.kita-send-btn-round:hover {
+  transform: scale(1.08) rotate(5deg);
+  box-shadow: 0 5px 15px rgba(234, 145, 5, 0.5) !important;
+}
+
+.kita-send-btn-round:active {
+  transform: scale(0.95);
+}
+
+.kita-send-btn-round .anticon {
+  font-size: 15px !important;
+  color: #ffffff !important;
+}

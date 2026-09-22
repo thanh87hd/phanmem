@@ -1,0 +1,60 @@
+# Backend-level .gitignore — LPBank Smart Audit 4.0
+# ADR-0012: Tách Runtime Data khỏi Codebase
+
+# ══════════════════════════════════════════════════════════════════
+# BUILD OUTPUT (NestJS compiled)
+# ══════════════════════════════════════════════════════════════════
+dist/
+*.tsbuildinfo
+
+# ══════════════════════════════════════════════════════════════════
+# ENVIRONMENT FILES (credentials thật)
+# ══════════════════════════════════════════════════════════════════
+.env
+.env.local
+.env.development
+.env.staging
+# .env.production    ← Giữ lại nếu là template (không có credential thật)
+# .env.example       ← Luôn giữ lại trong Git
+
+# ══════════════════════════════════════════════════════════════════
+# RUNTIME DATA — TUYỆT ĐỐI KHÔNG VÀO GIT
+# ══════════════════════════════════════════════════════════════════
+
+# Database backups (có thể chứa PII / dữ liệu ngân hàng nhạy cảm)
+backups/*
+!backups/.gitkeep
+
+# File uploads runtime (bằng chứng kiểm toán thực tế - VSA 500)
+uploads/*
+!uploads/.gitkeep
+!uploads/backups/
+uploads/backups/*
+!uploads/backups/.gitkeep
+
+# Application logs
+logs/*
+!logs/.gitkeep
+*.log
+
+# ══════════════════════════════════════════════════════════════════
+# CODE GRAPH / DEPENDENCY ANALYSIS (tái tạo được)
+# ══════════════════════════════════════════════════════════════════
+codegraph.html
+codegraph-backend.json
+codegraph-frontend.json
+.codegraph/
+
+# ══════════════════════════════════════════════════════════════════
+# TEST OUTPUT
+# ══════════════════════════════════════════════════════════════════
+coverage/
+junit.xml
+test-results/
+
+# ══════════════════════════════════════════════════════════════════
+# TEMP / CACHE
+# ══════════════════════════════════════════════════════════════════
+tmp/
+temp/
+.cache/

@@ -1,0 +1,34 @@
+[
+  {
+    "category": "Tín dụng",
+    "title": "Lỗi thẩm định phê duyệt tín dụng",
+    "description": "Cán bộ tín dụng bỏ qua bước thẩm định thực tế tài sản bảo đảm, giải ngân vượt hạn mức phê duyệt hoặc thiếu kiểm soát chéo.",
+    "criteria": "Khoản 2 Điều 14 Thông tư 13/2018/TT-NHNN & Khoản 3 Điều 8 Thông tư 83/2025/TT-NHNN",
+    "riskLevel": "High",
+    "suggestedRecommendation": "Cần chấn chỉnh công tác thẩm định thực tế tài sản và ban hành văn bản nhắc nhở đối với cán bộ tín dụng liên quan.",
+    "keywords": [
+      "thẩm định",
+      "tài sản",
+      "tín dụng",
+      "giải ngân",
+      "thế chấp",
+      "bỏ qua"
+    ]
+  },
+  {
+    "category": "Công nghệ",
+    "title": "Sự cố Core Banking downtime",
+    "description": "Hệ thống chuyển mạch hoặc core banking gặp lỗi downtime kéo dài ảnh hưởng tới khách hàng.",
+    "criteria": "Khoản 1 Điều 23 Thông tư 13/2018/TT-NHNN",
+    "riskLevel": "Medium",
+    "suggestedRecommendation": "Khẩn trương rà soát lại các phương án dự phòng, tối ưu hóa hạ tầng kết nối và quy trình phục hồi sau sự cố để rút ngắn thời gian gián đoạn giao dịch.",
+    "keywords": [
+      "downtime",
+      "core banking",
+      "sự cố",
+      "hệ thống",
+      "chuyển tiền",
+      "lỗi hệ thống"
+    ]
+  }
+]

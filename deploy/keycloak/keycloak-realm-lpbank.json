@@ -1,0 +1,116 @@
+{
+  "id": "lpbank-audit",
+  "realm": "lpbank-audit",
+  "displayName": "LPBank Smart Audit SSO",
+  "displayNameHtml": "<b>LPBank</b> Smart Audit SSO",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Quản trị viên toàn quyền hệ thống"
+      },
+      {
+        "name": "lead_auditor",
+        "description": "Trưởng đoàn kiểm toán"
+      },
+      {
+        "name": "auditor",
+        "description": "Kiểm toán viên nội bộ"
+      },
+      {
+        "name": "lanh_dao",
+        "description": "Lãnh đạo Khối KTNB / Ban điều hành"
+      },
+      {
+        "name": "bks",
+        "description": "Thành viên Ban Kiểm soát"
+      },
+      {
+        "name": "auditee",
+        "description": "Đơn vị được kiểm toán"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "lpbank-audit-client",
+      "name": "LPBank Smart Audit Application",
+      "description": "OIDC Client cho hệ thống Kiểm toán nội bộ LPBank Smart Audit",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "lpbank-audit-secret-2026",
+      "redirectUris": [
+        "http://localhost:3000/api/auth/sso/keycloak/callback",
+        "http://localhost:5173/*",
+        "http://localhost:5173/login",
+        "http://localhost/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "defaultClientScopes": [
+        "web-origins",
+        "profile",
+        "roles",
+        "email"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "auditor.test",
+      "enabled": true,
+      "email": "auditor.test@lpbank.com.vn",
+      "firstName": "Nguyễn Văn",
+      "lastName": "Kiểm Toán",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Test@123456",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "auditor"
+      ]
+    },
+    {
+      "username": "lead.test",
+      "enabled": true,
+      "email": "lead.test@lpbank.com.vn",
+      "firstName": "Trần Thị",
+      "lastName": "Trưởng Đoàn",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Test@123456",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "lead_auditor"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+import React from 'react';
+
+// Exact vector paths extracted from official LPBank Brand Asset (media_1789394759730.png)
+// Official LPBank Gold: #f99d1c (Pantone 1375 C)
+export const LPBANK_BRAND_GOLD = '#f99d1c';
+
+// Full Logo ("LPBank" wordmark + emblem) - ViewBox 0 0 189 46
+const FULL_LOGO_PATH = "M166,0h8v1h-8Z M163,1h13v1h-13Z M162,2h15v1h-15Z M161,3h17v1h-17Z M160,4h19v1h-19Z M159,5h21v1h-21Z M158,6h11v1h-11Z M170,6h11v1h-11Z M158,7h10v1h-10Z M171,7h10v1h-10Z M157,8h11v1h-11Z M171,8h11v1h-11Z M157,9h10v1h-10Z M172,9h10v1h-10Z M157,10h9v1h-9Z M174,10h8v1h-8Z M157,11h7v1h-7Z M175,11h7v1h-7Z M150,12h7v1h-7Z M164,12h11v1h-11Z M182,12h7v1h-7Z M150,13h7v1h-7Z M164,13h11v1h-11Z M182,13h7v1h-7Z M0,14h6v1h-6Z M24,14h17v1h-17Z M50,14h19v1h-19Z M128,14h6v1h-6Z M150,14h7v1h-7Z M166,14h7v1h-7Z M182,14h7v1h-7Z M0,15h6v1h-6Z M24,15h19v1h-19Z M50,15h22v1h-22Z M128,15h6v1h-6Z M150,15h8v1h-8Z M167,15h5v1h-5Z M182,15h7v1h-7Z M0,16h6v1h-6Z M24,16h20v1h-20Z M50,16h23v1h-23Z M128,16h6v1h-6Z M151,16h7v1h-7Z M168,16h3v1h-3Z M181,16h8v1h-8Z M0,17h6v1h-6Z M24,17h21v1h-21Z M50,17h24v1h-24Z M128,17h6v1h-6Z M151,17h7v1h-7Z M168,17h3v1h-3Z M181,17h7v1h-7Z M0,18h6v1h-6Z M24,18h22v1h-22Z M50,18h24v1h-24Z M128,18h6v1h-6Z M151,18h8v1h-8Z M180,18h8v1h-8Z M0,19h6v1h-6Z M24,19h7v1h-7Z M39,19h8v1h-8Z M50,19h7v1h-7Z M67,19h8v1h-8Z M128,19h6v1h-6Z M152,19h7v1h-7Z M180,19h7v1h-7Z M0,20h6v1h-6Z M24,20h7v1h-7Z M40,20h7v1h-7Z M50,20h7v1h-7Z M68,20h7v1h-7Z M128,20h6v1h-6Z M152,20h8v1h-8Z M179,20h8v1h-8Z M0,21h6v1h-6Z M24,21h7v1h-7Z M41,21h6v1h-6Z M50,21h7v1h-7Z M69,21h6v1h-6Z M128,21h6v1h-6Z M152,21h9v1h-9Z M178,21h9v1h-9Z M0,22h6v1h-6Z M24,22h7v1h-7Z M42,22h5v1h-5Z M50,22h7v1h-7Z M69,22h6v1h-6Z M84,22h12v1h-12Z M103,22h6v1h-6Z M112,22h9v1h-9Z M128,22h6v1h-6Z M142,22h7v1h-7Z M153,22h10v1h-10Z M176,22h10v1h-10Z M0,23h6v1h-6Z M24,23h7v1h-7Z M42,23h6v1h-6Z M50,23h7v1h-7Z M69,23h6v1h-6Z M82,23h15v1h-15Z M103,23h6v1h-6Z M111,23h11v1h-11Z M128,23h6v1h-6Z M141,23h7v1h-7Z M154,23h11v1h-11Z M174,23h11v1h-11Z M0,24h6v1h-6Z M24,24h7v1h-7Z M42,24h6v1h-6Z M50,24h7v1h-7Z M69,24h6v1h-6Z M81,24h17v1h-17Z M103,24h6v1h-6Z M110,24h13v1h-13Z M128,24h6v1h-6Z M140,24h7v1h-7Z M155,24h29v1h-29Z M0,25h6v1h-6Z M24,25h7v1h-7Z M42,25h5v1h-5Z M50,25h7v1h-7Z M68,25h6v1h-6Z M81,25h18v1h-18Z M103,25h21v1h-21Z M128,25h6v1h-6Z M139,25h7v1h-7Z M156,25h27v1h-27Z M0,26h6v1h-6Z M24,26h7v1h-7Z M41,26h6v1h-6Z M50,26h24v1h-24Z M80,26h8v1h-8Z M92,26h8v1h-8Z M103,26h21v1h-21Z M128,26h6v1h-6Z M138,26h7v1h-7Z M157,26h25v1h-25Z M0,27h6v1h-6Z M24,27h7v1h-7Z M40,27h7v1h-7Z M50,27h23v1h-23Z M80,27h6v1h-6Z M94,27h6v1h-6Z M103,27h8v1h-8Z M118,27h6v1h-6Z M128,27h6v1h-6Z M137,27h7v1h-7Z M158,27h23v1h-23Z M0,28h6v1h-6Z M24,28h7v1h-7Z M38,28h9v1h-9Z M50,28h22v1h-22Z M80,28h6v1h-6Z M94,28h6v1h-6Z M103,28h7v1h-7Z M118,28h7v1h-7Z M128,28h6v1h-6Z M136,28h7v1h-7Z M159,28h21v1h-21Z M0,29h6v1h-6Z M24,29h22v1h-22Z M50,29h23v1h-23Z M80,29h5v1h-5Z M94,29h6v1h-6Z M103,29h7v1h-7Z M118,29h7v1h-7Z M128,29h6v1h-6Z M135,29h7v1h-7Z M161,29h17v1h-17Z M0,30h6v1h-6Z M24,30h21v1h-21Z M50,30h24v1h-24Z M93,30h7v1h-7Z M103,30h6v1h-6Z M119,30h6v1h-6Z M128,30h14v1h-14Z M164,30h11v1h-11Z M0,31h6v1h-6Z M24,31h20v1h-20Z M50,31h7v1h-7Z M66,31h9v1h-9Z M89,31h11v1h-11Z M103,31h6v1h-6Z M119,31h6v1h-6Z M128,31h14v1h-14Z M0,32h6v1h-6Z M24,32h19v1h-19Z M50,32h7v1h-7Z M69,32h6v1h-6Z M84,32h16v1h-16Z M103,32h6v1h-6Z M119,32h6v1h-6Z M128,32h14v1h-14Z M0,33h6v1h-6Z M24,33h17v1h-17Z M50,33h7v1h-7Z M69,33h7v1h-7Z M82,33h18v1h-18Z M103,33h6v1h-6Z M119,33h6v1h-6Z M128,33h15v1h-15Z M0,34h6v1h-6Z M24,34h7v1h-7Z M50,34h7v1h-7Z M70,34h6v1h-6Z M81,34h12v1h-12Z M94,34h6v1h-6Z M103,34h6v1h-6Z M119,34h6v1h-6Z M128,34h15v1h-15Z M0,35h6v1h-6Z M24,35h7v1h-7Z M50,35h7v1h-7Z M70,35h6v1h-6Z M80,35h9v1h-9Z M94,35h6v1h-6Z M103,35h6v1h-6Z M119,35h6v1h-6Z M128,35h8v1h-8Z M137,35h7v1h-7Z M0,36h6v1h-6Z M24,36h7v1h-7Z M50,36h7v1h-7Z M70,36h6v1h-6Z M79,36h7v1h-7Z M94,36h6v1h-6Z M103,36h6v1h-6Z M119,36h6v1h-6Z M128,36h7v1h-7Z M138,36h6v1h-6Z M0,37h6v1h-6Z M24,37h7v1h-7Z M50,37h7v1h-7Z M70,37h6v1h-6Z M79,37h6v1h-6Z M94,37h6v1h-6Z M103,37h6v1h-6Z M119,37h6v1h-6Z M128,37h6v1h-6Z M138,37h7v1h-7Z M0,38h6v1h-6Z M24,38h7v1h-7Z M50,38h7v1h-7Z M69,38h7v1h-7Z M79,38h6v1h-6Z M94,38h6v1h-6Z M103,38h6v1h-6Z M119,38h6v1h-6Z M128,38h6v1h-6Z M139,38h6v1h-6Z M0,39h6v1h-6Z M24,39h7v1h-7Z M50,39h7v1h-7Z M68,39h8v1h-8Z M79,39h6v1h-6Z M93,39h7v1h-7Z M103,39h6v1h-6Z M119,39h6v1h-6Z M128,39h6v1h-6Z M139,39h7v1h-7Z M0,40h21v1h-21Z M24,40h7v1h-7Z M50,40h25v1h-25Z M79,40h6v1h-6Z M92,40h8v1h-8Z M103,40h6v1h-6Z M119,40h6v1h-6Z M128,40h6v1h-6Z M140,40h7v1h-7Z M0,41h21v1h-21Z M24,41h7v1h-7Z M50,41h24v1h-24Z M79,41h8v1h-8Z M90,41h10v1h-10Z M103,41h6v1h-6Z M119,41h6v1h-6Z M128,41h6v1h-6Z M140,41h7v1h-7Z M0,42h21v1h-21Z M24,42h7v1h-7Z M50,42h24v1h-24Z M80,42h20v1h-20Z M103,42h6v1h-6Z M119,42h6v1h-6Z M128,42h6v1h-6Z M141,42h7v1h-7Z M0,43h21v1h-21Z M24,43h7v1h-7Z M50,43h22v1h-22Z M80,43h20v1h-20Z M103,43h6v1h-6Z M119,43h6v1h-6Z M128,43h6v1h-6Z M141,43h7v1h-7Z M0,44h21v1h-21Z M24,44h6v1h-6Z M50,44h20v1h-20Z M82,44h10v1h-10Z M94,44h6v1h-6Z M103,44h6v1h-6Z M119,44h6v1h-6Z M128,44h6v1h-6Z M142,44h7v1h-7Z M85,45h4v1h-4Z";
+
+// Emblem Only (The Golden Arch + Diamond + Crescent Bowl) - ViewBox 0 0 39 31
+const EMBLEM_ONLY_PATH = "M16,0h8v1h-8Z M13,1h13v1h-13Z M12,2h15v1h-15Z M11,3h17v1h-17Z M10,4h19v1h-19Z M9,5h21v1h-21Z M8,6h11v1h-11Z M20,6h11v1h-11Z M8,7h10v1h-10Z M21,7h10v1h-10Z M7,8h11v1h-11Z M21,8h11v1h-11Z M7,9h10v1h-10Z M22,9h10v1h-10Z M7,10h9v1h-9Z M24,10h8v1h-8Z M7,11h7v1h-7Z M25,11h7v1h-7Z M0,12h7v1h-7Z M14,12h11v1h-11Z M32,12h7v1h-7Z M0,13h7v1h-7Z M14,13h11v1h-11Z M32,13h7v1h-7Z M0,14h7v1h-7Z M16,14h7v1h-7Z M32,14h7v1h-7Z M0,15h8v1h-8Z M17,15h5v1h-5Z M32,15h7v1h-7Z M1,16h7v1h-7Z M18,16h3v1h-3Z M31,16h8v1h-8Z M1,17h7v1h-7Z M18,17h3v1h-3Z M31,17h7v1h-7Z M1,18h8v1h-8Z M30,18h8v1h-8Z M2,19h7v1h-7Z M30,19h7v1h-7Z M2,20h8v1h-8Z M29,20h8v1h-8Z M2,21h9v1h-9Z M28,21h9v1h-9Z M3,22h10v1h-10Z M26,22h10v1h-10Z M4,23h11v1h-11Z M24,23h11v1h-11Z M5,24h29v1h-29Z M6,25h27v1h-27Z M7,26h25v1h-25Z M8,27h23v1h-23Z M9,28h21v1h-21Z M11,29h17v1h-17Z M14,30h11v1h-11Z";
+
+export interface LPBankLogoProps {
+  /** 'full': Text + Emblem | 'emblem': Symbol only | 'text': Text only | 'header': Full Logo with Smart Audit tagline */
+  variant?: 'full' | 'emblem' | 'text' | 'header' | 'sidebar';
+  /** Height in pixels */
+  height?: number;
+  /** Primary color (defaults to official LPBank Golden Yellow #f99d1c) */
+  color?: string;
+  /** Custom class */
+  className?: string;
+  /** Inline style */
+  style?: React.CSSProperties;
+  /** Secondary tagline text */
+  subtitle?: string;
+}
+
+export const LPBankLogo: React.FC<LPBankLogoProps> = ({
+  variant = 'full',
+  height = 28,
+  color = LPBANK_BRAND_GOLD,
+  className = '',
+  style = {},
+  subtitle,
+}) => {
+  // 1. Symbol/Emblem Only (39x31 aspect ratio)
+  if (variant === 'emblem') {
+    const width = Math.round(height * (39 / 31));
+    return (
+      <svg
+        viewBox="0 0 39 31"
+        width={width}
+        height={height}
+        fill={color}
+        xmlns="http://www.w3.org/2000/svg"
+        className={`inline-block flex-shrink-0 transition-transform duration-200 ${className}`}
+        style={style}
+        aria-label="LPBank Emblem"
+      >
+        <path d={EMBLEM_ONLY_PATH} fillRule="evenodd" />
+      </svg>
+    );
+  }
+
+  // 2. Full Brand Logo (LPBank wordmark + Emblem on right, 189x46 aspect ratio)
+  if (variant === 'full') {
+    const width = Math.round(height * (189 / 46));
+    return (
+      <svg
+        viewBox="0 0 189 46"
+        width={width}
+        height={height}
+        fill={color}
+        xmlns="http://www.w3.org/2000/svg"
+        className={`inline-block flex-shrink-0 transition-transform duration-200 ${className}`}
+        style={style}
+        aria-label="LPBank Logo"
+      >
+        <path d={FULL_LOGO_PATH} fillRule="evenodd" />
+      </svg>
+    );
+  }
+
+  // 3. Header Variant: Official Golden Full Logo + Elegant Tagline
+  if (variant === 'header') {
+    return (
+      <div className={`flex items-center gap-2.5 cursor-pointer select-none ${className}`} style={style}>
+        {/* Official LPBank Logo in Golden Yellow */}
+        <LPBankLogo variant="full" height={height} color={color} />
+        
+        {/* Divider & Tagline */}
+        <div className="flex flex-col border-l border-amber-200/80 pl-2.5">
+          <span className="font-extrabold text-xs uppercase tracking-wider text-slate-800 leading-none">
+            {subtitle || 'Smart Audit 4.0'}
+          </span>
+          <span className="text-[10px] text-slate-500 font-medium hidden md:block mt-0.5 leading-none">
+            Kiểm toán Nội bộ
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Sidebar Variant: Emblem + Brand Name + Subtitle
+  if (variant === 'sidebar') {
+    return (
+      <div className={`flex items-center gap-2.5 truncate select-none ${className}`} style={style}>
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#fffbeb] to-[#fef3c7] border border-[#fde68a] flex items-center justify-center flex-shrink-0 shadow-xs">
+          <LPBankLogo variant="emblem" height={20} color={color} />
+        </div>
+        <div className="flex flex-col truncate">
+          <div className="flex items-center gap-1">
+            <span style={{ color: color, fontWeight: 900, fontSize: 16, letterSpacing: '-0.2px', fontFamily: '"Outfit", sans-serif' }}>
+              LPBank
+            </span>
+          </div>
+          <span className="text-xs font-bold text-slate-800 truncate -mt-0.5">
+            {subtitle || 'Kiểm toán Nội bộ'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return <LPBankLogo variant="full" height={height} color={color} className={className} style={style} />;
+};
+
+export default LPBankLogo;

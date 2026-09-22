@@ -1,0 +1,141 @@
+# ╔════════════════════════════════════════════════════════════════╗
+# ║  LPBank Smart Audit 4.0 — Root .gitignore                     ║
+# ║  ADR-0012: Tách biệt Runtime Data khỏi Codebase               ║
+# ╚════════════════════════════════════════════════════════════════╝
+
+# ══════════════════════════════════════════════════════════════════
+# 1. NODE MODULES (tất cả cấp)
+# ══════════════════════════════════════════════════════════════════
+node_modules/
+**/node_modules/
+
+# ══════════════════════════════════════════════════════════════════
+# 2. BUILD OUTPUT / COMPILED ARTIFACTS
+# ══════════════════════════════════════════════════════════════════
+dist/
+**/dist/
+build/
+**/build/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# ══════════════════════════════════════════════════════════════════
+# 3. ENVIRONMENT FILES — BẢNG MẬT / THÔNG TIN XÁC THỰC
+# Chỉ giữ *.example và *.production.example (template không có credential)
+# ══════════════════════════════════════════════════════════════════
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.staging
+.env.staging.local
+# *.production CÓ THỂ là template an toàn — kiểm tra từng trường hợp
+# .env.production   ← GIỮ LẠI nếu là template không credential
+
+# ══════════════════════════════════════════════════════════════════
+# 4. RUNTIME DATA — TUYỆT ĐỐI KHÔNG VÀO GIT (ADR-0012)
+# ══════════════════════════════════════════════════════════════════
+
+# Database backups (có thể chứa dữ liệu nhạy cảm ngân hàng)
+backend/backups/*
+!backend/backups/.gitkeep
+
+# File uploads runtime (bằng chứng kiểm toán thực tế)
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/backups/
+backend/uploads/backups/*
+!backend/uploads/backups/.gitkeep
+
+# Logs
+backend/logs/*
+!backend/logs/.gitkeep
+*.log
+**/*.log
+
+# ══════════════════════════════════════════════════════════════════
+# 5. SQL DUMP / DATABASE EXPORTS (dữ liệu nhạy cảm)
+# ══════════════════════════════════════════════════════════════════
+*.sql.gz
+*.sql.bak
+*.dump
+*.pg_dump
+/*.sql
+# Chú ý: /*.sql chỉ ignore SQL ở thư mục gốc (root)
+# Các migration hợp lệ nằm trong backend/scripts/ hoặc docs/migrations-archive/
+
+# ══════════════════════════════════════════════════════════════════
+# 6. DEPENDENCY GRAPH / CODE ANALYSIS OUTPUT
+# (file lớn, được tái tạo bằng npm run graph:backend)
+# ══════════════════════════════════════════════════════════════════
+*codegraph*
+**/*codegraph*
+.codegraph/
+**/.codegraph/
+
+# ══════════════════════════════════════════════════════════════════
+# 7. IDE / EDITOR FILES
+# ══════════════════════════════════════════════════════════════════
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ══════════════════════════════════════════════════════════════════
+# 8. OS / SYSTEM FILES
+# ══════════════════════════════════════════════════════════════════
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ══════════════════════════════════════════════════════════════════
+# 9. TEST / COVERAGE OUTPUT
+# ══════════════════════════════════════════════════════════════════
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+junit.xml
+**/junit.xml
+test-results/
+
+# ══════════════════════════════════════════════════════════════════
+# 10. VITE / FRONTEND BUILD CACHE
+# ══════════════════════════════════════════════════════════════════
+frontend/dist/
+frontend/.vite/
+**/.vite/
+
+# ══════════════════════════════════════════════════════════════════
+# 11. GIT / VERSIONING INTERNALS
+# ══════════════════════════════════════════════════════════════════
+.git/
+
+# ══════════════════════════════════════════════════════════════════
+# 12. DOCKER / CONTAINER RUNTIME
+# ══════════════════════════════════════════════════════════════════
+docker-compose.override.yml
+.docker/
+
+# ══════════════════════════════════════════════════════════════════
+# 13. TEMP / SCRATCH FILES
+# ══════════════════════════════════════════════════════════════════
+tmp/
+temp/
+**/tmp/
+**/temp/
+*.tmp
+*.temp
+.cache/
+**/.cache/
