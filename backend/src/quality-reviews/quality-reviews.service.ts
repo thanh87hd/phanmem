@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QualityReview } from './entities/quality-review.entity';
@@ -55,7 +60,7 @@ export class QualityReviewsService implements OnModuleInit {
     userName?: string,
   ) {
     const qr = await this.findOne(id);
-    if (!qr) throw new Error('Quality Review not found');
+    if (!qr) throw new NotFoundException('Quality Review not found');
 
     const now = new Date();
 
@@ -65,11 +70,28 @@ export class QualityReviewsService implements OnModuleInit {
       if (userId) qr.selfReviewerId = userId;
       qr.selfReviewedAt = now;
     } else if (level === 'supervisor') {
+      // IIA GIAS 2024 Gate: Supervisor review requires Self Review to be completed
+      if (qr.selfReviewStatus !== 'Completed') {
+        throw new BadRequestException(
+          'Tự soát xét (Self Review) phải hoàn thành (Completed) trước khi Người giám sát/Trưởng đoàn soát xét.',
+        );
+      }
       qr.supervisorReviewStatus = status;
       if (notes) qr.supervisorReviewNotes = notes;
       if (userId) qr.supervisorReviewerId = userId;
       qr.supervisorReviewedAt = now;
     } else if (level === 'independent') {
+      // IIA GIAS 2024 Gate: Independent review requires Self Review completed AND Supervisor review approved
+      if (qr.selfReviewStatus !== 'Completed') {
+        throw new BadRequestException(
+          'Tự soát xét (Self Review) phải hoàn thành (Completed) trước khi Soát xét độc lập.',
+        );
+      }
+      if (qr.supervisorReviewStatus !== 'Approved') {
+        throw new BadRequestException(
+          'Soát xét của Người giám sát/Trưởng đoàn phải được phê duyệt (Approved) trước khi Soát xét độc lập.',
+        );
+      }
       qr.independentReviewStatus = status;
       if (notes) qr.independentReviewNotes = notes;
       if (userId) qr.independentReviewerId = userId;

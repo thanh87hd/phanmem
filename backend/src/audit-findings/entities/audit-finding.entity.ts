@@ -239,7 +239,31 @@ export class AuditFinding {
   riskLevel: string; // Mức độ rủi ro: Critical | High | Medium | Low
 
   @Column({ default: 'Open' })
-  status: string; // Open | Confirmed | Disputed | Closed | Resolved
+  status: string; // Draft | Submitted | UnderReview | Confirmed | Reported | Closed | Returned | Withdrawn
+
+  @Column({ type: 'text', nullable: true })
+  withdrawalReason?: string;
+
+  @Column({ nullable: true })
+  withdrawnById?: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  withdrawnAt?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  returnReason?: string;
+
+  @Column({ nullable: true })
+  returnedById?: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  returnedAt?: Date;
+
+  @Column({ nullable: true })
+  confirmedById?: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  confirmedAt?: Date;
 
   @Column({ type: 'text', nullable: true })
   auditeeResponse: string; // Phản hồi giải trình từ ĐVĐKT

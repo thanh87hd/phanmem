@@ -645,6 +645,12 @@ export class RecommendationsService {
     if (!existingRec) throw new NotFoundException('Không tìm thấy kiến nghị');
     this.assertUpdateAccess(existingRec, user);
 
+    if ((dto as any).closureStatus === 'Closed' || dto.status === 'Closed') {
+      throw new BadRequestException(
+        'Không thể đóng kiến nghị trực tiếp qua update. Vui lòng thực hiện quy trình đóng kiến nghị (close) với đầy đủ ý kiến Trưởng đoàn và lý do đóng.',
+      );
+    }
+
     await this.repo.update(id, dto);
     const rec = await this.findOne(id);
     if (rec && dto.dueDate && !dto.slaStatus) {
@@ -670,6 +676,11 @@ export class RecommendationsService {
     if (user && !this.isPrivileged(user)) {
       throw new ForbiddenException(
         'Chỉ quản trị viên mới có quyền xóa kiến nghị',
+      );
+    }
+    if (rec.status === 'Verified' || rec.closureStatus === 'Closed') {
+      throw new BadRequestException(
+        'Không thể xóa kiến nghị đã được xác nhận hoàn thành (Verified) hoặc đã đóng (Closed).',
       );
     }
     await this.repo.delete(id);

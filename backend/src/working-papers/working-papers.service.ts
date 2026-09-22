@@ -302,6 +302,16 @@ export class WorkingPapersService {
     updateWorkingPaperDto: UpdateWorkingPaperDto,
     user?: AuthUserContext,
   ) {
+    const currentWp = await this.findOne(id);
+    if (!currentWp) {
+      throw new NotFoundException('Không tìm thấy Giấy tờ làm việc');
+    }
+    if (currentWp.status === 'Locked') {
+      throw new BadRequestException(
+        'Giấy tờ làm việc đã bị Khóa (Locked), không thể chỉnh sửa.',
+      );
+    }
+
     // ═══ COMPLETION GATE: Ràng buộc hoàn thành ma trận mẫu trước khi nộp duyệt ═══
     const isSubmittingOrApproving =
       updateWorkingPaperDto.status === 'PendingReview' ||
@@ -309,14 +319,11 @@ export class WorkingPapersService {
       updateWorkingPaperDto.status === 'Approved';
 
     if (isSubmittingOrApproving) {
-      const currentWp = await this.findOne(id);
-      if (currentWp) {
-        const stats = (currentWp as any)?.sampleStats;
-        if (stats && stats.total > 0 && stats.untested > 0) {
-          throw new BadRequestException(
-            `Không thể nộp hoặc phê duyệt Giấy tờ làm việc: Ma trận mẫu kiểm tra được phân giao còn ${stats.untested}/${stats.total} mẫu chưa được kiểm tra đánh giá kết quả. Vui lòng hoàn thành toàn bộ các mẫu trước khi nộp!`,
-          );
-        }
+      const stats = (currentWp as any)?.sampleStats;
+      if (stats && stats.total > 0 && stats.untested > 0) {
+        throw new BadRequestException(
+          `Không thể nộp hoặc phê duyệt Giấy tờ làm việc: Ma trận mẫu kiểm tra được phân giao còn ${stats.untested}/${stats.total} mẫu chưa được kiểm tra đánh giá kết quả. Vui lòng hoàn thành toàn bộ các mẫu trước khi nộp!`,
+        );
       }
     }
 
@@ -619,6 +626,19 @@ export class WorkingPapersService {
   }
 
   async remove(id: number) {
+    const wp = await this.findOne(id);
+    if (!wp) {
+      throw new NotFoundException('Không tìm thấy Giấy tờ làm việc');
+    }
+    if (
+      wp.status === 'Submitted' ||
+      wp.status === 'Approved' ||
+      wp.status === 'Locked'
+    ) {
+      throw new BadRequestException(
+        `Không thể xóa Giấy tờ làm việc ở trạng thái ${wp.status}. Chỉ có thể xóa WP ở trạng thái Draft hoặc Rework.`,
+      );
+    }
     await this.workingPaperRepository.delete(id);
     return { success: true };
   }

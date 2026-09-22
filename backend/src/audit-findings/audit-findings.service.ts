@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { CreateAuditFindingDto } from './dto/create-audit-finding.dto';
 import { UpdateAuditFindingDto } from './dto/update-audit-finding.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,7 +13,6 @@ import { AuditFinding } from './entities/audit-finding.entity';
 import { AuditWorkstream } from '../audit-engagements/entities/audit-workstream.entity';
 import { Recommendation } from '../recommendations/entities/recommendation.entity';
 import { WorkflowsService } from '../workflows/workflows.service';
-import { ForbiddenException } from '@nestjs/common';
 import { ScopeFilterService } from '../utils/scope-filter.service';
 
 @Injectable()
@@ -774,7 +778,49 @@ export class AuditFindingsService {
 
   async update(id: number, updateAuditFindingDto: any, user?: any) {
     const finding = await this.findOne(id);
-    if (!finding) throw new Error('Finding not found');
+    if (!finding) throw new NotFoundException('Finding not found');
+
+    const newStatus = updateAuditFindingDto.status;
+    if (newStatus && newStatus !== finding.status) {
+      // 1. Withdrawal validation
+      if (newStatus === 'Withdrawn') {
+        const reason = updateAuditFindingDto.withdrawalReason?.trim();
+        if (!reason) {
+          throw new BadRequestException(
+            'Cần cung cấp lý do rút phát hiện (withdrawalReason) khi chuyển trạng thái Withdrawn.',
+          );
+        }
+        finding.withdrawalReason = reason;
+        finding.withdrawnById = user?.userId || null;
+        finding.withdrawnAt = new Date();
+      }
+
+      // 2. Backward transition validation (reverting from UnderReview, Confirmed, Reported, Closed back to Draft/Open/Returned)
+      const forwardStates = ['UnderReview', 'Confirmed', 'Reported', 'Closed'];
+      const backwardTargets = ['Draft', 'Open', 'Returned'];
+      if (
+        forwardStates.includes(finding.status) &&
+        backwardTargets.includes(newStatus)
+      ) {
+        const reason =
+          updateAuditFindingDto.returnReason?.trim() ||
+          updateAuditFindingDto.reason?.trim();
+        if (!reason) {
+          throw new BadRequestException(
+            `Cần cung cấp lý do trả lại/điều chỉnh (returnReason) khi chuyển ngược phát hiện từ ${finding.status} về ${newStatus}.`,
+          );
+        }
+        finding.returnReason = reason;
+        finding.returnedById = user?.userId || null;
+        finding.returnedAt = new Date();
+      }
+
+      // 3. Confirmation audit
+      if (newStatus === 'Confirmed') {
+        finding.confirmedById = user?.userId || null;
+        finding.confirmedAt = new Date();
+      }
+    }
 
     // Logic Workflow Động
     const workflowDef =
@@ -807,15 +853,6 @@ export class AuditFindingsService {
             `Bạn không có quyền chuyển sang trạng thái ${nextStep.stepName}. Yêu cầu role: ${nextStep.requiredRole}`,
           );
         }
-      } else if (
-        updateAuditFindingDto.status === 'Draft' ||
-        updateAuditFindingDto.status === 'Open'
-      ) {
-        // Allow backward transitions freely for now, or you can strictly enforce.
-        // Let's assume returning to Draft is allowed.
-      } else {
-        // Only throw if moving forward but not strictly the next step
-        // (Or handle based on business logic)
       }
     }
 
@@ -836,7 +873,7 @@ export class AuditFindingsService {
 
   async remove(id: number, user?: any) {
     const finding = await this.findOne(id);
-    if (!finding) throw new Error('Finding not found');
+    if (!finding) throw new NotFoundException('Finding not found');
 
     if (user) {
       const isAdmin = ScopeFilterService.isAdminRole(user.role);
@@ -846,6 +883,14 @@ export class AuditFindingsService {
           'Bạn không có quyền xóa phát hiện kiểm toán. Hãy liên hệ Quản trị viên hệ thống.',
         );
       }
+    }
+
+    // IIA GIAS 2024 compliance: Only Draft or Open findings can be deleted.
+    // Findings in review, confirmed, reported, or closed cannot be deleted.
+    if (finding.status !== 'Draft' && finding.status !== 'Open') {
+      throw new BadRequestException(
+        `Không thể xóa phát hiện kiểm toán ở trạng thái ${finding.status}. Chỉ có thể xóa phát hiện ở trạng thái Draft hoặc Open. Đối với phát hiện đã duyệt/báo cáo, vui lòng thực hiện thủ tục Rút phát hiện (Withdrawn).`,
+      );
     }
 
     await this.recommendationRepository.delete({ findingId: id });
