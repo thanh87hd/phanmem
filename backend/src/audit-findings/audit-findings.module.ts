@@ -21,6 +21,7 @@ import { WorkingPaper } from '../working-papers/entities/working-paper.entity';
 import { AuditMinutesService } from './audit-minutes.service';
 import { AuditMinutesController } from './audit-minutes.controller';
 import { AuditMinutesExportService } from './audit-minutes-export.service';
+import { AuditFindingsStatisticsService } from './audit-findings-statistics.service';
 
 @Module({
   imports: [
@@ -45,11 +46,13 @@ import { AuditMinutesExportService } from './audit-minutes-export.service';
   ],
   providers: [
     AuditFindingsService,
+    AuditFindingsStatisticsService,
     AuditSamplesService,
     AuditMinutesService,
     AuditMinutesExportService,
   ],
   exports: [
+    AuditFindingsStatisticsService,
     AuditSamplesService,
     AuditMinutesService,
     AuditMinutesExportService,
