@@ -12,14 +12,27 @@ Thư mục: F:\Phan mem KTNB 4.0
 
 ---
 
-## 2. Phương Án 1: Chạy trực tiếp từ Pre-built Artifacts (Nhanh nhất)
-Bản build đã được biên dịch sẵn đầy đủ trong `backend/dist` và `frontend/dist`.
+## 2. Phương Án 1: Chạy trực tiếp từ Pre-built Artifacts / Mã Nguồn
+Theo quyết định kiến trúc **ADR-0012**, mã nguồn Git không chứa artifacts biên dịch (`dist/`) hay dữ liệu runtime (`backups/`, `uploads/`, `logs/`).
+
+### Bước 2.0: Build Production (khi clone mới từ Git)
+```bash
+# Build Backend
+cd backend
+npm install
+npm run build
+
+# Build Frontend
+cd ../frontend
+npm install
+npm run build
+cd ..
+```
 
 ### Bước 2.1: Khởi động Backend
 ```bash
 cd backend
-npm install --production
-# Tạo file .env từ mẫu .env.example
+# Tạo file .env từ template .env.production
 node dist/main.js
 # Hoặc chạy qua PM2:
 # pm2 start dist/main.js --name "ktnb-backend"
