@@ -25,7 +25,10 @@ export class Recommendation {
   id: number;
 
   // FK → Phát hiện kiểm toán
-  @ManyToOne(() => AuditFinding, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => AuditFinding, (finding) => finding.recommendations, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'findingId' })
   auditFinding: AuditFinding;
 
