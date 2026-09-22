@@ -13,6 +13,10 @@ import {
 import * as ExcelJS from 'exceljs';
 import { QualityReviewsService } from './quality-reviews.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CreateQualityReviewDto } from './dto/create-quality-review.dto';
+import { UpdateQualityReviewDto } from './dto/update-quality-review.dto';
+import { TransitionQualityReviewDto } from './dto/transition-quality-review.dto';
+import { CreateQualityAssessmentDto } from './dto/create-quality-assessment.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('quality-reviews')
@@ -20,7 +24,7 @@ export class QualityReviewsController {
   constructor(private readonly service: QualityReviewsService) {}
 
   @Post()
-  create(@Body() createDto: any) {
+  create(@Body() createDto: CreateQualityReviewDto) {
     return this.service.create(createDto);
   }
 
@@ -33,7 +37,7 @@ export class QualityReviewsController {
   }
 
   @Post('assessments')
-  createAssessment(@Body() dto: any) {
+  createAssessment(@Body() dto: CreateQualityAssessmentDto) {
     return this.service.createAssessment(dto);
   }
 
@@ -121,7 +125,10 @@ export class QualityReviewsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: any) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateQualityReviewDto,
+  ) {
     const parsedId = +id;
     if (isNaN(parsedId)) {
       return null;
@@ -132,14 +139,7 @@ export class QualityReviewsController {
   @Patch(':id/transition')
   transition(
     @Param('id') id: string,
-    @Body()
-    body: {
-      level: 'self' | 'supervisor' | 'independent';
-      status: string;
-      notes?: string;
-      userId?: number;
-      userName?: string;
-    },
+    @Body() body: TransitionQualityReviewDto,
   ) {
     const parsedId = +id;
     if (isNaN(parsedId)) {

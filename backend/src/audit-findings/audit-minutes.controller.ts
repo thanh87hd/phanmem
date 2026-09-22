@@ -13,6 +13,8 @@ import {
 
 import { AuditMinutesService } from './audit-minutes.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CreateAuditMinuteDto } from './dto/create-audit-minute.dto';
+import { UpdateAuditMinuteDto } from './dto/update-audit-minute.dto';
 
 @Controller('audit-minutes')
 @UseGuards(JwtAuthGuard)
@@ -20,7 +22,7 @@ export class AuditMinutesController {
   constructor(private readonly auditMinutesService: AuditMinutesService) {}
 
   @Post()
-  create(@Body() createDto: any) {
+  create(@Body() createDto: CreateAuditMinuteDto) {
     return this.auditMinutesService.create(createDto);
   }
 
@@ -75,7 +77,10 @@ export class AuditMinutesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: any) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateAuditMinuteDto,
+  ) {
     return this.auditMinutesService.update(+id, updateDto);
   }
 

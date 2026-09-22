@@ -15,6 +15,11 @@ import {
 import { RecommendationsService } from './recommendations.service';
 import { CreateRecommendationDto } from './dto/create-recommendation.dto';
 import { UpdateRecommendationDto } from './dto/update-recommendation.dto';
+import { CloseRecommendationDto } from './dto/close-recommendation.dto';
+import { TeamLeadOpinionDto } from './dto/team-lead-opinion.dto';
+import { VerifyRecommendationDto } from './dto/verify-recommendation.dto';
+import { UpdateProgressDto } from './dto/update-progress.dto';
+import { SubmitRemediationPlanDto } from './dto/submit-remediation-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../casl/policies.guard';
 import { CheckPolicies } from '../casl/check-policies.decorator';
@@ -125,28 +130,22 @@ export class RecommendationsController {
   @Post(':id/submit-plan')
   submitPlan(
     @Param('id') id: string,
-    @Body('plan') plan: string,
-    @Body('targetDate') targetDate: string,
-    @Body() body: any,
+    @Body() dto: SubmitRemediationPlanDto,
   ) {
-    return this.service.submitRemediationPlan(+id, plan, targetDate, body);
+    return this.service.submitRemediationPlan(+id, dto.plan, dto.targetDate);
   }
 
   @Post(':id/progress')
   async updateProgress(
     @Param('id') id: string,
-    @Body('progressPercent') progressPercent: number,
-    @Body('response') response?: string,
-    @Body('notes') notes?: string,
-    @Body() body?: any,
+    @Body() dto: UpdateProgressDto,
     @Request() req?: any,
   ) {
     const result = await this.service.updateProgress(
       +id,
-      progressPercent,
-      response,
-      notes,
-      body,
+      dto.progressPercent,
+      dto.response,
+      dto.notes,
     );
     await this.auditTrailService.log({
       action: 'UPDATE',
@@ -155,11 +154,10 @@ export class RecommendationsController {
       userId: req.user?.userId,
       username: req.user?.username,
       newValue: {
-        progressPercent,
-        response,
-        notes,
+        progressPercent: dto.progressPercent,
+        response: dto.response,
+        notes: dto.notes,
         status: (result as any)?.status,
-        ...body,
       },
     });
     return result;
@@ -173,28 +171,28 @@ export class RecommendationsController {
   @Post(':id/ktnb-review')
   ktnbReview(
     @Param('id') id: string,
-    @Body() body: { notes?: string },
+    @Body() dto: VerifyRecommendationDto,
     @Request() req: any,
   ) {
-    return this.service.ktnbReview(+id, body?.notes || '', req.user);
+    return this.service.ktnbReview(+id, dto.notes || '', req.user);
   }
 
   @Post(':id/team-lead-opinion')
   teamLeadOpinion(
     @Param('id') id: string,
-    @Body() body: { opinion: string },
+    @Body() dto: TeamLeadOpinionDto,
     @Request() req: any,
   ) {
-    return this.service.teamLeadOpinion(+id, body?.opinion || '', req.user);
+    return this.service.teamLeadOpinion(+id, dto.opinion || '', req.user);
   }
 
   @Post(':id/close')
   close(
     @Param('id') id: string,
-    @Body('closedReason') closedReason: string,
+    @Body() dto: CloseRecommendationDto,
     @Request() req: any,
   ) {
-    return this.service.close(+id, closedReason, req.user);
+    return this.service.close(+id, dto.closedReason, req.user);
   }
 
   /** KTV xác nhận khắc phục */
@@ -202,17 +200,17 @@ export class RecommendationsController {
   @CheckPolicies((ability) => ability.can(Action.Update, 'Recommendation'))
   async verify(
     @Param('id') id: string,
-    @Body() body: { notes: string },
+    @Body() dto: VerifyRecommendationDto,
     @Request() req: any,
   ) {
-    const result = await this.service.verify(+id, body.notes, req.user);
+    const result = await this.service.verify(+id, dto.notes, req.user);
     await this.auditTrailService.log({
       action: 'UPDATE',
       resource: 'recommendations',
       resourceId: +id,
       userId: req.user?.userId,
       username: req.user?.username,
-      newValue: { status: 'Verified', verificationNotes: body.notes },
+      newValue: { status: 'Verified', verificationNotes: dto.notes },
     });
     return result;
   }

@@ -22,6 +22,10 @@ import { WorkingPapersService } from './working-papers.service';
 import { WorkingPapersDataExchangeService } from './working-papers-data-exchange.service';
 import { CreateWorkingPaperDto } from './dto/create-working-paper.dto';
 import { UpdateWorkingPaperDto } from './dto/update-working-paper.dto';
+import {
+  ApproveWorkingPaperDto,
+  ReworkWorkingPaperDto,
+} from './dto/review-working-paper.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../casl/policies.guard';
 import { CheckPolicies } from '../casl/check-policies.decorator';
@@ -148,10 +152,10 @@ export class WorkingPapersController {
   @CheckPolicies((ability) => ability.can(Action.Update, WorkingPaper))
   approve(
     @Param('id') id: string,
-    @Body() body: { notes?: string },
+    @Body() dto: ApproveWorkingPaperDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.workingPapersService.approve(+id, body.notes || '', user);
+    return this.workingPapersService.approve(+id, dto.notes || '', user);
   }
 
   /** Trưởng đoàn trả lại WP yêu cầu sửa → status: Rework */
@@ -160,10 +164,10 @@ export class WorkingPapersController {
   @CheckPolicies((ability) => ability.can(Action.Update, WorkingPaper))
   reject(
     @Param('id') id: string,
-    @Body() body: { notes: string },
+    @Body() dto: ReworkWorkingPaperDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.workingPapersService.requestRework(+id, body.notes, user);
+    return this.workingPapersService.requestRework(+id, dto.notes, user);
   }
 
   @Delete(':id')

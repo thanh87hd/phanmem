@@ -25,6 +25,7 @@ import * as ExcelJS from 'exceljs';
 import { AuditFindingsService } from './audit-findings.service';
 import { CreateAuditFindingDto } from './dto/create-audit-finding.dto';
 import { UpdateAuditFindingDto } from './dto/update-audit-finding.dto';
+import { TransitionFindingStatusDto } from './dto/transition-finding-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../casl/policies.guard';
 import { CheckPolicies } from '../casl/check-policies.decorator';
@@ -164,13 +165,24 @@ export class AuditFindingsController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAuditFindingDto: UpdateAuditFindingDto,
+    @Request() req?: any,
   ) {
-    return this.auditFindingsService.update(id, updateAuditFindingDto);
+    return this.auditFindingsService.update(id, updateAuditFindingDto, req?.user);
+  }
+
+  @Post(':id/transition')
+  @CheckPolicies((ability) => ability.can(Action.Update, AuditFinding))
+  transition(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: TransitionFindingStatusDto,
+    @Request() req?: any,
+  ) {
+    return this.auditFindingsService.update(id, dto, req?.user);
   }
 
   @Delete(':id')
   @CheckPolicies((ability) => ability.can(Action.Delete, AuditFinding))
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.auditFindingsService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req?: any) {
+    return this.auditFindingsService.remove(id, req?.user);
   }
 }

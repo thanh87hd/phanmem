@@ -274,7 +274,7 @@ export class RecommendationsService {
   async submitRemediationPlan(
     id: number,
     plan: string,
-    targetDate: string,
+    targetDate?: string,
     extra?: any,
   ) {
     const updatePayload: any = {

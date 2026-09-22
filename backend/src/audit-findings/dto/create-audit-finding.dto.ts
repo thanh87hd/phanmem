@@ -211,4 +211,24 @@ export class CreateAuditFindingDto {
   @IsOptional()
   @IsNumber()
   actualFineAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  withdrawalReason?: string;
+
+  @IsOptional()
+  @IsNumber()
+  withdrawnById?: number;
+
+  @IsOptional()
+  @IsString()
+  returnReason?: string;
+
+  @IsOptional()
+  @IsNumber()
+  returnedById?: number;
+
+  @IsOptional()
+  @IsNumber()
+  confirmedById?: number;
 }
