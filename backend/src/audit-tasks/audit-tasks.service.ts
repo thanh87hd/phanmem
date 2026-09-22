@@ -2,78 +2,61 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditTask } from './entities/audit-task.entity';
-import { ScopeFilterService } from '../utils/scope-filter.service';
+import { TasksService } from '../tasks/tasks.service';
 
+/**
+ * AuditTasksService (Compatibility Facade)
+ * Ủy quyền toàn bộ xử lý nghiệp vụ sang TasksService tập trung (ADR-0010 & IIA GIAS 2024)
+ * với sourceType = 'Audit', bảo đảm single source of truth trong bảng tasks.
+ */
 @Injectable()
 export class AuditTasksService {
   constructor(
     @InjectRepository(AuditTask)
     private repo: Repository<AuditTask>,
+    private readonly tasksService: TasksService,
   ) {}
 
-  create(createDto: any): Promise<AuditTask> {
-    const entity = this.repo.create(createDto as Record<string, any>);
-    return this.repo.save(entity);
+  async create(createDto: any): Promise<any> {
+    const payload = {
+      ...createDto,
+      sourceType: 'Audit',
+      assignedToName: createDto.assignedTo || createDto.assignedToName,
+    };
+    return this.tasksService.create(payload as any);
   }
 
-  findAll(
+  async findAll(
     user?: any,
     engagementId?: number,
     departmentId?: string,
     year?: string,
   ) {
-    const qb = this.repo
-      .createQueryBuilder('task')
-      .leftJoinAndSelect('task.engagement', 'eng')
-      .leftJoinAndSelect('eng.plan', 'plan')
-      .orderBy('task.dueDate', 'ASC');
-
-    if (engagementId) {
-      qb.andWhere('task.engagementId = :engagementId', { engagementId });
-    }
-    if (departmentId) {
-      qb.andWhere('eng.legacyAuditedDepartment = :departmentId', {
+    return this.tasksService.findAll(
+      {
+        sourceType: 'Audit',
+        engagementId,
         departmentId,
-      });
-    }
-    if (year) {
-      qb.andWhere('plan.year = :year', { year: parseInt(year) });
-    }
-
-    const isAdmin = ScopeFilterService.isAdminRole(user?.role);
-    const roleLower = (user?.role || '').toString().toLowerCase();
-    const isAuditee =
-      roleLower.includes('đơn vị') || roleLower.includes('auditee');
-
-    if (user && !isAdmin) {
-      if (isAuditee) {
-        qb.andWhere('eng.legacyAuditedDepartment = :dept', {
-          dept: user.legacyDepartment,
-        });
-      } else {
-        qb.andWhere(
-          '(eng.leadAuditorId = :userId OR eng.teamMembers LIKE :likeUserId OR eng.ownerTeam = :team)',
-          {
-            userId: user.userId,
-            likeUserId: `%"userId":${user.userId}%`,
-            team: user.teamCode,
-          },
-        );
-      }
-    }
-
-    return qb.getMany();
+        year,
+      },
+      user,
+    );
   }
 
-  findOne(id: number) {
-    return this.repo.findOne({ where: { id } });
+  async findOne(id: number) {
+    return this.tasksService.findOne(id);
   }
 
-  update(id: number, updateDto: any) {
-    return this.repo.update(id, updateDto);
+  async update(id: number, updateDto: any) {
+    const payload = {
+      ...updateDto,
+      assignedToName: updateDto.assignedTo || updateDto.assignedToName,
+    };
+    return this.tasksService.update(id, payload);
   }
 
-  remove(id: number) {
-    return this.repo.delete(id);
+  async remove(id: number) {
+    await this.tasksService.remove(id);
+    return { affected: 1 };
   }
 }

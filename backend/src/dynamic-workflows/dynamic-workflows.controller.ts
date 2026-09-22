@@ -11,7 +11,7 @@ import {
 import { DynamicWorkflowsService } from './dynamic-workflows.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@Controller('dynamic-workflows')
+@Controller(['automation-flows', 'dynamic-workflows'])
 @UseGuards(JwtAuthGuard)
 export class DynamicWorkflowsController {
   constructor(private readonly workflowsService: DynamicWorkflowsService) {}

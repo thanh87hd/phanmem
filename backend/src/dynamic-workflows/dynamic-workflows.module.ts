@@ -10,4 +10,5 @@ import { DynamicWorkflow } from './entities/dynamic-workflow.entity';
   controllers: [DynamicWorkflowsController],
   exports: [DynamicWorkflowsService],
 })
-export class DynamicWorkflowsModule {}
+export class AutomationFlowsModule {}
+export { AutomationFlowsModule as DynamicWorkflowsModule };

@@ -10,4 +10,5 @@ import { ReportDefinition } from './entities/report-definition.entity';
   providers: [ReportsService],
   exports: [ReportsService],
 })
-export class ReportsModule {}
+export class ReportDefinitionsModule {}
+export { ReportDefinitionsModule as ReportsModule };

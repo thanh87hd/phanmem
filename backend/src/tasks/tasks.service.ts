@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
+import { ScopeFilterService } from '../utils/scope-filter.service';
 
 @Injectable()
 export class TasksService {
@@ -16,10 +17,12 @@ export class TasksService {
     return this.taskRepository.save(task);
   }
 
-  async findAll(query?: any): Promise<Task[]> {
+  async findAll(query?: any, user?: any): Promise<Task[]> {
     const qb = this.taskRepository
       .createQueryBuilder('task')
-      .leftJoinAndSelect('task.subTasks', 'subTasks');
+      .leftJoinAndSelect('task.subTasks', 'subTasks')
+      .leftJoinAndSelect('task.engagement', 'eng')
+      .leftJoinAndSelect('eng.plan', 'plan');
 
     if (query?.assignedToId) {
       qb.andWhere('task.assignedToId = :assignedToId', {
@@ -49,8 +52,56 @@ export class TasksService {
         engagementId: query.engagementId,
       });
     }
+    if (query?.departmentId) {
+      qb.andWhere('eng.legacyAuditedDepartment = :departmentId', {
+        departmentId: query.departmentId,
+      });
+    }
+    if (query?.year) {
+      qb.andWhere('plan.year = :year', { year: parseInt(query.year) });
+    }
+    if (query?.status) {
+      qb.andWhere('task.status = :status', { status: query.status });
+    }
     if (query?.parentId === null || query?.parentId === 'null') {
       qb.andWhere('task.parentId IS NULL');
+    }
+
+    // Role-based scope filtering for non-admin users
+    if (user) {
+      const isAdmin = ScopeFilterService.isAdminRole(user?.role);
+      const roleLower = (user?.role || '').toString().toLowerCase();
+      const isAuditee =
+        roleLower.includes('đơn vị') || roleLower.includes('auditee');
+      const isKtv =
+        roleLower.includes('kiểm toán viên') ||
+        roleLower.includes('ktv') ||
+        roleLower === 'thành viên';
+
+      if (!isAdmin) {
+        if (query?.sourceType === 'Audit') {
+          if (isAuditee) {
+            qb.andWhere('eng.legacyAuditedDepartment = :dept', {
+              dept: user.legacyDepartment,
+            });
+          } else {
+            qb.andWhere(
+              '(eng.leadAuditorId = :userId OR eng.teamMembers LIKE :likeUserId OR eng.ownerTeam = :team)',
+              {
+                userId: user.userId,
+                likeUserId: `%"userId":${user.userId}%`,
+                team: user.teamCode,
+              },
+            );
+          }
+        } else if (query?.sourceType === 'General') {
+          if (isKtv) {
+            qb.andWhere('task.assignedToId = :userId', { userId: user.userId });
+          } else {
+            qb.andWhere('task.teamCode = :teamCode', { teamCode: user.teamCode });
+          }
+        }
+      }
     }
 
     qb.orderBy('task.dueDate', 'ASC');

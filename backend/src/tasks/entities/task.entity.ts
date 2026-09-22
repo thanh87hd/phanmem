@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Department } from '../../departments/entities/department.entity';
+import { AuditEngagement } from '../../audit-engagements/entities/audit-engagement.entity';
 
 @Entity('tasks')
 export class Task {
@@ -18,6 +19,10 @@ export class Task {
 
   @Column({ default: 'General' })
   sourceType: string; // 'Audit' | 'General'
+
+  @ManyToOne(() => AuditEngagement, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'engagementId' })
+  engagement?: AuditEngagement;
 
   @Column({ nullable: true })
   engagementId: number; // Thuộc cuộc kiểm toán nào (nếu Audit)
@@ -58,6 +63,14 @@ export class Task {
 
   @Column({ nullable: true })
   assignedToName: string;
+
+  get assignedTo(): string {
+    return this.assignedToName || '';
+  }
+
+  set assignedTo(val: string) {
+    this.assignedToName = val;
+  }
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'assignedById' })

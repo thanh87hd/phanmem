@@ -5,8 +5,10 @@ import { GeneralTasksService } from './general-tasks.service';
 import { GeneralTasksController } from './general-tasks.controller';
 import { User } from '../users/entities/user.entity';
 
+import { TasksModule } from '../tasks/tasks.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([GeneralTask, User])],
+  imports: [TypeOrmModule.forFeature([GeneralTask, User]), TasksModule],
   controllers: [GeneralTasksController],
   providers: [GeneralTasksService],
   exports: [GeneralTasksService],
