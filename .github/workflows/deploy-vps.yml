@@ -122,23 +122,20 @@ jobs:
           path: release-bundle
 
       - name: 🔑 Configure SSH Key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
-      - name: 📡 Add VPS Host to Known Hosts
         run: |
           mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -4 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: 📤 Transfer Artifacts to VPS
         run: |
           echo "Transferring release archives to ${{ secrets.VPS_HOST }} via IPv4..."
-          scp -4 -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10 -P ${{ secrets.VPS_PORT || 22 }} release-bundle/*.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
+          scp -4 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=30 -P ${{ secrets.VPS_PORT || 22 }} release-bundle/*.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
 
       - name: 🔄 Execute Atomic Deployment & PM2 Reload on VPS
         run: |
-          ssh -4 -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10 -p ${{ secrets.VPS_PORT || 22 }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -se' << 'EOF'
+          ssh -4 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=30 -p ${{ secrets.VPS_PORT || 22 }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -se' << 'EOF'
             set -e
             APP_DIR="/var/www/phanmem"
             BACKUP_DIR="/var/www/phanmem_backups/$(date +%Y%m%d_%H%M%S)"
