@@ -46,7 +46,7 @@ jobs:
       - name: 📦 Install Backend Dependencies
         run: |
           cd backend
-          npm ci --prefer-offline
+          npm ci --legacy-peer-deps --prefer-offline || npm install --legacy-peer-deps
 
       - name: 🔍 Backend Type Check & Lint
         run: |
@@ -56,13 +56,13 @@ jobs:
       - name: 🏗️ Build Backend (NestJS Fastify)
         run: |
           cd backend
-          npm run build
+          npm run build:tsc
 
       # --- FRONTEND ---
       - name: 📦 Install Frontend Dependencies
         run: |
           cd frontend
-          npm ci --prefer-offline
+          npm ci --legacy-peer-deps --prefer-offline || npm install --legacy-peer-deps
 
       - name: 🔍 Frontend Type Check
         run: |
