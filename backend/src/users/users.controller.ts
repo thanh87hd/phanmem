@@ -8,10 +8,12 @@ import {
   Delete,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../casl/policies.guard';
 import { CheckPolicies } from '../casl/check-policies.decorator';
@@ -45,13 +47,52 @@ export class UsersController {
 
   @Get()
   @CheckPolicies((ability) => ability.can(Action.Read, User))
-  findAll(@Request() req: any) {
-    return this.usersService.findAll(req.user);
+  findAll(@Query() query: any, @Request() req: any) {
+    return this.usersService.findAll(req.user, query);
   }
 
   @Get(':id')
+  @CheckPolicies((ability) => ability.can(Action.Read, User))
   findOne(@Param('id') id: string) {
     return this.usersService.findOneSafe(+id);
+  }
+
+  @Patch(':id/status')
+  @CheckPolicies((ability) => ability.can(Action.Update, User))
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() updateUserStatusDto: UpdateUserStatusDto,
+    @Request() req: any,
+  ) {
+    const oldUser = await this.usersService.findOne(+id);
+    const result = await this.usersService.updateStatus(+id, updateUserStatusDto);
+    await this.auditTrailService.log({
+      action: 'UPDATE',
+      resource: 'users',
+      resourceId: +id,
+      userId: req.user?.userId,
+      username: req.user?.username,
+      oldValue: { status: oldUser?.status, isActive: oldUser?.isActive },
+      newValue: updateUserStatusDto,
+    });
+    return result;
+  }
+
+  @Post(':id/restore')
+  @CheckPolicies((ability) => ability.can(Action.Update, User))
+  async restore(@Param('id') id: string, @Request() req: any) {
+    const oldUser = await this.usersService.findOne(+id);
+    const result = await this.usersService.restore(+id);
+    await this.auditTrailService.log({
+      action: 'UPDATE',
+      resource: 'users',
+      resourceId: +id,
+      userId: req.user?.userId,
+      username: req.user?.username,
+      oldValue: { status: oldUser?.status, isActive: oldUser?.isActive },
+      newValue: { status: 'Active', isActive: true },
+    });
+    return result;
   }
 
   @Patch(':id')
@@ -99,7 +140,13 @@ export class UsersController {
   @Post(':id/competencies')
   async updateCompetency(
     @Param('id') id: string,
-    @Body() body: { skillName: string; rating: number; notes?: string },
+    @Body()
+    body: {
+      skillName: string;
+      rating: number;
+      notes?: string;
+      skillCategory?: string;
+    },
     @Request() req: any,
   ) {
     const result = await this.usersService.updateCompetency(
@@ -107,6 +154,7 @@ export class UsersController {
       body.skillName,
       body.rating,
       body.notes,
+      body.skillCategory,
     );
     await this.auditTrailService.log({
       action: 'UPDATE',

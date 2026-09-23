@@ -24,6 +24,7 @@ export class UsersService {
     skillName: string,
     rating: number,
     notes?: string,
+    skillCategory?: string,
   ) {
     let comp = await this.competencyRepository.findOne({
       where: { userId, skillName },
@@ -31,6 +32,7 @@ export class UsersService {
     if (comp) {
       comp.rating = rating;
       if (notes !== undefined) comp.notes = notes;
+      if (skillCategory) comp.skillCategory = skillCategory;
       return this.competencyRepository.save(comp);
     } else {
       comp = this.competencyRepository.create({
@@ -38,6 +40,7 @@ export class UsersService {
         skillName,
         rating,
         notes,
+        skillCategory: skillCategory || 'Core',
       });
       return this.competencyRepository.save(comp);
     }
@@ -71,34 +74,44 @@ export class UsersService {
     return this.sanitizeUser(saved);
   }
 
-  async findAll(user?: any) {
-    if (!user) {
-      const users = await this.userRepository.find({ relations: ['role'] });
-      return this.sanitizeUser(users);
+  async findAll(user?: any, query?: { status?: string; includeInactive?: string | boolean }) {
+    const qb = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role');
+
+    if (user && user.userId) {
+      const fullUser = await this.userRepository.findOne({
+        where: { id: user.userId },
+        relations: ['role'],
+      });
+
+      if (
+        fullUser &&
+        !ScopeFilterService.isAdminRole(fullUser.role?.name, fullUser.jobTitle)
+      ) {
+        if (fullUser.department) {
+          qb.andWhere('user.department = :dept', { dept: fullUser.department });
+        }
+      }
     }
 
-    const fullUser = await this.userRepository.findOne({
-      where: { id: user.userId },
-      relations: ['role'],
-    });
-
-    if (!fullUser) {
-      const users = await this.userRepository.find({ relations: ['role'] });
-      return this.sanitizeUser(users);
-    }
-
-    if (
-      ScopeFilterService.isAdminRole(fullUser.role?.name, fullUser.jobTitle)
+    const statusParam = query?.status;
+    if (statusParam && statusParam !== 'ALL') {
+      if (statusParam === 'Active') {
+        qb.andWhere("(user.status = 'Active' OR (user.status IS NULL AND user.isActive = true))");
+      } else {
+        qb.andWhere('user.status = :st', { st: statusParam });
+      }
+    } else if (
+      query?.includeInactive !== 'true' &&
+      query?.includeInactive !== true &&
+      statusParam !== 'ALL'
     ) {
-      const users = await this.userRepository.find({ relations: ['role'] });
-      return this.sanitizeUser(users);
+      qb.andWhere("(user.status = 'Active' OR (user.status IS NULL AND user.isActive = true))");
     }
 
-    // Trưởng đoàn / Trưởng phòng chỉ được xem danh sách nhân sự cùng phòng
-    const users = await this.userRepository.find({
-      where: { department: fullUser.department },
-      relations: ['role'],
-    });
+    qb.orderBy('user.id', 'ASC');
+    const users = await qb.getMany();
     return this.sanitizeUser(users);
   }
 
@@ -129,8 +142,65 @@ export class UsersService {
     return this.sanitizeUser(updated);
   }
 
+  async updateStatus(id: number, dto: any) {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new Error(`Không tìm thấy nhân sự với ID ${id}`);
+    }
+
+    const newStatus = dto.status || 'Active';
+    const isActive = newStatus === 'Active';
+
+    await this.userRepository.update(id, {
+      status: newStatus,
+      isActive,
+      resignationDate: dto.resignationDate || null,
+      transferDate: dto.transferDate || null,
+      transferDestination: dto.transferDestination || null,
+      statusReason: dto.statusReason || null,
+      statusUpdatedAt: new Date(),
+    });
+
+    const updated = await this.findOne(id);
+    return this.sanitizeUser(updated);
+  }
+
+  async restore(id: number) {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new Error(`Không tìm thấy nhân sự với ID ${id}`);
+    }
+
+    await this.userRepository.update(id, {
+      status: 'Active',
+      isActive: true,
+      statusReason: 'Khôi phục hoạt động tài khoản',
+      statusUpdatedAt: new Date(),
+    });
+
+    const updated = await this.findOne(id);
+    return this.sanitizeUser(updated);
+  }
+
   async remove(id: number) {
-    await this.userRepository.delete(id);
-    return { success: true };
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new Error(`Không tìm thấy nhân sự với ID ${id}`);
+    }
+
+    // Soft-delete: Không xóa cứng để bảo toàn dữ liệu kiểm toán lịch sử
+    // (Working Papers, Findings, BSC-KPI, Time Tracking đều FK vào users.id)
+    // Thay vào đó: chuyển status = Resigned + vô hiệu hóa tài khoản
+    await this.userRepository.update(id, {
+      isActive: false,
+      status: 'Resigned',
+      statusReason: 'Tài khoản bị xóa bởi quản trị viên hệ thống',
+      statusUpdatedAt: new Date(),
+    });
+
+    return {
+      success: true,
+      message: `Tài khoản nhân sự "${user.fullName}" (${user.username}) đã được vô hiệu hóa thay vì xóa vật lý, nhằm bảo toàn dữ liệu kiểm toán lịch sử.`,
+    };
   }
 }

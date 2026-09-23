@@ -196,15 +196,28 @@ export class IndependenceService implements OnModuleInit {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (user && user.priorDepartments && user.coolingOffEndDate) {
       const isPastCoolingOff = user.coolingOffEndDate < todayStr;
-      if (
-        !isPastCoolingOff &&
-        user.priorDepartments
-          .toLowerCase()
-          .includes(departmentName.toLowerCase())
-      ) {
+
+      // priorDepartments có thể là string[] (jsonb) hoặc string thuần (legacy)
+      const priorDeptRaw = user.priorDepartments;
+      let priorDeptList: string[] = [];
+      if (Array.isArray(priorDeptRaw)) {
+        priorDeptList = priorDeptRaw;
+      } else if (typeof priorDeptRaw === 'string') {
+        try {
+          const parsed = JSON.parse(priorDeptRaw);
+          priorDeptList = Array.isArray(parsed) ? parsed : [priorDeptRaw];
+        } catch {
+          priorDeptList = [priorDeptRaw];
+        }
+      }
+
+      const priorDeptText = priorDeptList.join(' ').toLowerCase();
+      const isConflict = priorDeptText.includes(departmentName.toLowerCase());
+
+      if (!isPastCoolingOff && isConflict) {
         return {
           safe: false,
-          reason: `Vi phạm thời hạn cách ly độc lập (Cooling-off) theo Chuẩn mực IIA 2.2. Kiểm toán viên từng công tác tại đơn vị "${user.priorDepartments}" và đang trong thời hạn cách ly 12 tháng đến ngày ${user.coolingOffEndDate}.`,
+          reason: `Vi phạm thời hạn cách ly độc lập (Cooling-off) theo Chuẩn mực IIA 2.2. Kiểm toán viên từng công tác tại đơn vị "${priorDeptList.join(', ')}" và đang trong thời hạn cách ly 12 tháng đến ngày ${user.coolingOffEndDate}.`,
         };
       }
     }

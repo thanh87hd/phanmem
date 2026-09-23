@@ -16,6 +16,8 @@ import { AuditPlan } from '../audit-plans/entities/audit-plan.entity';
 import { AuditUniverse } from '../audit-universe/entities/audit-universe.entity';
 import { User } from '../users/entities/user.entity';
 import { ContinuousAuditRule } from '../continuous-monitoring/entities/continuous-audit-rule.entity';
+import { Role } from '../roles/entities/role.entity';
+import { RolesModule } from '../roles/roles.module';
 
 @Module({
   imports: [
@@ -24,8 +26,10 @@ import { ContinuousAuditRule } from '../continuous-monitoring/entities/continuou
       AuditUniverse,
       User,
       ContinuousAuditRule,
+      Role,
     ]),
     UsersModule,
+    RolesModule,
     DepartmentsModule,
     AuditUniverseModule,
     RiskCriteriaModule,

@@ -65,4 +65,31 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   landlinePhone?: string;
+
+  @IsOptional()
+  priorDepartments?: string | string[]; // Nhận string (CSV) hoặc array JSON từ frontend
+
+  @IsString()
+  @IsOptional()
+  coolingOffEndDate?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
+  resignationDate?: string;
+
+  @IsString()
+  @IsOptional()
+  transferDate?: string;
+
+  @IsString()
+  @IsOptional()
+  transferDestination?: string;
+
+  @IsString()
+  @IsOptional()
+  statusReason?: string;
 }

@@ -14,6 +14,7 @@ import { AuditPlanUnit } from '../audit-plans/entities/audit-plan-unit.entity';
 import { AuditUniverse } from '../audit-universe/entities/audit-universe.entity';
 import { User } from '../users/entities/user.entity';
 import { ContinuousAuditRule } from '../continuous-monitoring/entities/continuous-audit-rule.entity';
+import { Role } from '../roles/entities/role.entity';
 import { getNormalizedKey } from './import-key-map';
 
 function safeCellString(v: any): string {
@@ -53,6 +54,8 @@ export class ImportService {
     private userRepo: Repository<User>,
     @InjectRepository(ContinuousAuditRule)
     private continuousAuditRuleRepo: Repository<ContinuousAuditRule>,
+    @InjectRepository(Role)
+    private roleRepo: Repository<Role>,
   ) {}
 
   async createTemplateExcel(templateData: any[]): Promise<Buffer> {
@@ -189,11 +192,79 @@ export class ImportService {
 
   private async saveItem(module: string, item: any) {
     switch (module) {
-      case 'users':
-        return this.usersService.create({
-          ...item,
-          password: item.password || '123456', // Default password for bulk import
+      case 'users': {
+        const username = item.username?.trim();
+        const employeeId = item.employeeId?.trim();
+        if (!username && !employeeId) {
+          throw new Error('Dòng dữ liệu thiếu Tên đăng nhập và Mã nhân viên');
+        }
+
+        // Tìm roleId nếu có tên nhóm quyền trong file
+        let roleId = item.roleId;
+        if (!roleId && item.role) {
+          const roleName = String(item.role).trim();
+          const matchedRole = await this.roleRepo.findOne({
+            where: { name: roleName },
+          });
+          if (matchedRole) {
+            roleId = matchedRole.id;
+          }
+        }
+
+        // Kiểm tra xem User đã tồn tại theo username hoặc employeeId chưa
+        let existingUser: User | null = null;
+        if (username) {
+          existingUser = await this.userRepo.findOne({ where: { username } });
+        }
+        if (!existingUser && employeeId) {
+          existingUser = await this.userRepo.findOne({ where: { employeeId } });
+        }
+
+        if (existingUser) {
+          // Cập nhật thông tin nếu đã tồn tại (Upsert)
+          const updateData: any = { ...item };
+          delete updateData.password;
+          delete updateData.passwordHash;
+          if (roleId) updateData.roleId = roleId;
+          updateData.status = item.status || existingUser.status || 'Active';
+          updateData.isActive = updateData.status === 'Active';
+          await this.userRepo.update(existingUser.id, updateData);
+          return this.usersService.findOneSafe(existingUser.id);
+        } else {
+          // Thêm mới với mật khẩu mặc định an toàn và cờ đổi mật khẩu lần đầu
+          return this.usersService.create({
+            ...item,
+            username: username || employeeId,
+            fullName: item.fullName || username || employeeId,
+            password: item.password || '@Lpbank2026!',
+            roleId,
+            status: item.status || 'Active',
+            isActive: (item.status || 'Active') === 'Active',
+            mustChangePassword: true,
+          });
+        }
+      }
+      case 'roles': {
+        const roleName = item.name?.trim();
+        if (!roleName) {
+          throw new Error('Tên nhóm quyền không được để trống');
+        }
+        let existingRole = await this.roleRepo.findOne({
+          where: { name: roleName },
         });
+        if (existingRole) {
+          if (item.description !== undefined) existingRole.description = item.description;
+          if (item.permissions !== undefined) existingRole.permissions = item.permissions;
+          return this.roleRepo.save(existingRole);
+        } else {
+          const newRole = this.roleRepo.create({
+            name: roleName,
+            description: item.description || '',
+            permissions: item.permissions || '',
+          });
+          return this.roleRepo.save(newRole);
+        }
+      }
       case 'departments':
         return this.departmentsService.create(item);
       case 'audit-universe':

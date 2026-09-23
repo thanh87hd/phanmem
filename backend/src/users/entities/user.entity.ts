@@ -23,7 +23,7 @@ export class User {
   @Column()
   fullName: string;
 
-  @Column()
+  @Column({ nullable: true })
   email: string;
 
   @Column({ nullable: true })
@@ -63,14 +63,33 @@ export class User {
   @Column({ nullable: true })
   landlinePhone: string; // SĐT Cố định
 
-  @Column({ nullable: true })
-  priorDepartments: string; // Đơn vị công tác trước khi sang KTNB
+  @Column({ type: 'jsonb', nullable: true })
+  priorDepartments: string[] | string | null; // Đơn vị công tác trước khi sang KTNB (jsonb array)
 
   @Column({ nullable: true })
   coolingOffEndDate: string; // Thời hạn cách ly độc lập (Cooling-off date: YYYY-MM-DD)
 
   @Column({ default: true })
   isActive: boolean;
+
+  // === Vòng đời nhân sự (User Lifecycle Management) ===
+  @Column({ default: 'Active' })
+  status: string; // 'Active' | 'Resigned' | 'Transferred' | 'Suspended'
+
+  @Column({ nullable: true })
+  resignationDate: string; // Ngày nghỉ việc (YYYY-MM-DD)
+
+  @Column({ nullable: true })
+  transferDate: string; // Ngày điều chuyển (YYYY-MM-DD)
+
+  @Column({ nullable: true })
+  transferDestination: string; // Đơn vị chuyển đến
+
+  @Column({ type: 'text', nullable: true })
+  statusReason: string; // Lý do chuyển/nghỉ hoặc biên bản bàn giao
+
+  @Column({ type: 'timestamp', nullable: true })
+  statusUpdatedAt: Date; // Thời điểm cập nhật trạng thái gần nhất
 
   // === Password Policy (PCI DSS 8.3) ===
   @Column({ default: false })

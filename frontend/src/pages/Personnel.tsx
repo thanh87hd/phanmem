@@ -35,6 +35,8 @@ interface User {
   startDate?: string;
   birthDate?: string;
   landlinePhone?: string;
+  priorDepartments?: string;
+  coolingOffEndDate?: string;
   isActive?: boolean;
   status?: 'Active' | 'Resigned' | 'Transferred' | 'Suspended';
   resignationDate?: string;
@@ -63,53 +65,33 @@ const Personnel: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [form] = Form.useForm();
 
-  // Dynamic job titles combining Roles from system (Phân quyền & Chức danh) and default titles
+  // Danh mục Chức danh Chuyên môn chuẩn KTNB Ngân hàng (Professional Ranks / Job Titles)
   const jobTitleSelectOptions = React.useMemo(() => {
-    const roleNames = roles.map(r => r.name).filter(Boolean);
-    const defaults = [
-      'Trưởng Ban kiểm soát',
-      'Phó Trưởng Ban kiểm soát',
-      'Thành viên Ban kiểm soát',
-      'Giám đốc Khối kiểm toán nội bộ',
-      'Phó Giám đốc Khối kiểm toán nội bộ',
-      'Trưởng phòng kiểm toán hội sở hệ thống',
-      'Phó phòng kiểm toán hội sở hệ thống',
-      'Trưởng phòng kiểm toán đơn vị kinh doanh',
-      'Phó phòng kiểm toán đơn vị kinh doanh',
-      'Chuyên gia',
+    const titles = [
+      'Trưởng Ban Kiểm toán Nội bộ (CAE)',
+      'Phó Trưởng Ban KTNB',
+      'Giám đốc Khối Kiểm toán Nội bộ',
+      'Phó Giám đốc Khối KTNB',
+      'Trưởng phòng KTNB Hội sở',
+      'Phó phòng KTNB Hội sở',
+      'Trưởng phòng KTNB ĐVKD',
+      'Phó phòng KTNB ĐVKD',
+      'Chuyên gia KTNB',
       'Kiểm toán viên cao cấp',
       'Kiểm toán viên chính',
       'Kiểm toán viên',
+      'Trợ lý KTV',
       'Nhân sự Tổng hợp',
       'Nhân sự Khắc phục',
+      'Trưởng Ban kiểm soát',
+      'Phó Trưởng Ban kiểm soát',
+      'Thành viên Ban kiểm soát',
     ];
-    const allTitles = Array.from(new Set([...roleNames, ...defaults]));
-    return allTitles.map(title => {
-      const isSystemRole = roles.some(r => r.name.trim().toLowerCase() === title.trim().toLowerCase());
-      return {
-        value: title,
-        label: title,
-        isSystemRole,
-      };
-    });
-  }, [roles]);
-
-  const handleJobTitleChange = (val: string) => {
-    if (!val) return;
-    const matchedRole = roles.find(r => r.name.trim().toLowerCase() === val.trim().toLowerCase());
-    if (matchedRole) {
-      form.setFieldsValue({ roleId: matchedRole.id });
-    }
-  };
-
-  const handleRoleChange = (roleId: number | undefined) => {
-    if (roleId) {
-      const selectedRole = roles.find(r => r.id === roleId);
-      if (selectedRole) {
-        form.setFieldsValue({ jobTitle: selectedRole.name });
-      }
-    }
-  };
+    return titles.map(title => ({
+      value: title,
+      label: title,
+    }));
+  }, []);
 
   // Skills Matrix State
   const [isCompModalOpen, setIsCompModalOpen] = useState(false);
@@ -243,21 +225,14 @@ const Personnel: React.FC = () => {
 
   const openEditModal = (record: User) => {
     setEditingRecord(record);
-    const roleName = (record.role as any)?.name || (typeof record.role === 'string' ? record.role : '') || '';
-    const matchedRole = roles.find(r => 
-      (record.role?.id && r.id === record.role.id) || 
-      ((record as any).roleId && r.id === (record as any).roleId) || 
-      (roleName && r.name.trim().toLowerCase() === roleName.trim().toLowerCase()) ||
-      (record.jobTitle && r.name.trim().toLowerCase() === record.jobTitle.trim().toLowerCase())
-    );
-
-    const effectiveJobTitle = record.jobTitle || roleName || matchedRole?.name || '';
-    const effectiveRoleId = record.role?.id || (record as any).roleId || matchedRole?.id;
+    const effectiveRoleId = record.role?.id || (record as any).roleId || undefined;
 
     form.setFieldsValue({
       ...record,
-      jobTitle: effectiveJobTitle,
+      jobTitle: record.jobTitle || undefined,
       roleId: effectiveRoleId,
+      priorDepartments: record.priorDepartments || undefined,
+      coolingOffEndDate: record.coolingOffEndDate || undefined,
     });
     setIsModalOpen(true);
   };
@@ -265,21 +240,12 @@ const Personnel: React.FC = () => {
   const handleSave = async () => {
     try {
       const formValues = await form.validateFields();
-      let effectiveRoleId = formValues.roleId;
-      let effectiveJobTitle = formValues.jobTitle;
-
-      if (effectiveJobTitle && !effectiveRoleId) {
-        const matched = roles.find(r => r.name.trim().toLowerCase() === effectiveJobTitle.trim().toLowerCase());
-        if (matched) effectiveRoleId = matched.id;
-      } else if (effectiveRoleId && !effectiveJobTitle) {
-        const matched = roles.find(r => r.id === effectiveRoleId);
-        if (matched) effectiveJobTitle = matched.name;
-      }
-
       const values = {
         ...formValues,
-        jobTitle: effectiveJobTitle,
-        roleId: effectiveRoleId,
+        jobTitle: formValues.jobTitle || null,
+        roleId: formValues.roleId || null,
+        priorDepartments: formValues.priorDepartments || null,
+        coolingOffEndDate: formValues.coolingOffEndDate || null,
         customFields: extractCustomFields(formValues),
       };
       if (editingRecord) {
@@ -383,21 +349,33 @@ const Personnel: React.FC = () => {
             icon={<UserOutlined />}
           />
           <div style={{ whiteSpace: 'nowrap' }}>
-            <div style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{record.fullName}</div>
+            <div style={{ fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{record.fullName}</span>
+              {record.coolingOffEndDate && new Date(record.coolingOffEndDate) >= new Date() && (
+                <Tooltip title={`Đang trong thời gian cách ly độc lập theo Điều 39 TT13 đến: ${record.coolingOffEndDate} (Đơn vị cũ: ${record.priorDepartments || 'N/A'})`}>
+                  <Tag color="volcano" style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+                    Cách ly độc lập
+                  </Tag>
+                </Tooltip>
+              )}
+            </div>
             <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>@{record.username}</Text>
           </div>
         </Space>
       ),
     },
     {
-      title: t('personnel.cols.jobTitle', 'Chức danh hệ thống'),
+      title: t('personnel.cols.jobTitle', 'Chức danh chuyên môn'),
       dataIndex: 'jobTitle',
       key: 'jobTitle',
-      ...getColumnSelectFilterProps<User>('jobTitle', undefined, data, (r) => r.jobTitle || (r.role as any)?.name || 'N/A'),
-      sorter: getColumnSorter<User>('jobTitle', 'string', (r) => r.jobTitle || (r.role as any)?.name || ''),
-      render: (text: string, record: User) => {
-        const titleToDisplay = text || (record.role as any)?.name || (typeof record.role === 'string' ? record.role : '') || 'N/A';
-        return <Tag color="cyan" style={{ whiteSpace: 'nowrap' }}>{titleToDisplay}</Tag>;
+      ...getColumnSelectFilterProps<User>('jobTitle', undefined, data, (r) => r.jobTitle || 'Chưa cập nhật'),
+      sorter: getColumnSorter<User>('jobTitle', 'string', (r) => r.jobTitle || ''),
+      render: (text: string) => {
+        return text ? (
+          <Tag color="cyan" style={{ whiteSpace: 'nowrap' }}>{text}</Tag>
+        ) : (
+          <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>—</Text>
+        );
       }
     },
     {
@@ -444,7 +422,7 @@ const Personnel: React.FC = () => {
       )
     },
     {
-      title: t('personnel.cols.role', 'Nhóm quyền'),
+      title: t('personnel.cols.role', 'Nhóm quyền (CASL Role)'),
       key: 'role',
       ...getColumnSelectFilterProps<User>('role', undefined, data, (r) => r.role?.name || 'Chưa gán'),
       sorter: getColumnSorter<User>('role', 'string', (r) => r.role?.name || ''),
@@ -714,8 +692,8 @@ const Personnel: React.FC = () => {
 
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="position" label={<span className="font-semibold text-slate-700">Chức vụ</span>}>
-                  <Input placeholder="Ví dụ: Phó phòng, KTV" className="rounded-lg h-10" />
+                <Form.Item name="position" label={<span className="font-semibold text-slate-700">Chức vụ trong đoàn (Position)</span>}>
+                  <Input placeholder="Ví dụ: Trưởng đoàn, Phó đoàn, Thành viên đoàn, Thư ký đoàn" className="rounded-lg h-10" />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -723,29 +701,23 @@ const Personnel: React.FC = () => {
                   name="jobTitle" 
                   label={
                     <span className="font-semibold text-slate-700">
-                      Chức danh Hệ thống <span className="text-xs font-normal text-slate-500">(Đồng bộ từ Phân quyền & Chức danh)</span>
+                      Chức danh Chuyên môn (Job Title) <span className="text-xs font-normal text-slate-500">(Ngạch bậc KTV)</span>
                     </span>
                   } 
-                  rules={[{ required: true, message: 'Vui lòng chọn chức danh' }]}
+                  rules={[{ required: true, message: 'Vui lòng chọn chức danh chuyên môn' }]}
                 >
                   <Select 
-                    placeholder="Chọn chức danh hệ thống" 
+                    placeholder="Chọn chức danh chuyên môn" 
                     showSearch 
                     allowClear
                     className="h-10"
-                    onChange={handleJobTitleChange}
                     filterOption={(input, option) => 
                       String(option?.value || '').toLowerCase().includes(input.toLowerCase())
                     }
                   >
                     {jobTitleSelectOptions.map(opt => (
                       <Option key={opt.value} value={opt.value}>
-                        <div className="flex items-center justify-between">
-                          <span>{opt.label}</span>
-                          {opt.isSystemRole && (
-                            <Tag color="blue" className="ml-2 text-xs">Chức danh / Nhóm quyền</Tag>
-                          )}
-                        </div>
+                        <span>{opt.label}</span>
                       </Option>
                     ))}
                   </Select>
@@ -757,15 +729,15 @@ const Personnel: React.FC = () => {
               name="roleId" 
               label={
                 <span className="font-semibold text-slate-700">
-                  Nhóm quyền (Phân quyền truy cập) <span className="text-xs font-normal text-slate-500">(Tự động chọn theo Chức danh hoặc tùy chỉnh)</span>
+                  Nhóm quyền Hệ thống (Role CASL RBAC) <span className="text-xs font-normal text-slate-500">(Quyền truy cập tính năng & phê duyệt)</span>
                 </span>
               }
+              rules={[{ required: true, message: 'Vui lòng chọn nhóm quyền hệ thống' }]}
             >
               <Select 
-                placeholder="Chọn nhóm quyền truy cập" 
+                placeholder="Chọn nhóm quyền hệ thống" 
                 allowClear 
                 className="h-10"
-                onChange={handleRoleChange}
               >
                 {roles.map(r => (
                   <Option key={r.id} value={r.id}>
@@ -774,6 +746,39 @@ const Personnel: React.FC = () => {
                 ))}
               </Select>
             </Form.Item>
+
+            <Divider style={{ margin: '16px 0 16px 0' }} dashed>
+              <span className="text-xs text-amber-700 font-semibold uppercase tracking-wider">
+                🛡️ Khai báo Tính Độc Lập & Thời Hạn Cách Ly (Điều 39 Thông tư 13/2018/TT-NHNN & IIA 1130)
+              </span>
+            </Divider>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item 
+                  name="priorDepartments" 
+                  label={
+                    <span className="font-semibold text-slate-700">
+                      Đơn vị công tác trước khi sang KTNB <span className="text-xs font-normal text-slate-500">(Tùy chọn)</span>
+                    </span>
+                  }
+                >
+                  <Input placeholder="Ví dụ: Khối Quản lý Rủi ro, Khối KHDN, Chi nhánh Hà Nội..." className="rounded-lg h-10" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item 
+                  name="coolingOffEndDate" 
+                  label={
+                    <span className="font-semibold text-slate-700">
+                      Thời hạn hết cách ly độc lập (Cooling-off Date)
+                    </span>
+                  }
+                >
+                  <Input type="date" className="rounded-lg h-10" />
+                </Form.Item>
+              </Col>
+            </Row>
             
             <DynamicFormRenderer entityType="User" form={form} initialValues={editingRecord || undefined} />
           </Form>
@@ -829,13 +834,32 @@ const Personnel: React.FC = () => {
             fileName="Nhan_su" 
             templateData={[
               { 
-                [t("personnel.excel.fullName", "Họ và tên")]: "Nguyễn Văn A", 
-                [t("personnel.excel.email", "Email")]: "vana@bank.com", 
-                [t("personnel.excel.username", "Tên đăng nhập")]: "vana", 
-                [t("personnel.excel.department", "Phòng ban")]: "Kiểm toán nội bộ", 
-                [t("personnel.excel.jobTitle", "Chức danh")]: "Trưởng đoàn", 
-                [t("personnel.excel.workplace", "Nơi làm việc")]: "MB", 
-                [t("personnel.excel.employeeId", "Mã nhân viên")]: "12345" 
+                "Họ và tên": "Nguyễn Văn An", 
+                "Tên đăng nhập": "annv", 
+                "Email": "annv@lpbank.com.vn", 
+                "Số điện thoại": "0912345678",
+                "Mã nhân viên": "10001",
+                "Chức danh chuyên môn": "Kiểm toán viên chính", 
+                "Nhóm quyền": "Kiểm toán viên", 
+                "Phòng ban": "Phòng Kiểm toán ĐVKD", 
+                "Nơi làm việc": "MB", 
+                "Chức vụ trong đoàn": "Thành viên đoàn",
+                "Đơn vị công tác trước": "Khối Quản lý Rủi ro",
+                "Thời hạn cách ly": "2026-12-31"
+              },
+              { 
+                "Họ và tên": "Trần Thị Mai", 
+                "Tên đăng nhập": "maitt", 
+                "Email": "maitt@lpbank.com.vn", 
+                "Số điện thoại": "0987654321",
+                "Mã nhân viên": "10002",
+                "Chức danh chuyên môn": "Kiểm toán viên cao cấp", 
+                "Nhóm quyền": "Trưởng đoàn", 
+                "Phòng ban": "Phòng Kiểm toán Hội sở", 
+                "Nơi làm việc": "MB", 
+                "Chức vụ trong đoàn": "Trưởng đoàn",
+                "Đơn vị công tác trước": "Chi nhánh Hà Nội",
+                "Thời hạn cách ly": "2025-06-30"
               }
             ]}
           />
@@ -1015,6 +1039,16 @@ const Personnel: React.FC = () => {
                 {historyUser.transferDestination && (
                   <Descriptions.Item label="Đơn vị chuyển đến" span={2}>
                     <b>{historyUser.transferDestination}</b>
+                  </Descriptions.Item>
+                )}
+                {historyUser.priorDepartments && (
+                  <Descriptions.Item label="Đơn vị công tác trước">
+                    {historyUser.priorDepartments}
+                  </Descriptions.Item>
+                )}
+                {historyUser.coolingOffEndDate && (
+                  <Descriptions.Item label="Thời hạn cách ly độc lập">
+                    <Tag color="volcano">{historyUser.coolingOffEndDate}</Tag>
                   </Descriptions.Item>
                 )}
                 {historyUser.statusReason && (
