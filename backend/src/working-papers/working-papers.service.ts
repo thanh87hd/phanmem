@@ -21,6 +21,7 @@ import { AuditTrailService } from '../audit-trail/audit-trail.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { QualityReviewsService } from '../quality-reviews/quality-reviews.service';
 import { AuditMinutesService } from '../audit-findings/audit-minutes.service';
+import { AuditReviewNotesService } from './audit-review-notes.service';
 import type { AuthUserContext } from './dto/working-paper-types';
 
 @Injectable()
@@ -35,6 +36,7 @@ export class WorkingPapersService {
     private readonly notificationsService: NotificationsService,
     private readonly qualityReviewsService: QualityReviewsService,
     private readonly auditMinutesService: AuditMinutesService,
+    private readonly auditReviewNotesService: AuditReviewNotesService,
   ) {}
 
   async getSampleStatsForWorkingPapers(wpIds: number[]): Promise<
@@ -552,6 +554,9 @@ export class WorkingPapersService {
       );
     }
 
+    // IIA 1311 Quality Gate: Toàn bộ Review Notes (MB-10) phải ở trạng thái CLOSED
+    await this.auditReviewNotesService.assertCanSignOff(id, wp.workstreamId);
+
     const isReviewer = wp.reviewerId === user?.userId;
     const isLead = wp.engagement?.leadAuditorId === user?.userId;
     const isWorkstreamReviewer = wp.workstream?.reviewerId === user?.userId;
@@ -577,9 +582,12 @@ export class WorkingPapersService {
 
     await this.workingPaperRepository.update(id, {
       status: 'Approved',
-      reviewNotes: notes?.trim() || wp.reviewNotes,
+      signoffStatus: 'APPROVED',
       reviewerId: user?.userId,
       reviewedAt: new Date(),
+      leadAuditorId: isLead ? user?.userId : wp.leadAuditorId,
+      leadApprovedAt: isLead ? new Date() : wp.leadApprovedAt,
+      reviewNotes: notes?.trim() || wp.reviewNotes,
       reviewHistory: history,
     });
 

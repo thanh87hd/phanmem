@@ -182,8 +182,8 @@ export const auditGlossaryData: GlossaryItem[] = [
     category: 'PROCESS_FIELDWORK',
     categoryLabel: 'Quy trình & Bằng chứng',
     definition: 'Toàn bộ tập hợp các đối tượng, thực thể có thể được kiểm toán trong ngân hàng (Chi nhánh, Phòng giao dịch, Khối nghiệp vụ, Công ty con, Hệ thống CNTT, Sản phẩm tài chính).',
-    smartAuditMapping: 'Màn hình Quản trị Vũ trụ Kiểm toán (/audit-universe) lưu trữ mã định danh và phân loại.',
-    relatedRoute: '/audit-universe'
+    smartAuditMapping: 'Màn hình Quản trị Vũ trụ Kiểm toán (/risk-and-planning?step=scope) lưu trữ mã định danh và phân loại.',
+    relatedRoute: '/risk-and-planning?step=scope'
   },
   {
     key: 'proc-2',

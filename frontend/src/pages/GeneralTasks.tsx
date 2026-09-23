@@ -1,7 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Table, Button, Modal, Form, Input, Select, Tag, DatePicker, Space, Card, Typography, Row, Col, Statistic, message, Divider } from 'antd';
-import { PlusOutlined, CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined, UnorderedListOutlined, CloseOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, Tag, DatePicker, Space, Card, Typography, Row, Col, Statistic, message, Divider, Tabs, Progress, Tooltip, Badge } from 'antd';
+import { 
+  PlusOutlined, 
+  CheckCircleOutlined, 
+  ClockCircleOutlined, 
+  ExclamationCircleOutlined, 
+  UnorderedListOutlined, 
+  CloseOutlined,
+  TeamOutlined,
+  ApartmentOutlined,
+  UserOutlined,
+  BarChartOutlined,
+  FireOutlined,
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../services/api';
 import { useCurrentUser } from '../utils/useCurrentUser';
@@ -29,6 +41,7 @@ const GeneralTasks: React.FC = () => {
     { value: 'Low', label: t('auditPlan.tabs2.filterRisk.low', 'Thấp'), color: 'green' },
   ];
 
+  const [activeTab, setActiveTab] = useState<string>('list');
   const [data, setData] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +76,129 @@ const GeneralTasks: React.FC = () => {
     fetchData(); 
     fetchUsers();
   }, []);
+
+  // ═══ Thống kê Tiến độ theo Phòng ban ═══
+  const departmentStats = useMemo(() => {
+    const deptMap = new Map<string, {
+      department: string;
+      total: number;
+      open: number;
+      inProgress: number;
+      done: number;
+      overdue: number;
+      users: Set<string>;
+    }>();
+
+    data.forEach(task => {
+      const assignedUser = users.find(u => u.id === task.assignedToId);
+      let deptName = task.teamCode || (typeof assignedUser?.department === 'object' ? assignedUser?.department?.name : assignedUser?.department) || 'Phòng KT Hội Sở';
+      if (!deptName || deptName === 'null') deptName = 'Phòng Nghiệp vụ KTNB';
+
+      if (!deptMap.has(deptName)) {
+        deptMap.set(deptName, {
+          department: deptName,
+          total: 0,
+          open: 0,
+          inProgress: 0,
+          done: 0,
+          overdue: 0,
+          users: new Set(),
+        });
+      }
+
+      const item = deptMap.get(deptName)!;
+      item.total += 1;
+      if (task.status === 'Open') item.open += 1;
+      else if (task.status === 'InProgress') item.inProgress += 1;
+      else if (task.status === 'Done') item.done += 1;
+
+      if (task.dueDate && dayjs(task.dueDate).isBefore(dayjs(), 'day') && task.status !== 'Done') {
+        item.overdue += 1;
+      }
+      if (task.assignedToName) {
+        item.users.add(task.assignedToName);
+      }
+    });
+
+    return Array.from(deptMap.values()).map(d => ({
+      ...d,
+      memberCount: d.users.size,
+      rate: d.total > 0 ? Math.round((d.done / d.total) * 100) : 0,
+    })).sort((a, b) => b.total - a.total);
+  }, [data, users]);
+
+  // ═══ Thống kê Tiến độ & Tải công việc theo Nhân sự (KTV) ═══
+  const personnelStats = useMemo(() => {
+    const userMap = new Map<string, {
+      userId: number | string;
+      name: string;
+      department: string;
+      total: number;
+      open: number;
+      inProgress: number;
+      done: number;
+      overdue: number;
+      highPriority: number;
+    }>();
+
+    data.forEach(task => {
+      const uId = task.assignedToId || task.assignedToName || 'unassigned';
+      const uName = task.assignedToName || 'Chưa phân công';
+      const assignedUser = users.find(u => u.id === task.assignedToId);
+      const dept = task.teamCode || (typeof assignedUser?.department === 'object' ? assignedUser?.department?.name : assignedUser?.department) || 'Khối KTNB';
+
+      if (!userMap.has(String(uId))) {
+        userMap.set(String(uId), {
+          userId: uId,
+          name: uName,
+          department: dept,
+          total: 0,
+          open: 0,
+          inProgress: 0,
+          done: 0,
+          overdue: 0,
+          highPriority: 0,
+        });
+      }
+
+      const item = userMap.get(String(uId))!;
+      item.total += 1;
+      if (task.status === 'Open') item.open += 1;
+      else if (task.status === 'InProgress') item.inProgress += 1;
+      else if (task.status === 'Done') item.done += 1;
+
+      if (task.priority === 'High') item.highPriority += 1;
+
+      if (task.dueDate && dayjs(task.dueDate).isBefore(dayjs(), 'day') && task.status !== 'Done') {
+        item.overdue += 1;
+      }
+    });
+
+    return Array.from(userMap.values()).map(u => {
+      const rate = u.total > 0 ? Math.round((u.done / u.total) * 100) : 0;
+      let workload = 'Bình thường';
+      let workloadColor = 'blue';
+      if (u.overdue > 0 || u.inProgress >= 5) {
+        workload = 'Quá tải / Trễ hạn';
+        workloadColor = 'red';
+      } else if (u.inProgress >= 3) {
+        workload = 'Bận rộn';
+        workloadColor = 'orange';
+      } else if (u.inProgress >= 1) {
+        workload = 'Đang có việc';
+        workloadColor = 'green';
+      } else {
+        workload = 'Sẵn sàng';
+        workloadColor = 'default';
+      }
+      return {
+        ...u,
+        rate,
+        workload,
+        workloadColor,
+      };
+    }).sort((a, b) => b.total - a.total);
+  }, [data, users]);
 
   const handleSave = async (values: any) => {
     try {
@@ -336,12 +472,147 @@ const GeneralTasks: React.FC = () => {
     );
   }
 
+  const deptColumns = [
+    {
+      title: 'Phòng ban / Đơn vị',
+      dataIndex: 'department',
+      key: 'department',
+      render: (v: string) => (
+        <span className="font-semibold flex items-center gap-2 text-slate-800">
+          <ApartmentOutlined className="text-amber-500 text-base" />
+          {v}
+        </span>
+      ),
+    },
+    {
+      title: 'KTV tham gia',
+      dataIndex: 'memberCount',
+      key: 'memberCount',
+      width: 140,
+      render: (v: number) => <Tag color="blue" className="font-medium">{v} KTV</Tag>,
+    },
+    {
+      title: 'Tổng việc',
+      dataIndex: 'total',
+      key: 'total',
+      width: 100,
+      sorter: (a: any, b: any) => a.total - b.total,
+      render: (v: number) => <strong className="text-sm">{v}</strong>,
+    },
+    {
+      title: 'Đang làm',
+      dataIndex: 'inProgress',
+      key: 'inProgress',
+      width: 110,
+      render: (v: number) => <Tag color="processing">{v} việc</Tag>,
+    },
+    {
+      title: 'Hoàn thành',
+      dataIndex: 'done',
+      key: 'done',
+      width: 120,
+      render: (v: number) => <Tag color="success">{v} việc</Tag>,
+    },
+    {
+      title: 'Trễ hạn',
+      dataIndex: 'overdue',
+      key: 'overdue',
+      width: 110,
+      render: (v: number) => (
+        v > 0 ? <Tag color="error" className="font-bold">{v} việc</Tag> : <Tag color="default">0</Tag>
+      ),
+    },
+    {
+      title: 'Tỷ lệ hoàn thành',
+      dataIndex: 'rate',
+      key: 'rate',
+      width: 220,
+      sorter: (a: any, b: any) => a.rate - b.rate,
+      render: (v: number) => (
+        <Progress 
+          percent={v} 
+          size="small" 
+          strokeColor={v === 100 ? '#52c41a' : v < 50 ? '#faad14' : '#1890ff'} 
+        />
+      ),
+    },
+  ];
+
+  const personnelColumns = [
+    {
+      title: 'Nhân sự (KTV)',
+      dataIndex: 'name',
+      key: 'name',
+      render: (v: string) => (
+        <span className="font-semibold flex items-center gap-2 text-slate-800">
+          <UserOutlined className="text-blue-500" />
+          {v}
+        </span>
+      ),
+    },
+    {
+      title: 'Phòng ban',
+      dataIndex: 'department',
+      key: 'department',
+      width: 180,
+      render: (v: string) => <span className="text-slate-600 text-xs">{v}</span>,
+    },
+    {
+      title: 'Tổng việc giao',
+      dataIndex: 'total',
+      key: 'total',
+      width: 120,
+      sorter: (a: any, b: any) => a.total - b.total,
+      render: (v: number) => <strong className="text-sm">{v}</strong>,
+    },
+    {
+      title: 'Đang làm',
+      dataIndex: 'inProgress',
+      key: 'inProgress',
+      width: 100,
+      render: (v: number) => <Tag color="processing">{v}</Tag>,
+    },
+    {
+      title: 'Hoàn thành',
+      dataIndex: 'done',
+      key: 'done',
+      width: 110,
+      render: (v: number) => <Tag color="success">{v}</Tag>,
+    },
+    {
+      title: 'Trễ hạn',
+      dataIndex: 'overdue',
+      key: 'overdue',
+      width: 100,
+      render: (v: number) => (
+        v > 0 ? <Tag color="error" className="font-bold">{v}</Tag> : <Tag color="default">0</Tag>
+      ),
+    },
+    {
+      title: 'Tiến độ',
+      dataIndex: 'rate',
+      key: 'rate',
+      width: 180,
+      sorter: (a: any, b: any) => a.rate - b.rate,
+      render: (v: number) => <Progress percent={v} size="small" />,
+    },
+    {
+      title: 'Tải công việc',
+      dataIndex: 'workload',
+      key: 'workload',
+      width: 160,
+      render: (_: any, r: any) => (
+        <Tag color={r.workloadColor} className="font-semibold">{r.workload}</Tag>
+      ),
+    },
+  ];
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <div>
-          <Title level={3} className="!mb-1">{t('generalTasks.title', 'Công việc Chung')}</Title>
-          <Text className="text-gray-500">{t('generalTasks.subtitle', 'Quản lý công việc đột xuất, hành chính, ngoài kế hoạch kiểm toán')}</Text>
+          <Title level={3} className="!mb-1">{t('generalTasks.title', 'Công việc Chung & Tiến Độ')}</Title>
+          <Text className="text-gray-500">{t('generalTasks.subtitle', 'Quản lý phân giao công việc ngoài đoàn, theo dõi tiến độ theo phòng ban và nhân sự KTV')}</Text>
         </div>
         <Button 
           type="primary" 
@@ -361,71 +632,152 @@ const GeneralTasks: React.FC = () => {
         <Col span={4}><Card variant="borderless" className="shadow-sm"><Statistic title={t('findingsAnalytics.remediationTab.legendOverdue', 'Quá hạn')} value={stats.overdue} prefix={<ExclamationCircleOutlined />} valueStyle={{ color: '#cf1322' }} /></Card></Col>
       </Row>
 
-      {/* Toolbar Filter */}
-      <Card variant="borderless" className="shadow-sm mb-4">
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={8}>
-            <Input.Search
-              placeholder="Tìm tiêu đề, người thực hiện..."
-              allowClear
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={5}>
-            <Select
-              allowClear
-              placeholder="Loại công việc"
-              style={{ width: '100%' }}
-              value={filterCategory || undefined}
-              onChange={(val) => setFilterCategory(val || '')}
-              options={CATEGORIES}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={4}>
-            <Select
-              allowClear
-              placeholder="Mức ưu tiên"
-              style={{ width: '100%' }}
-              value={filterPriority || undefined}
-              onChange={(val) => setFilterPriority(val || '')}
-              options={PRIORITIES}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={4}>
-            <Select
-              allowClear
-              placeholder="Trạng thái"
-              style={{ width: '100%' }}
-              value={filterStatus || undefined}
-              onChange={(val) => setFilterStatus(val || '')}
-              options={[
-                { label: 'Mở', value: 'Open' },
-                { label: 'Đang làm', value: 'InProgress' },
-                { label: 'Hoàn thành', value: 'Done' },
-                { label: 'Hủy', value: 'Cancelled' },
-              ]}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={3}>
-            <Button
-              onClick={() => {
-                setSearchText('');
-                setFilterCategory('');
-                setFilterPriority('');
-                setFilterStatus('');
-              }}
-              disabled={!searchText && !filterCategory && !filterPriority && !filterStatus}
-            >
-              Xóa lọc
-            </Button>
-          </Col>
-        </Row>
-      </Card>
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        type="card"
+        className="mb-4"
+        items={[
+          {
+            key: 'list',
+            label: (
+              <span className="font-semibold flex items-center gap-1.5 px-2 py-1">
+                <UnorderedListOutlined /> 📋 Danh sách Công việc Ngoài Đoàn
+              </span>
+            ),
+            children: (
+              <>
+                {/* Toolbar Filter */}
+                <Card variant="borderless" className="shadow-sm mb-4">
+                  <Row gutter={[16, 16]} align="middle">
+                    <Col xs={24} sm={12} md={8}>
+                      <Input.Search
+                        placeholder="Tìm tiêu đề, người thực hiện..."
+                        allowClear
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                      />
+                    </Col>
+                    <Col xs={24} sm={12} md={5}>
+                      <Select
+                        allowClear
+                        placeholder="Loại công việc"
+                        style={{ width: '100%' }}
+                        value={filterCategory || undefined}
+                        onChange={(val) => setFilterCategory(val || '')}
+                        options={CATEGORIES}
+                      />
+                    </Col>
+                    <Col xs={24} sm={12} md={4}>
+                      <Select
+                        allowClear
+                        placeholder="Mức ưu tiên"
+                        style={{ width: '100%' }}
+                        value={filterPriority || undefined}
+                        onChange={(val) => setFilterPriority(val || '')}
+                        options={PRIORITIES}
+                      />
+                    </Col>
+                    <Col xs={24} sm={12} md={4}>
+                      <Select
+                        allowClear
+                        placeholder="Trạng thái"
+                        style={{ width: '100%' }}
+                        value={filterStatus || undefined}
+                        onChange={(val) => setFilterStatus(val || '')}
+                        options={[
+                          { label: 'Mở', value: 'Open' },
+                          { label: 'Đang làm', value: 'InProgress' },
+                          { label: 'Hoàn thành', value: 'Done' },
+                          { label: 'Hủy', value: 'Cancelled' },
+                        ]}
+                      />
+                    </Col>
+                    <Col xs={24} sm={12} md={3}>
+                      <Button
+                        onClick={() => {
+                          setSearchText('');
+                          setFilterCategory('');
+                          setFilterPriority('');
+                          setFilterStatus('');
+                        }}
+                        disabled={!searchText && !filterCategory && !filterPriority && !filterStatus}
+                      >
+                        Xóa lọc
+                      </Button>
+                    </Col>
+                  </Row>
+                </Card>
 
-      <Card variant="borderless" className="shadow-sm">
-        <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} pagination={{ pageSize: 15, showSizeChanger: true }} size="middle" className="rounded-xl overflow-hidden" />
-      </Card>
+                <Card variant="borderless" className="shadow-sm">
+                  <Table 
+                    dataSource={filteredData} 
+                    columns={columns} 
+                    rowKey="id" 
+                    loading={loading} 
+                    pagination={{ pageSize: 15, showSizeChanger: true }} 
+                    size="middle" 
+                    className="rounded-xl overflow-hidden" 
+                  />
+                </Card>
+              </>
+            ),
+          },
+          {
+            key: 'progress',
+            label: (
+              <span className="font-semibold flex items-center gap-1.5 px-2 py-1">
+                <BarChartOutlined /> 📊 Tiến độ theo Phòng ban & Nhân sự
+              </span>
+            ),
+            children: (
+              <div className="space-y-6">
+                {/* 1. Bảng Tiến độ theo Phòng ban */}
+                <Card 
+                  title={(
+                    <span className="font-bold flex items-center gap-2 text-slate-800">
+                      <ApartmentOutlined className="text-amber-500 text-lg" />
+                      Tiến độ Phân giao & Hoàn thành Công việc theo Phòng Ban
+                    </span>
+                  )}
+                  variant="borderless" 
+                  className="shadow-sm rounded-2xl"
+                >
+                  <Table
+                    dataSource={departmentStats}
+                    columns={deptColumns}
+                    rowKey="department"
+                    pagination={false}
+                    size="middle"
+                    className="rounded-xl overflow-hidden"
+                  />
+                </Card>
+
+                {/* 2. Bảng Tiến độ & Tải công việc theo Nhân sự */}
+                <Card 
+                  title={(
+                    <span className="font-bold flex items-center gap-2 text-slate-800">
+                      <TeamOutlined className="text-blue-500 text-lg" />
+                      Theo dõi Tiến độ, Tải công việc & Trễ hạn từng Nhân sự (KTV)
+                    </span>
+                  )}
+                  variant="borderless" 
+                  className="shadow-sm rounded-2xl"
+                >
+                  <Table
+                    dataSource={personnelStats}
+                    columns={personnelColumns}
+                    rowKey="userId"
+                    pagination={{ pageSize: 10, showSizeChanger: true }}
+                    size="middle"
+                    className="rounded-xl overflow-hidden"
+                  />
+                </Card>
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 };

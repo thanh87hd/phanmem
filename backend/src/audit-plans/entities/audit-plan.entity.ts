@@ -56,20 +56,22 @@ export class AuditPlan {
   @Column({ type: 'text', nullable: true })
   approverL2Notes: string;
 
-  @Column({ type: 'simple-json', nullable: true })
-  selectedUnits: {
-    universeId: number;
-    name: string;
-    riskLevel: string;
-    justification?: string;
-    estDays: number;
-    ktvCount: number;
-    scheduledMonth?: number; // Tháng dự kiến (1 -> 12)
-    targetQuarter?: string; // Q1, Q2, Q3, Q4
-    leadAuditorId?: number; // Trưởng đoàn dự kiến
-    leadAuditorName?: string;
-    assignedTeamMembers?: { userId: number; fullName: string; role?: string }[]; // Thành viên đoàn dự kiến
-  }[];
+  // Normalized plan lines: derived via planUnits (GIAS 9.4 / RBIA)
+  get selectedUnits() {
+    return (this.planUnits || []).map((u) => ({
+      universeId: u.universeId,
+      name: u.universeName,
+      riskLevel: u.riskLevel,
+      justification: u.justification,
+      estDays: u.estDays,
+      ktvCount: u.ktvCount,
+      scheduledMonth: u.scheduledMonth,
+      targetQuarter: u.targetQuarter,
+      leadAuditorId: u.leadAuditorId,
+      leadAuditorName: u.leadAuditorName,
+      assignedTeamMembers: u.assignedTeamMembers,
+    }));
+  }
 
   @Column({ type: 'text', nullable: true })
   approvalNotes: string;

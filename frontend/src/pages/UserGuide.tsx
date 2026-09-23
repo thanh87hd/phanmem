@@ -93,13 +93,13 @@ const UserGuide: React.FC = () => {
       title: 'GĐ 1: Đánh giá Rủi ro & Audit Universe',
       subtitle: 'Xác định mục tiêu & vũ trụ kiểm toán',
       icon: <CompassOutlined className="text-xl text-blue-500" />,
-      route: '/risk-assessment',
+      route: '/risk-and-planning?step=prioritization',
       tag: 'Kế hoạch hóa',
       color: '#ea9105',
       summary: 'Khảo sát và tính toán điểm rủi ro kế thừa (Inherent) và rủi ro còn lại (Residual) trên toàn bộ danh mục đơn vị, quy trình nghiệp vụ.',
       actions: [
-        'Khai báo Đơn vị & Quy trình trong Vũ trụ Kiểm toán (/audit-universe)',
-        'Chấm điểm ma trận rủi ro định lượng & định tính (/risk-assessment)',
+        'Khai báo Đơn vị & Quy trình trong Vũ trụ Kiểm toán (/risk-and-planning?step=scope)',
+        'Chấm điểm ma trận rủi ro định lượng & định tính (/risk-and-planning?step=prioritization)',
         'Phân loại mức độ High / Medium / Low để ưu tiên lập kế hoạch năm'
       ]
     },
@@ -107,12 +107,12 @@ const UserGuide: React.FC = () => {
       title: 'GĐ 2: Lập Kế hoạch KT Năm',
       subtitle: 'Phân bổ nguồn lực & trình phê duyệt',
       icon: <ProjectOutlined className="text-xl text-purple-500" />,
-      route: '/audit-plan',
+      route: '/risk-and-planning?step=plan',
       tag: 'Phê duyệt',
       color: '#722ed1',
       summary: 'Lập danh mục cuộc kiểm toán ưu tiên dựa trên mức độ rủi ro, phân bổ thời gian và nhân lực, trình BKS/HĐQT phê duyệt.',
       actions: [
-        'Tạo cuộc kiểm toán tự động từ danh sách ưu tiên rủi ro (/audit-plan)',
+        'Tạo cuộc kiểm toán tự động từ danh sách ưu tiên rủi ro (/risk-and-planning?step=plan)',
         'Phân bổ KTV, Trưởng đoàn và tính số ngày công (Mandays)',
         'Gửi duyệt điện tử và theo dõi trạng thái phê duyệt của BKS'
       ]

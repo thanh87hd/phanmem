@@ -90,14 +90,14 @@ export class DepartmentsService {
     if (existing) {
       existing.name = createDepartmentDto.name || existing.name;
       existing.unitType = normalizedType || existing.unitType;
-      existing.parent =
-        createDepartmentDto.parent !== undefined
-          ? createDepartmentDto.parent
-          : existing.parent;
-      existing.parentId =
-        createDepartmentDto.parentId !== undefined
-          ? createDepartmentDto.parentId
-          : existing.parentId;
+      if (createDepartmentDto.parentId !== undefined) {
+        existing.parentId = createDepartmentDto.parentId;
+      } else if ((createDepartmentDto as any).parent) {
+        const pDept = await this.departmentRepository.findOne({
+          where: { code: (createDepartmentDto as any).parent.trim().toUpperCase() },
+        });
+        if (pDept) existing.parentId = pDept.id;
+      }
       existing.region =
         createDepartmentDto.region !== undefined
           ? createDepartmentDto.region
@@ -254,12 +254,7 @@ export class DepartmentsService {
         departmentCode: dept.code,
         auditCategory: category,
         ownerTeam: owner,
-        financialSize: fin,
-        operationalRiskScore: oper,
-        pastFindingsScore: past,
-        riskScore: score,
-        dynamicRiskRating: rating,
-        nextAuditYear: score >= 7.5 ? 2026 : score >= 5.0 ? 2027 : 2028,
+        nextAuditYear: 2026,
         status: 'Active',
       });
       await this.auditUniverseRepository.save(u);

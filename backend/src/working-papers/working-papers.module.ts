@@ -18,10 +18,15 @@ import { CaslModule } from '../casl/casl.module';
 import { BullModule } from '@nestjs/bullmq';
 import { WorkingPapersProcessor } from './working-papers.processor';
 
+import { AuditReviewNote } from './entities/audit-review-note.entity';
+import { AuditReviewNotesService } from './audit-review-notes.service';
+import { AuditReviewNotesController } from './audit-review-notes.controller';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       WorkingPaper,
+      AuditReviewNote,
       AuditWorkstream,
       AuditSampleBatch,
       AuditSample,
@@ -38,12 +43,13 @@ import { WorkingPapersProcessor } from './working-papers.processor';
       name: 'working-papers',
     }),
   ],
-  controllers: [WorkingPapersController],
+  controllers: [WorkingPapersController, AuditReviewNotesController],
   providers: [
     WorkingPapersService,
     WorkingPapersDataExchangeService,
     WorkingPapersProcessor,
+    AuditReviewNotesService,
   ],
-  exports: [WorkingPapersService, WorkingPapersDataExchangeService],
+  exports: [WorkingPapersService, WorkingPapersDataExchangeService, AuditReviewNotesService],
 })
 export class WorkingPapersModule {}

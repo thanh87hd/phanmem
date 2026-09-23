@@ -1,0 +1,214 @@
+name: LPBank Smart Audit 4.0 - CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Bỏ qua bước tests khi cần deploy khẩn cấp (true/false)'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════
+  # 1. CI JOB: TEST & BUILD ARTIFACTS
+  # ═══════════════════════════════════════════════════════════════════
+  build-and-test:
+    name: 🧪 Continuous Integration (Test & Build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 📥 Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      # --- BACKEND ---
+      - name: 📦 Install Backend Dependencies
+        run: |
+          cd backend
+          npm ci --prefer-offline
+
+      - name: 🔍 Backend Type Check & Lint
+        run: |
+          cd backend
+          npx tsc --noEmit
+
+      - name: 🏗️ Build Backend (NestJS Fastify)
+        run: |
+          cd backend
+          npm run build
+
+      # --- FRONTEND ---
+      - name: 📦 Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci --prefer-offline
+
+      - name: 🔍 Frontend Type Check
+        run: |
+          cd frontend
+          npx tsc -b --noEmit
+
+      - name: 🏗️ Build Frontend (Vite + React 19)
+        run: |
+          cd frontend
+          npm run build
+
+      # --- AUTOMATED INTEGRATION TESTS ---
+      - name: 🧪 Run Master Verification Tests
+        if: ${{ github.event.inputs.skip_tests != 'true' }}
+        run: |
+          echo "Running routing and hub verification..."
+          node scripts/verify-all-routed-and-menu.cjs
+          echo "Running tasks and KPI verification..."
+          node scripts/verify-tasks-kpi-bks.cjs
+
+      # --- ARTIFACT PACKAGING ---
+      - name: 🗜️ Compress Production Artifacts
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p release-bundle
+          # Package backend dist & package files
+          tar -czf release-bundle/backend-dist.tar.gz -C backend dist package.json package-lock.json templates
+          # Package frontend static dist
+          tar -czf release-bundle/frontend-dist.tar.gz -C frontend/dist .
+          # Include database migrations
+          tar -czf release-bundle/migrations.tar.gz -C backend/src/database migrations
+
+      - name: 💾 Upload Release Artifacts
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: release-bundle/
+          retention-days: 3
+
+  # ═══════════════════════════════════════════════════════════════════
+  # 2. CD JOB: DEPLOY TO VPS CHINHTA.IO.VN
+  # ═══════════════════════════════════════════════════════════════════
+  deploy-to-vps:
+    name: 🚀 Continuous Deployment (VPS chinhta.io.vn)
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Download Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: production-build
+          path: release-bundle
+
+      - name: 🔑 Configure SSH Key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: 📡 Add VPS Host to Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 📤 Transfer Artifacts to VPS
+        run: |
+          echo "Transferring release archives to ${{ secrets.VPS_HOST }}..."
+          scp -P ${{ secrets.VPS_PORT || 22 }} release-bundle/*.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
+
+      - name: 🔄 Execute Atomic Deployment & PM2 Reload on VPS
+        run: |
+          ssh -p ${{ secrets.VPS_PORT || 22 }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -se' << 'EOF'
+            set -e
+            APP_DIR="/var/www/phanmem"
+            BACKUP_DIR="/var/www/phanmem_backups/$(date +%Y%m%d_%H%M%S)"
+            
+            echo "=========================================="
+            echo "   STARTING LPBANK KTNB DEPLOYMENT        "
+            echo "=========================================="
+            
+            # 1. Tạo backup phiên bản hiện tại phòng khi rollback
+            mkdir -p "$BACKUP_DIR"
+            if [ -d "$APP_DIR/backend/dist" ]; then
+              echo ">>> Backing up current backend..."
+              cp -r "$APP_DIR/backend/dist" "$BACKUP_DIR/backend_dist"
+            fi
+            if [ -d "$APP_DIR/frontend/dist" ]; then
+              echo ">>> Backing up current frontend..."
+              cp -r "$APP_DIR/frontend/dist" "$BACKUP_DIR/frontend_dist"
+            fi
+
+            # 2. Giải nén Backend
+            echo ">>> Deploying Backend..."
+            mkdir -p "$APP_DIR/backend"
+            tar -xzf /tmp/backend-dist.tar.gz -C "$APP_DIR/backend"
+            
+            # 3. Giải nén Migrations & Chạy Migration DB
+            echo ">>> Running Database Migrations..."
+            mkdir -p "$APP_DIR/backend/src/database"
+            tar -xzf /tmp/migrations.tar.gz -C "$APP_DIR/backend/src/database"
+            cd "$APP_DIR/backend"
+            if [ -f "dist/data-source.js" ]; then
+              npm run typeorm:migration:run || echo "Migration warning: check logs"
+            fi
+
+            # 4. Giải nén Frontend
+            echo ">>> Deploying Frontend..."
+            mkdir -p "$APP_DIR/frontend/dist"
+            rm -rf "$APP_DIR/frontend/dist"/*
+            tar -xzf /tmp/frontend-dist.tar.gz -C "$APP_DIR/frontend/dist"
+
+            # 5. Phân quyền www-data
+            echo ">>> Setting file permissions..."
+            chown -R www-data:www-data "$APP_DIR/backend" "$APP_DIR/frontend"
+
+            # 6. Dọn dẹp file tạm trên /tmp
+            rm -f /tmp/backend-dist.tar.gz /tmp/frontend-dist.tar.gz /tmp/migrations.tar.gz
+
+            # 7. Reload PM2 (Zero-downtime cluster reload)
+            echo ">>> Reloading PM2 services..."
+            pm2 reload nestjs-backend --update-env || pm2 restart nestjs-backend
+            pm2 reload ktnb-collab --update-env || pm2 restart ktnb-collab
+            pm2 status
+
+            # 8. Test cấu hình và Reload Nginx
+            echo ">>> Testing and Reloading Nginx..."
+            nginx -t
+            systemctl reload nginx
+
+            echo "=========================================="
+            echo "   DEPLOYMENT SUCCEEDED ON VPS!          "
+            echo "=========================================="
+          EOF
+
+      - name: 🩺 Post-Deployment Smoke Test (Health Check)
+        run: |
+          echo "Verifying live endpoint https://${{ secrets.VPS_HOST }}..."
+          sleep 5
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.VPS_HOST }}/ || true)
+          echo "HTTP Response Status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 301 ] || [ "$HTTP_STATUS" -eq 302 ]; then
+            echo "✅ Production site is UP and healthy (HTTP $HTTP_STATUS)!"
+          else
+            echo "❌ Health check failed with status $HTTP_STATUS"
+            exit 1
+          fi

@@ -1,33 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Typography, Button, Space, Modal, Tag, Tabs, message } from 'antd';
+import { Typography, Button, Space, Modal, Tabs } from 'antd';
 import {
-  DashboardOutlined, SafetyCertificateOutlined, SyncOutlined,
-  BuildOutlined, AlertOutlined, BarChartOutlined, RocketOutlined,
+  DashboardOutlined,
+  SafetyCertificateOutlined,
+  SyncOutlined,
+  BuildOutlined,
+  BarChartOutlined,
+  RocketOutlined,
+  SwapOutlined,
+  RadarChartOutlined,
+  AlertOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import RiskScoringTab from '../components/RiskScoringTab';
 import RiskComparisonTab from '../components/RiskComparisonTab';
 import RiskDefectHeatmapTab from '../components/RiskDefectHeatmapTab';
 import UnitRestructuringComparisonTab from '../components/UnitRestructuringComparisonTab';
-import RiskProfilesTab from '../components/RiskProfilesTab';
 import RiskTransferModal from '../components/RiskTransferModal';
 import RiskHeatMap from '../components/RiskHeatMap';
-import RiskRegister from './RiskRegister';
-import { SwapOutlined, DatabaseOutlined } from '@ant-design/icons';
+import RiskSignalsDrawer from '../components/risk-scoring/RiskSignalsDrawer';
+import ScenarioRiskMap from './ScenarioRiskMap';
 
 const { Title, Text } = Typography;
 
-const RiskAssessment: React.FC = () => {
+export const RiskAssessment: React.FC = () => {
   const { t } = useTranslation();
 
   const [auditUniverses, setAuditUniverses] = useState<any[]>([]);
   const [riskCriteria, setRiskCriteria] = useState<any[]>([]);
   const [criteriaLoading, setCriteriaLoading] = useState(false);
   const [activeTabKey, setActiveTabKey] = useState('audit-scoring');
-  const [departments, setDepartments] = useState<any[]>([]);
   const [isHeatMapVisible, setIsHeatMapVisible] = useState(false);
   const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
+  const [isSignalsDrawerOpen, setIsSignalsDrawerOpen] = useState(false);
+  const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
   const [riskAssessments, setRiskAssessments] = useState<any[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -67,12 +74,9 @@ const RiskAssessment: React.FC = () => {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAuditUniverses();
     fetchRiskCriteria();
     fetchRiskAssessments();
-    api.get('/departments').then(res => setDepartments(res.data || [])).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -81,11 +85,27 @@ const RiskAssessment: React.FC = () => {
         <div>
           <Title level={3} className="!mb-1">
             <DashboardOutlined style={{ color: '#ea9105', marginRight: 8 }} />
-            Hệ thống Quản lý & Đánh giá Rủi ro (3-Lines Risk Engine)
+            Đánh giá Rủi ro Phục vụ Kế hoạch KTNB (RBIA Line 3)
           </Title>
-          <Text type="secondary">Đánh giá rủi ro theo nhóm Audit Universe (IIA 2024 Hybrid Approach) · Basel/BCBS Inherent→Residual Risk · Cảnh báo sớm KRI (Tuyến 2) · TT13/2018 & TT83/2025/TT-NHNN</Text>
+          <Text type="secondary">
+            Đánh giá rủi ro theo Audit Universe (IIA GIAS 2024 & Thông tư 13/2018/TT-NHNN). Các tín hiệu Tuyến 1, 2, CAATs và phát hiện kỳ trước là dữ liệu đầu vào chỉ-đọc.
+          </Text>
         </div>
-        <Space>
+        <Space wrap>
+          <Button
+            icon={<RadarChartOutlined style={{ color: '#722ed1' }} />}
+            onClick={() => setIsSignalsDrawerOpen(true)}
+            style={{ borderColor: '#722ed1', color: '#722ed1' }}
+          >
+            Tín hiệu Rủi ro (Line 1/2/CAATs)
+          </Button>
+          <Button
+            icon={<AlertOutlined style={{ color: '#eb2f96' }} />}
+            onClick={() => setIsScenarioModalOpen(true)}
+            style={{ borderColor: '#eb2f96', color: '#eb2f96' }}
+          >
+            Kịch bản Stress Rủi ro
+          </Button>
           <Button
             icon={<SwapOutlined />}
             onClick={() => setIsTransferModalVisible(true)}
@@ -93,8 +113,22 @@ const RiskAssessment: React.FC = () => {
           >
             Chuyển giao Rủi ro ĐVKD
           </Button>
-          <Button icon={<SyncOutlined />} onClick={() => { setRefreshKey(prev => prev + 1); fetchRiskAssessments(); fetchAuditUniverses(); }}>{t('common.btnSyncData', 'Đồng bộ dữ liệu')}</Button>
-          <Button icon={<BuildOutlined style={{ color: '#ea9105' }} />} onClick={() => setIsHeatMapVisible(true)}>{t('common.btnHeatMap', 'Bản đồ Rủi ro (Heat Map)')}</Button>
+          <Button
+            icon={<SyncOutlined />}
+            onClick={() => {
+              setRefreshKey((prev) => prev + 1);
+              fetchRiskAssessments();
+              fetchAuditUniverses();
+            }}
+          >
+            {t('common.btnSyncData', 'Đồng bộ dữ liệu')}
+          </Button>
+          <Button
+            icon={<BuildOutlined style={{ color: '#ea9105' }} />}
+            onClick={() => setIsHeatMapVisible(true)}
+          >
+            {t('common.btnHeatMap', 'Bản đồ Rủi ro (Heat Map)')}
+          </Button>
         </Space>
       </div>
 
@@ -108,7 +142,7 @@ const RiskAssessment: React.FC = () => {
             label: (
               <span>
                 <SafetyCertificateOutlined style={{ marginRight: 6 }} />
-                Đánh giá Rủi ro Kiểm toán (Tuyến 3)
+                1. Chấm điểm Rủi ro KTNB (Tuyến 3)
               </span>
             ),
             children: (
@@ -125,64 +159,69 @@ const RiskAssessment: React.FC = () => {
             label: (
               <span>
                 <BarChartOutlined style={{ marginRight: 6, color: '#ff4d4f' }} />
-                So sánh & Xu hướng Rủi ro
+                2. So sánh & Xu hướng Rủi ro
               </span>
             ),
-            children: (
-              <RiskComparisonTab />
-            ),
+            children: <RiskComparisonTab />,
           },
           {
             key: 'unit-restructuring',
             label: (
               <span>
                 <BuildOutlined style={{ marginRight: 6, color: '#fa8c16' }} />
-                Biến động ĐVKD & PGDBĐ
+                3. Biến động ĐVKD & PGDBĐ
               </span>
             ),
             children: <UnitRestructuringComparisonTab />,
-          },
-          {
-            key: 'risk-profiles',
-            label: (
-              <span>
-                <DatabaseOutlined style={{ marginRight: 6, color: '#722ed1' }} />
-                Bộ Hồ Sơ Rủi Ro KTNB (HSRR - 819 Rủi Ro)
-              </span>
-            ),
-            children: <RiskProfilesTab />,
-          },
-          {
-            key: 'risk-register',
-            label: (
-              <span>
-                <SafetyCertificateOutlined style={{ marginRight: 6, color: '#1890ff' }} />
-                Sổ Đăng Ký Rủi Ro (Risk Register)
-              </span>
-            ),
-            children: <RiskRegister embedded={true} />,
           },
           {
             key: 'risk-defect',
             label: (
               <span>
                 <RocketOutlined style={{ marginRight: 6, color: '#ea9105' }} />
-                Risk vs Defect Heatmap
+                4. Risk vs Defect Heatmap
               </span>
             ),
-            children: (
-              <RiskDefectHeatmapTab />
-            ),
+            children: <RiskDefectHeatmapTab />,
           },
         ]}
       />
+
+      {/* RISK SIGNALS READ-ONLY DRAWER */}
+      <RiskSignalsDrawer
+        open={isSignalsDrawerOpen}
+        onClose={() => setIsSignalsDrawerOpen(false)}
+      />
+
+      {/* SCENARIO STRESS MAP MODAL */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertOutlined style={{ color: '#eb2f96', fontSize: 20 }} />
+            <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
+              Kịch bản Rủi ro & Kiểm tra Sức chịu đựng (Scenario Stress Testing)
+            </span>
+          </div>
+        }
+        open={isScenarioModalOpen}
+        onCancel={() => setIsScenarioModalOpen(false)}
+        footer={null}
+        width={1100}
+        style={{ top: 20 }}
+      >
+        <div style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+          <ScenarioRiskMap />
+        </div>
+      </Modal>
 
       {/* HEAT MAP MODAL */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <BuildOutlined style={{ color: '#ea9105', fontSize: 20 }} />
-            <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>Bản đồ Nhiệt Rủi ro Hợp nhất 3 Tuyến (3-Lines assurance map)</span>
+            <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
+              Bản đồ Nhiệt Rủi ro Hợp nhất 3 Tuyến (3-Lines Assurance Heatmap)
+            </span>
           </div>
         }
         open={isHeatMapVisible}

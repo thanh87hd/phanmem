@@ -1,17 +1,18 @@
 import React, { Suspense, lazy, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, Card } from 'antd';
+import { Tabs, Card, Alert, Button } from 'antd';
 import type { TabsProps } from 'antd';
-import { 
-  AppstoreOutlined, 
-  SafetyCertificateOutlined, 
-  CalculatorOutlined, 
+import {
+  AppstoreOutlined,
+  SafetyCertificateOutlined,
+  CalculatorOutlined,
   CalendarOutlined,
   ApartmentOutlined,
   RadarChartOutlined,
   AuditOutlined,
-  TeamOutlined
+  TeamOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import HubHeaderBanner from '../components/HubHeaderBanner';
 import HubTabLoading from '../components/HubTabLoading';
@@ -20,192 +21,320 @@ import HubTabLoading from '../components/HubTabLoading';
 const AuditUniverse = lazy(() => import('./AuditUniverse'));
 const Departments = lazy(() => import('./Departments'));
 const RiskControlMatrix = lazy(() => import('./RiskControlMatrix'));
+const RiskProfilesTab = lazy(() => import('../components/RiskProfilesTab'));
 const RiskRegister = lazy(() => import('./RiskRegister'));
 const RiskAssessment = lazy(() => import('./RiskAssessment'));
-const ScenarioRiskMap = lazy(() => import('./ScenarioRiskMap').then(m => ({ default: m.ScenarioRiskMap })));
+const ScenarioRiskMap = lazy(() => import('./ScenarioRiskMap'));
 const AuditPlan = lazy(() => import('./AuditPlan'));
-const ResourceCapacityView = lazy(() => import('./ResourceCapacityView').then(m => ({ default: m.ResourceCapacityView })));
+const ResourceCapacityView = lazy(() =>
+  import('./ResourceCapacityView').then((m) => ({ default: m.ResourceCapacityView }))
+);
+
+type HubStep = 'scope' | 'library' | 'prioritization' | 'plan';
 
 export const RiskAndPlanningHub: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // ✅ Đọc tab & subTab trực tiếp từ searchParams (hỗ trợ deep-link hai chiều)
-  const currentTab = searchParams.get('tab') || 'universe';
-  const currentSubTab = searchParams.get('subTab') || 'sub1';
+  // Đọc step & view từ searchParams, hỗ trợ backwards-compatibility với legacy tab/subTab
+  const legacyTab = searchParams.get('tab');
+  const legacySubTab = searchParams.get('subTab');
 
-  const handleTabChange = useCallback((key: string) => {
-    // Reset subTab về sub1 khi đổi tab chính
-    setSearchParams({ tab: key, subTab: 'sub1' }, { replace: false });
-  }, [setSearchParams]);
+  const currentStep: HubStep = useMemo(() => {
+    const s = searchParams.get('step');
+    if (s === 'scope' || s === 'library' || s === 'prioritization' || s === 'plan') {
+      return s;
+    }
+    // Backward compatibility with old tab query
+    if (legacyTab === 'universe') return 'scope';
+    if (legacyTab === 'rcm') return legacySubTab === 'sub2' ? 'prioritization' : 'library';
+    if (legacyTab === 'assessment') return 'prioritization';
+    if (legacyTab === 'plan') return 'plan';
+    return 'scope';
+  }, [searchParams, legacyTab, legacySubTab]);
 
-  const handleSubTabChange = useCallback((subKey: string) => {
-    setSearchParams({ tab: currentTab, subTab: subKey }, { replace: false });
-  }, [setSearchParams, currentTab]);
+  const currentView = useMemo(() => {
+    const v = searchParams.get('view');
+    if (v) return v;
 
-  const tabItems: TabsProps['items'] = useMemo(() => [
-    {
-      key: 'universe',
-      label: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
-          <AppstoreOutlined />
-          {t('menu.auditUniverse', '1. Vũ trụ KT & Đơn vị')}
-        </span>
-      ),
-      children: (
-        <Card bordered={false} style={{ borderRadius: 8 }}>
-          <Tabs
-            activeKey={currentTab === 'universe' ? currentSubTab : 'sub1'}
-            onChange={handleSubTabChange}
-            items={[
-              {
-                key: 'sub1',
-                label: <span><AppstoreOutlined /> {t('menu.auditUniverse', 'Vũ trụ Đối tượng Kiểm toán')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <AuditUniverse />
-                  </Suspense>
-                ),
-              },
-              {
-                key: 'sub2',
-                label: <span><ApartmentOutlined /> {t('menu.departments', 'Cơ cấu Tổ chức & Chi nhánh')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <Departments />
-                  </Suspense>
-                ),
-              },
-            ]}
-          />
-        </Card>
-      ),
+    // Fallbacks based on legacy query
+    if (legacyTab === 'universe' && legacySubTab === 'sub2') return 'departments';
+    if (legacyTab === 'rcm' && legacySubTab === 'sub2') return 'register';
+    if (legacyTab === 'assessment' && legacySubTab === 'sub2') return 'heatmap';
+    if (legacyTab === 'plan' && legacySubTab === 'sub2') return 'capacity';
+
+    // Default view per step
+    switch (currentStep) {
+      case 'scope':
+        return 'universe';
+      case 'library':
+        return 'rcm';
+      case 'prioritization':
+        return 'assessment';
+      case 'plan':
+        return 'plan';
+      default:
+        return 'universe';
+    }
+  }, [searchParams, legacyTab, legacySubTab, currentStep]);
+
+  const handleStepChange = useCallback(
+    (stepKey: string) => {
+      let defaultView = 'universe';
+      if (stepKey === 'library') defaultView = 'rcm';
+      if (stepKey === 'prioritization') defaultView = 'assessment';
+      if (stepKey === 'plan') defaultView = 'plan';
+
+      setSearchParams({ step: stepKey, view: defaultView }, { replace: false });
     },
-    {
-      key: 'rcm',
-      label: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
-          <SafetyCertificateOutlined />
-          {t('menu.riskControlMatrix', '2. Thư viện RCM & Sổ Rủi ro')}
-        </span>
-      ),
-      children: (
-        <Card bordered={false} style={{ borderRadius: 8 }}>
-          <Tabs
-            activeKey={currentTab === 'rcm' ? currentSubTab : 'sub1'}
-            onChange={handleSubTabChange}
-            items={[
-              {
-                key: 'sub1',
-                label: <span><SafetyCertificateOutlined /> {t('menu.riskControlMatrix', 'Ma trận Rủi ro & Kiểm soát (RCM)')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <RiskControlMatrix />
-                  </Suspense>
-                ),
-              },
-              {
-                key: 'sub2',
-                label: <span><AuditOutlined /> {t('menu.riskRegister', 'Sổ Đăng ký Rủi ro (Risk Register)')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <RiskRegister />
-                  </Suspense>
-                ),
-              },
-            ]}
-          />
-        </Card>
-      ),
+    [setSearchParams]
+  );
+
+  const handleViewChange = useCallback(
+    (viewKey: string) => {
+      setSearchParams({ step: currentStep, view: viewKey }, { replace: false });
     },
-    {
-      key: 'assessment',
-      label: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
-          <CalculatorOutlined />
-          {t('menu.riskAssessment', '3. Đánh giá Rủi ro & Heatmap')}
-        </span>
-      ),
-      children: (
-        <Card bordered={false} style={{ borderRadius: 8 }}>
-          <Tabs
-            activeKey={currentTab === 'assessment' ? currentSubTab : 'sub1'}
-            onChange={handleSubTabChange}
-            items={[
-              {
-                key: 'sub1',
-                label: <span><CalculatorOutlined /> {t('menu.riskAssessment', 'Đánh giá Rủi ro Định lượng')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <RiskAssessment />
-                  </Suspense>
-                ),
-              },
-              {
-                key: 'sub2',
-                label: <span><RadarChartOutlined /> {t('menu.scenarioRiskMap', 'Bản đồ Rủi ro Kịch bản (Heatmap)')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <ScenarioRiskMap />
-                  </Suspense>
-                ),
-              },
-            ]}
-          />
-        </Card>
-      ),
-    },
-    {
-      key: 'plan',
-      label: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
-          <CalendarOutlined />
-          {t('menu.auditPlan', '4. Kế hoạch Năm (AAP) & Nguồn lực')}
-        </span>
-      ),
-      children: (
-        <Card bordered={false} style={{ borderRadius: 8 }}>
-          <Tabs
-            activeKey={currentTab === 'plan' ? currentSubTab : 'sub1'}
-            onChange={handleSubTabChange}
-            items={[
-              {
-                key: 'sub1',
-                label: <span><CalendarOutlined /> {t('menu.auditPlan', 'Kế hoạch Kiểm toán Năm (AAP)')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <AuditPlan />
-                  </Suspense>
-                ),
-              },
-              {
-                key: 'sub2',
-                label: <span><TeamOutlined /> {t('menu.resourceCapacity', 'Cung - Cầu Định biên Nguồn lực (208 Man-days)')}</span>,
-                children: (
-                  <Suspense fallback={<HubTabLoading />}>
-                    <ResourceCapacityView />
-                  </Suspense>
-                ),
-              },
-            ]}
-          />
-        </Card>
-      ),
-    },
-  ], [currentTab, currentSubTab, handleSubTabChange, t]);
+    [setSearchParams, currentStep]
+  );
+
+  const tabItems: TabsProps['items'] = useMemo(
+    () => [
+      {
+        key: 'scope',
+        label: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+            <AppstoreOutlined />
+            {t('menu.hubScope', '1. Phạm vi kiểm toán')}
+          </span>
+        ),
+        children: (
+          <Card bordered={false} style={{ borderRadius: 8 }}>
+            <Tabs
+              activeKey={currentView === 'departments' ? 'departments' : 'universe'}
+              onChange={handleViewChange}
+              items={[
+                {
+                  key: 'universe',
+                  label: (
+                    <span>
+                      <AppstoreOutlined /> {t('menu.auditUniverse', 'Vũ trụ Đối tượng Kiểm toán (Audit Universe)')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <AuditUniverse />
+                    </Suspense>
+                  ),
+                },
+                {
+                  key: 'departments',
+                  label: (
+                    <span>
+                      <ApartmentOutlined /> {t('menu.departments', 'Cơ cấu Tổ chức & Chi nhánh')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <Departments />
+                    </Suspense>
+                  ),
+                },
+              ]}
+            />
+          </Card>
+        ),
+      },
+      {
+        key: 'library',
+        label: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+            <SafetyCertificateOutlined />
+            {t('menu.hubLibrary', '2. Thư viện rủi ro & kiểm soát')}
+          </span>
+        ),
+        children: (
+          <Card bordered={false} style={{ borderRadius: 8 }}>
+            <Tabs
+              activeKey={currentView === 'profile-ref' ? 'profile-ref' : 'rcm'}
+              onChange={handleViewChange}
+              items={[
+                {
+                  key: 'rcm',
+                  label: (
+                    <span>
+                      <SafetyCertificateOutlined /> {t('menu.riskControlMatrix', 'Ma trận Rủi ro & Kiểm soát (RCM)')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <RiskControlMatrix />
+                    </Suspense>
+                  ),
+                },
+                {
+                  key: 'profile-ref',
+                  label: (
+                    <span>
+                      <DatabaseOutlined /> {t('menu.riskProfileRef', 'Tra cứu Hồ sơ Rủi ro Chuẩn (HSRR - 819 Rủi ro)')}
+                    </span>
+                  ),
+                  children: (
+                    <div>
+                      <Alert
+                        message="Thư viện Hồ sơ Rủi ro Chuẩn (Tra cứu tham chiếu)"
+                        description={
+                          <div>
+                            Các rủi ro và mục tiêu kiểm soát chuẩn được cập nhật và phê duyệt tập trung tại mục Quản trị Phương pháp luận.
+                            <Button
+                              type="link"
+                              size="small"
+                              href="/methodology"
+                              style={{ paddingLeft: 8, fontWeight: 600 }}
+                            >
+                              Mở Quản trị Phương pháp luận (/methodology) →
+                            </Button>
+                          </div>
+                        }
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16, borderRadius: 8 }}
+                      />
+                      <Suspense fallback={<HubTabLoading />}>
+                        <RiskProfilesTab />
+                      </Suspense>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </Card>
+        ),
+      },
+      {
+        key: 'prioritization',
+        label: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+            <CalculatorOutlined />
+            {t('menu.hubPrioritization', '3. Đánh giá & ưu tiên')}
+          </span>
+        ),
+        children: (
+          <Card bordered={false} style={{ borderRadius: 8 }}>
+            <Tabs
+              activeKey={
+                currentView === 'register'
+                  ? 'register'
+                  : currentView === 'heatmap'
+                  ? 'heatmap'
+                  : 'assessment'
+              }
+              onChange={handleViewChange}
+              items={[
+                {
+                  key: 'assessment',
+                  label: (
+                    <span>
+                      <CalculatorOutlined /> {t('menu.riskAssessment', 'Đánh giá Rủi ro Phục vụ Kế hoạch KTNB')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <RiskAssessment />
+                    </Suspense>
+                  ),
+                },
+                {
+                  key: 'register',
+                  label: (
+                    <span>
+                      <AuditOutlined /> {t('menu.riskRegister', 'Sổ Đăng ký Rủi ro RBIA (Risk Register)')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <RiskRegister />
+                    </Suspense>
+                  ),
+                },
+                {
+                  key: 'heatmap',
+                  label: (
+                    <span>
+                      <RadarChartOutlined /> {t('menu.scenarioRiskMap', 'Bản đồ Rủi ro Kịch bản (Heatmap & Stress)')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <ScenarioRiskMap />
+                    </Suspense>
+                  ),
+                },
+              ]}
+            />
+          </Card>
+        ),
+      },
+      {
+        key: 'plan',
+        label: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+            <CalendarOutlined />
+            {t('menu.hubPlan', '4. Kế hoạch & nguồn lực')}
+          </span>
+        ),
+        children: (
+          <Card bordered={false} style={{ borderRadius: 8 }}>
+            <Tabs
+              activeKey={currentView === 'capacity' ? 'capacity' : 'plan'}
+              onChange={handleViewChange}
+              items={[
+                {
+                  key: 'plan',
+                  label: (
+                    <span>
+                      <CalendarOutlined /> {t('menu.auditPlan', 'Kế hoạch Kiểm toán Năm (AAP)')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <AuditPlan />
+                    </Suspense>
+                  ),
+                },
+                {
+                  key: 'capacity',
+                  label: (
+                    <span>
+                      <TeamOutlined /> {t('menu.resourceCapacity', 'Cung - Cầu Định biên Nguồn lực (208 Man-days)')}
+                    </span>
+                  ),
+                  children: (
+                    <Suspense fallback={<HubTabLoading />}>
+                      <ResourceCapacityView />
+                    </Suspense>
+                  ),
+                },
+              ]}
+            />
+          </Card>
+        ),
+      },
+    ],
+    [currentView, handleViewChange, t]
+  );
 
   return (
     <div style={{ padding: '0 8px' }}>
       <HubHeaderBanner
-        title={t('menu.groupPlan', 'TRUNG TÂM QUẢN TRỊ RỦI RO & KẾ HOẠCH NĂM')}
-        tagText="IIA STANDARD 2010 & TT 13"
+        title={t('menu.groupPlan', 'CHU TRÌNH LẬP KẾ HOẠCH KIỂM TOÁN DỰA TRÊN RỦI RO (RBIA)')}
+        tagText="IIA GIAS 2024 & TT 13"
         tagColor="#d97706"
-        description="Hợp nhất quản lý Vũ trụ Kiểm toán, Thư viện RCM, Đánh giá Rủi ro định lượng và Kế hoạch Kiểm toán Năm (AAP)"
+        description="Quy trình lập kế hoạch kiểm toán nội bộ dựa trên rủi ro dành riêng cho Tuyến 3 (KTNB). Tín hiệu rủi ro Tuyến 1, Tuyến 2 (KRI, RCSA), CAATs và phát hiện kỳ trước là dữ liệu đầu vào chỉ-đọc."
       />
 
       <Tabs
-        activeKey={currentTab}
-        onChange={handleTabChange}
+        activeKey={currentStep}
+        onChange={handleStepChange}
         type="card"
         size="large"
         items={tabItems}

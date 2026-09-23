@@ -9,12 +9,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuditEngagementsService } from './audit-engagements.service';
+import { AuditWorkstreamsService } from './audit-workstreams.service';
 
 @Controller('audit-workstreams')
 @UseGuards(JwtAuthGuard)
 export class AuditWorkstreamsController {
-  constructor(private readonly service: AuditEngagementsService) {}
+  constructor(private readonly service: AuditWorkstreamsService) {}
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: any, @Request() req: any) {

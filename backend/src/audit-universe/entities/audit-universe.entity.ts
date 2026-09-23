@@ -4,12 +4,17 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { RiskAssessment } from '../../risk-assessments/entities/risk-assessment.entity';
 
 @Entity('audit_universe')
 export class AuditUniverse {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @OneToMany(() => RiskAssessment, (assessment) => assessment.auditUniverse)
+  assessments: RiskAssessment[];
 
   @Column()
   name: string; // Tên quy trình/hoạt động có thể được kiểm toán
@@ -45,26 +50,8 @@ export class AuditUniverse {
   @Column({ type: 'date', nullable: true })
   lastAuditDate: string;
 
-  @Column({ type: 'float', default: 2.5 })
-  financialSize: number; // Điểm quy mô tài sản/giao dịch: 1.0 - 5.0
-
-  @Column({ type: 'float', default: 2.5 })
-  operationalRiskScore: number; // Chỉ số rủi ro vận hành Tuyến 2: 1.0 - 5.0
-
-  @Column({ type: 'float', default: 2.5 })
-  pastFindingsScore: number; // Điểm phát hiện sai phạm cũ: 1.0 - 5.0
-
-  @Column({ type: 'float', nullable: true })
-  riskScore: number; // Điểm rủi ro tổng hợp calculated
-
-  @Column({ nullable: true })
-  dynamicRiskRating: string; // Hạng 1 -> Hạng 5 | High | Medium | Low | null (Chưa đánh giá)
-
   @Column({ type: 'int', default: 1 })
   layer: number; // 1: Process/HQ, 2: Branch/Vertical
-
-  @Column({ type: 'jsonb', nullable: true })
-  scoreDetails: Record<string, any>; // Lưu chi tiết các thành phần điểm của Layer 1 / Layer 2
 
   @Column({ type: 'int', default: 2026 })
   nextAuditYear: number; // Năm khuyến nghị kiểm toán tiếp theo
@@ -79,13 +66,10 @@ export class AuditUniverse {
   priorityReason: string | null;
 
   @Column({ nullable: true })
-  transferredFromUniverseId: number; // Kế thừa rủi ro từ thực thể cũ
+  transferredFromUniverseId: number; // Kế thừa từ thực thể cũ
 
   @Column({ nullable: true })
   transferredFromDeptCode: string; // Mã đơn vị cũ chuyển giao
-
-  @Column({ type: 'float', nullable: true })
-  transferredRiskScore: number; // Điểm rủi ro kế thừa
 
   @Column({ type: 'text', nullable: true })
   transferNotes: string; // Ghi chú chuyển đổi (nâng cấp PGD lên Chi nhánh, sáp nhập...)

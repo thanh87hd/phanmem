@@ -52,6 +52,7 @@ import AuditMinutesTab from '../AuditMinutesTab';
 import StageGateFooter from './StageGateFooter';
 import { WorkingPaperDetailDrawer } from '../components/WorkingPaperDetailDrawer';
 import FieldworkAlertBanner from './FieldworkAlertBanner';
+import ReviewNotesTab from './ReviewNotesTab';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -712,31 +713,27 @@ export const Phase2FieldworkTab: React.FC<Phase2FieldworkTabProps> = ({
             {/* Step 4 */}
             <Col xs={24} sm={12} lg={6}>
               <div 
-                onClick={() => {
-                  setActiveSubTab('working-papers');
-                  setViewFilter('my');
-                  setStatusFilter('Submitted');
-                }}
+                onClick={() => setActiveSubTab('review-notes')}
                 className={`p-3 rounded-lg border cursor-pointer transition-all h-full flex flex-col justify-between ${
-                  statusFilter === 'Submitted' && activeSubTab === 'working-papers' 
+                  activeSubTab === 'review-notes' 
                     ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-300' 
                     : 'bg-white hover:border-blue-400 border-slate-200 shadow-xs'
                 }`}
               >
                 <div>
-                  <div className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${statusFilter === 'Submitted' && activeSubTab === 'working-papers' ? 'text-blue-100' : 'text-blue-600'}`}>
+                  <div className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${activeSubTab === 'review-notes' ? 'text-blue-100' : 'text-blue-600'}`}>
                     4. Soát Xét 4 Mắt
                   </div>
-                  <div className={`text-xs font-semibold ${statusFilter === 'Submitted' && activeSubTab === 'working-papers' ? 'text-white' : 'text-slate-800'}`}>
-                    Nộp duyệt & Thẩm định độc lập
+                  <div className={`text-xs font-semibold ${activeSubTab === 'review-notes' ? 'text-white' : 'text-slate-800'}`}>
+                    Review Notes MB-10 & Gate IIA
                   </div>
-                  <div className={`text-[11px] mt-1 ${statusFilter === 'Submitted' && activeSubTab === 'working-papers' ? 'text-blue-100' : 'text-slate-500'}`}>
-                    {workingPapers.filter(w => w.status === 'Submitted' || w.status === 'PendingReview').length} W/P chờ soát xét
+                  <div className={`text-[11px] mt-1 ${activeSubTab === 'review-notes' ? 'text-blue-100' : 'text-slate-500'}`}>
+                    Chỉ đạo soát xét & Ký đóng hồ sơ
                   </div>
                 </div>
                 <div className="mt-2 text-right">
-                  <span className={`text-[11px] font-semibold underline ${statusFilter === 'Submitted' && activeSubTab === 'working-papers' ? 'text-white' : 'text-blue-600'}`}>
-                    Lọc W/P 4 mắt →
+                  <span className={`text-[11px] font-semibold underline ${activeSubTab === 'review-notes' ? 'text-white' : 'text-blue-600'}`}>
+                    Chuyển đến Tab 2.5 →
                   </span>
                 </div>
               </div>
@@ -1114,8 +1111,29 @@ export const Phase2FieldworkTab: React.FC<Phase2FieldworkTabProps> = ({
           )
         },
         {
+          key: 'review-notes',
+          label: (
+            <span className="font-medium flex items-center gap-1.5">
+              <span>2.5. Sổ tay Soát xét 4 Mắt (MB-10)</span>
+              <SafetyOutlined className="text-purple-600" />
+            </span>
+          ),
+          children: (
+            <ReviewNotesTab
+              engagementId={selectedEngagement.id}
+              currentUser={currentUser}
+              workingPapers={workingPapers}
+              workstreams={workstreams}
+              onNotesUpdated={() => {
+                fetchWorkingPapers();
+                fetchWorkstreams();
+              }}
+            />
+          )
+        },
+        {
           key: 'findings',
-          label: <span className="font-medium">2.5. Phát hiện kiểm toán 5C ({findings.length})</span>,
+          label: <span className="font-medium">2.6. Phát hiện kiểm toán 5C ({findings.length})</span>,
           children: (
             <Card variant="borderless" className="shadow-sm">
               <div className="flex justify-between items-center mb-4">
@@ -1145,7 +1163,7 @@ export const Phase2FieldworkTab: React.FC<Phase2FieldworkTabProps> = ({
         },
         {
           key: 'minutes',
-          label: <span className="font-medium">2.6. Biên bản kiểm toán thực địa MB04 (Exit Meeting)</span>,
+          label: <span className="font-medium">2.7. Biên bản họp kết thúc thực địa MB-12 (Exit Meeting)</span>,
           children: (
             <AuditMinutesTab engagementId={selectedEngagement.id} />
           )

@@ -513,9 +513,17 @@ const Dashboard: React.FC = () => {
                 LPBank Smart Audit 4.0
               </span>
               {userScope.level === 'GLOBAL' && (
-                <span className="bg-black/20 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border border-white/20">
-                  🏛️ Khối KTNB & Ban Kiểm Soát
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-black/20 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border border-white/20">
+                    🏛️ Khối KTNB & Ban Kiểm Soát
+                  </span>
+                  <button
+                    onClick={() => navigate('/audit-committee-portal')}
+                    className="bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm cursor-pointer transition-transform active:scale-95"
+                  >
+                    🏛️ Cổng BKS &rarr;
+                  </button>
+                </div>
               )}
               {userScope.level === 'DEPARTMENT' && (
                 <span className="bg-black/20 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border border-white/20">
@@ -567,12 +575,15 @@ const Dashboard: React.FC = () => {
               className="w-full text-sm"
               size="large"
               options={[
+                { value: '/audit-committee-portal', label: '🏛️ Cổng Ban Kiểm Soát — Báo cáo & Giám sát Hệ thống (IIA 1000)' },
+                { value: '/bsc-kpi', label: '🏆 Đánh giá Hiệu quả Công việc BSC-KPI & KTV (MB02.HRM.2026)' },
+                { value: '/general-tasks', label: '📋 Phân giao Công việc Ngoài Đoàn & Tiến độ Phòng ban' },
                 { value: '/audit-engagements', label: '🎯 Quản lý Cuộc kiểm toán & Theo dõi tiến độ thực hiện' },
                 { value: '/working-papers', label: '📝 Soạn thảo Giấy tờ làm việc (Working Papers & Sample Matrix)' },
-                { value: '/audit-findings', label: '⚠️ Rà soát & Đăng ký Phát hiện kiểm toán (Finding Management)' },
-                { value: '/audit-reports', label: '📊 Lập Báo cáo kiểm toán & Biên bản kiểm toán (MB04)' },
-                { value: '/risk-assessment', label: '🧮 Đánh giá Rủi ro Đối tượng kiểm toán (Risk Assessment)' },
-                { value: '/audit-plan', label: '📅 Kế hoạch kiểm toán năm & Phân bổ nhân sự' },
+                { value: '/findings-hub?tab=findings', label: '⚠️ Rà soát & Đăng ký Phát hiện kiểm toán (Finding Management)' },
+                { value: '/findings-hub?tab=reports', label: '📊 Lập Báo cáo kiểm toán & Biên bản kiểm toán (MB04)' },
+                { value: '/risk-and-planning?step=prioritization', label: '🧮 Đánh giá Rủi ro Đối tượng kiểm toán (Risk Assessment)' },
+                { value: '/risk-and-planning?step=plan', label: '📅 Kế hoạch kiểm toán năm & Phân bổ nhân sự' },
                 { value: '/user-guide', label: '📚 Tra cứu Quy chế, Cẩm nang KTNB & Văn bản pháp quy' },
               ]}
             />
@@ -588,6 +599,27 @@ const Dashboard: React.FC = () => {
 
         {/* Quick Service Shortcuts Row */}
         <div className="pt-3 flex items-center justify-between overflow-x-auto gap-2 text-xs font-semibold text-slate-800 no-scrollbar">
+          <button 
+            onClick={() => navigate('/audit-committee-portal')} 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50/80 transition-colors cursor-pointer flex-shrink-0"
+          >
+            <span className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-[#ea9105] text-xs">🏛️</span>
+            <span>Cổng BKS</span>
+          </button>
+          <button 
+            onClick={() => navigate('/general-tasks')} 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50/80 transition-colors cursor-pointer flex-shrink-0"
+          >
+            <span className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-[#ea9105] text-xs">📋</span>
+            <span>Việc ngoài đoàn</span>
+          </button>
+          <button 
+            onClick={() => navigate('/bsc-kpi')} 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50/80 transition-colors cursor-pointer flex-shrink-0"
+          >
+            <span className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-[#ea9105] text-xs">🏆</span>
+            <span>BSC-KPI</span>
+          </button>
           <button 
             onClick={() => navigate('/audit-engagements')} 
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50/80 transition-colors cursor-pointer flex-shrink-0"
@@ -628,7 +660,7 @@ const Dashboard: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50/80 transition-colors cursor-pointer flex-shrink-0"
           >
             <span className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-[#ea9105] text-xs">📚</span>
-            <span>Cẩm nang nghiệp vụ</span>
+            <span>Cẩm nang</span>
           </button>
         </div>
       </div>

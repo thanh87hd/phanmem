@@ -418,3 +418,5 @@ export const ScenarioRiskMap: React.FC = () => {
     </div>
   );
 };
+
+export default ScenarioRiskMap;

@@ -14,6 +14,7 @@ import { User } from '../../users/entities/user.entity';
 import { RiskWeight } from './risk-weight.entity';
 import { RiskApproval } from './risk-approval.entity';
 import { RiskSnapshot } from './risk-snapshot.entity';
+import { RiskAssessmentScore } from './risk-assessment-score.entity';
 import {
   CriterionScoringItem,
   ImpactScoringItem,
@@ -24,6 +25,17 @@ import {
 export class RiskAssessment {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({ default: 1 })
+  version: number; // Snapshot version theo (auditUniverseId, assessmentYear)
+
+  @Column({ nullable: true })
+  criteriaVersionId: number; // Bộ tiêu chí phương pháp luận được duyệt
+
+  @OneToMany(() => RiskAssessmentScore, (score) => score.assessment, {
+    cascade: true,
+  })
+  scores: RiskAssessmentScore[];
 
   @Column({ name: 'universeName', nullable: true })
   legacyUniverseName: string;

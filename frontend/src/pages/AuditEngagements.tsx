@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Typography, Card, Button, Table, Modal, Form, Input, DatePicker, Select, Space, Tag, message, Row, Col, Avatar, Divider, Tabs, Alert, Steps } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ClockCircleOutlined, CloseOutlined, CheckCircleOutlined, SafetyOutlined, DownloadOutlined, FileExcelOutlined, FileTextOutlined, AuditOutlined } from '@ant-design/icons';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -59,6 +59,7 @@ const AuditEngagements: React.FC = () => {
 
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [engagements, setEngagements] = useState<any[]>([]);
   const [auditPlans, setAuditPlans] = useState<any[]>([]);
   const [selectedEngagement, setSelectedEngagement] = useState<any | null>(null);
@@ -66,23 +67,54 @@ const AuditEngagements: React.FC = () => {
   const [stageGateModalVisible, setStageGateModalVisible] = useState(false);
   const [stageGateTargetPhase, setStageGateTargetPhase] = useState<'phase2' | 'phase3' | 'phase4' | 'closed'>('phase2');
 
+  const changeActivePhase = (targetPhase: string) => {
+    setActivePhase(targetPhase);
+    if (selectedEngagement?.id) {
+      setSearchParams({ id: String(selectedEngagement.id), phase: targetPhase }, { replace: true });
+    }
+  };
+
   const handleOpenStageGateModal = (targetPhase: 'phase2' | 'phase3' | 'phase4' | 'closed') => {
     setStageGateTargetPhase(targetPhase);
     setStageGateModalVisible(true);
   };
 
+  // Deep-linking: tự động chọn engagement & phase từ URL params nếu có
+  useEffect(() => {
+    const idParam = searchParams.get('id');
+    const phaseParam = searchParams.get('phase');
+    if (idParam && engagements.length > 0) {
+      const numId = Number(idParam);
+      const matched = engagements.find((e: any) => e.id === numId);
+      if (matched && (!selectedEngagement || selectedEngagement.id !== numId)) {
+        setSelectedEngagement(matched);
+        if (phaseParam) {
+          setActivePhase(phaseParam);
+        }
+        fetchTasks(matched.id);
+        fetchWorkstreams(matched.id);
+      }
+    }
+  }, [engagements, searchParams]);
+
   // Tự động mở đúng phase tương ứng khi chọn cuộc kiểm toán
   useEffect(() => {
     if (selectedEngagement?.status) {
-      if (selectedEngagement.status === 'Completed') {
-        setActivePhase('phase4');
-      } else if (selectedEngagement.status === 'Reporting') {
-        setActivePhase('phase3');
-      } else if (selectedEngagement.status === 'Fieldwork') {
-        setActivePhase('phase2');
-      } else {
-        setActivePhase('phase1');
+      const phaseParam = searchParams.get('phase');
+      if (phaseParam) {
+        setActivePhase(phaseParam);
+        return;
       }
+      let defaultPhase = 'phase1';
+      if (selectedEngagement.status === 'Completed') {
+        defaultPhase = 'phase4';
+      } else if (selectedEngagement.status === 'Reporting') {
+        defaultPhase = 'phase3';
+      } else if (selectedEngagement.status === 'Fieldwork') {
+        defaultPhase = 'phase2';
+      }
+      setActivePhase(defaultPhase);
+      setSearchParams({ id: String(selectedEngagement.id), phase: defaultPhase }, { replace: true });
     }
   }, [selectedEngagement?.id, selectedEngagement?.status]);
 
@@ -93,7 +125,7 @@ const AuditEngagements: React.FC = () => {
     const isAdmin = roleStr.toLowerCase().includes('admin') || roleStr.toLowerCase().includes('quản trị');
     
     if (isAdmin) {
-      setActivePhase(targetPhase);
+      changeActivePhase(targetPhase);
       return;
     }
 
@@ -104,7 +136,7 @@ const AuditEngagements: React.FC = () => {
       targetPhase === 'phase4' ? (status === 'Completed') : false;
 
     if (isAllowed) {
-      setActivePhase(targetPhase);
+      changeActivePhase(targetPhase);
     } else {
       const phaseNames: Record<string, string> = {
         phase1: 'Giai đoạn 1: Lập Kế hoạch & Chuẩn bị (IIA 2200)',
@@ -392,7 +424,11 @@ const AuditEngagements: React.FC = () => {
 
   const handleEngagementSelect = (record: any) => {
     setSelectedEngagement(record);
-    setActivePhase('phase1');
+    const initialPhase = record.status === 'Completed' ? 'phase4' :
+                         record.status === 'Reporting' ? 'phase3' :
+                         record.status === 'Fieldwork' ? 'phase2' : 'phase1';
+    setActivePhase(initialPhase);
+    setSearchParams({ id: String(record.id), phase: initialPhase }, { replace: true });
     fetchTasks(record.id);
     fetchWorkstreams(record.id);
   };
@@ -1002,14 +1038,17 @@ const AuditEngagements: React.FC = () => {
 
           <EngagementHeaderBanner
             selectedEngagement={selectedEngagement}
-            onBack={() => setSelectedEngagement(null)}
+            onBack={() => {
+              setSelectedEngagement(null);
+              setSearchParams({}, { replace: true });
+            }}
           />
 
           {/* Interactive IIA Process Bar & Role/Personnel Navigation with Sequential Gating */}
           <AuditEngagementProcessBar
             selectedEngagement={selectedEngagement}
             activePhase={activePhase}
-            setActivePhase={setActivePhase}
+            setActivePhase={changeActivePhase}
             currentUser={currentUser}
             onOpenStageGateModal={handleOpenStageGateModal}
           />
@@ -1100,7 +1139,7 @@ const AuditEngagements: React.FC = () => {
             setSelectedEngagement={setSelectedEngagement}
             fetchEngagements={fetchEngagements}
             targetPhase={stageGateTargetPhase}
-            setActivePhase={setActivePhase}
+            setActivePhase={changeActivePhase}
           />
         </div>
       )}

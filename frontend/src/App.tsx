@@ -90,6 +90,10 @@ const DocumentManager = lazy(() => import('./pages/DocumentManager'));
 const RiskAndPlanningHub = lazy(() => import('./pages/RiskAndPlanningHub'));
 const FindingsAndReportsHub = lazy(() => import('./pages/FindingsAndReportsHub'));
 const SystemSettingsHub = lazy(() => import('./pages/SystemSettingsHub'));
+const MethodologyManagement = lazy(() => import('./pages/MethodologyManagement'));
+const DefectCodeList = lazy(() => import('./pages/DefectCodeList').then(m => ({ default: m.DefectCodeList })));
+const EngagementChangeRequests = lazy(() => import('./pages/EngagementChangeRequests'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 const App: React.FC = () => {
   const { i18n } = useTranslation();
@@ -199,19 +203,6 @@ const App: React.FC = () => {
                     Nguyên tắc: Tuyệt đối không làm hỏng bookmark của KTV.
                     ═══════════════════════════════════════════════════════════════ */}
 
-                {/* Hub 1 Redirects: Rủi Ro & Kế Hoạch */}
-                <Route path="audit-universe" element={<Navigate to="/risk-and-planning?tab=universe&subTab=sub1" replace />} />
-                <Route path="departments" element={<Navigate to="/risk-and-planning?tab=universe&subTab=sub2" replace />} />
-                <Route path="risk-control-matrix" element={<Navigate to="/risk-and-planning?tab=rcm&subTab=sub1" replace />} />
-                <Route path="risk-register" element={<Navigate to="/risk-and-planning?tab=rcm&subTab=sub2" replace />} />
-                <Route path="thematic-analysis" element={<Navigate to="/risk-and-planning?tab=rcm&subTab=sub2" replace />} />
-                <Route path="test-of-control" element={<Navigate to="/risk-and-planning?tab=rcm&subTab=sub1" replace />} />
-                <Route path="risk-criteria" element={<Navigate to="/risk-and-planning?tab=assessment&subTab=sub1" replace />} />
-                <Route path="risk-assessment" element={<Navigate to="/risk-and-planning?tab=assessment&subTab=sub1" replace />} />
-                <Route path="scenario-risk-map" element={<Navigate to="/risk-and-planning?tab=assessment&subTab=sub2" replace />} />
-                <Route path="audit-plan" element={<Navigate to="/risk-and-planning?tab=plan&subTab=sub1" replace />} />
-                <Route path="resource-capacity" element={<Navigate to="/risk-and-planning?tab=plan&subTab=sub2" replace />} />
-
                 {/* Hub 2 Redirects: Phát Hiện & Báo Cáo */}
                 <Route path="audit-findings" element={<Navigate to="/findings-hub?tab=findings&subTab=sub1" replace />} />
                 <Route path="audit-findings-analytics" element={<Navigate to="/findings-hub?tab=findings&subTab=sub2" replace />} />
@@ -236,34 +227,40 @@ const App: React.FC = () => {
                 <Route path="resource-calendar" element={<ResourceCalendar />} />
                 <Route path="summary-reports" element={<SummaryReports />} />
                 <Route path="raci-governance" element={<RaciGovernanceView />} />
+                <Route path="engagement-change-requests" element={<EngagementChangeRequests />} />
+                <Route path="ai-knowledge" element={<FindingKnowledgeBase />} />
+                <Route path="regulatory-kb" element={<RegulatoryKnowledgeBase />} />
                 <Route path="dynamic-app/:resourceName" element={<DynamicAppView />} />
               </Route>
    
-              {/* Admin Only Routes */}
-              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Trưởng Ban KTNB', 'Ban Kiểm soát']} />}>
+              {/* Admin & Ban Kiểm Soát Routes */}
+              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Trưởng Ban KTNB', 'Ban Kiểm soát', 'Ban kiểm soát']} />}>
                 <Route path="audit-committee" element={<AuditCommitteePortal />} />
+                <Route path="audit-committee-portal" element={<AuditCommitteePortal />} />
                 <Route path="regulatory-exams" element={<RegulatoryExams />} />
                 <Route path="independence-tracker" element={<IndependenceTracker />} />
               </Route>
    
               <Route element={<ProtectedRoute allowedRoles={['Admin', 'Trưởng Ban KTNB']} />}>
+                {/* Quản trị Phương pháp luận, HSRR & Mã lỗi (Admin & Trưởng Ban KTNB) */}
+                <Route path="methodology" element={<MethodologyManagement />} />
+                <Route path="defect-codes" element={<DefectCodeList />} />
+
                 {/* Hub 3 Redirects: Quản Trị Hệ Thống (Admin-only paths) */}
                 <Route path="roles" element={<Navigate to="/system-admin?tab=roles" replace />} />
                 <Route path="personnel" element={<Navigate to="/system-admin?tab=personnel&subTab=sub1" replace />} />
                 <Route path="audit-trail" element={<Navigate to="/system-admin?tab=audit-trail" replace />} />
                 <Route path="system-management" element={<Navigate to="/system-admin?tab=config&subTab=sub1" replace />} />
                 <Route path="integration-settings" element={<Navigate to="/system-admin?tab=config&subTab=sub2" replace />} />
-                <Route path="external-database" element={<Navigate to="/system-admin?tab=config&subTab=sub2" replace />} />
+                <Route path="external-database" element={<Navigate to="/system-admin?tab=config&subTab=sub4" replace />} />
                 <Route path="active-directory" element={<Navigate to="/system-admin?tab=config&subTab=sub2" replace />} />
                 <Route path="exchange-365" element={<Navigate to="/system-admin?tab=config&subTab=sub2" replace />} />
-                <Route path="infrastructure-monitor" element={<Navigate to="/system-admin?tab=config&subTab=sub1" replace />} />
+                <Route path="infrastructure-monitor" element={<Navigate to="/system-admin?tab=config&subTab=sub5" replace />} />
                 <Route path="training-cpe" element={<Navigate to="/system-admin?tab=personnel&subTab=sub3" replace />} />
                 <Route path="audit-expenses" element={<Navigate to="/system-admin?tab=personnel&subTab=sub4" replace />} />
 
                 {/* Admin-only Dedicated Workspaces — Giữ nguyên */}
                 <Route path="password-change-requests" element={<PasswordChangeRequests />} />
-                <Route path="ai-knowledge" element={<FindingKnowledgeBase />} />
-                <Route path="regulatory-kb" element={<RegulatoryKnowledgeBase />} />
                 <Route path="process-analysis" element={<ProcessAnalysis />} />
                 <Route path="knowledge-extraction" element={<KnowledgeExtraction />} />
                 <Route path="app-studio" element={<AppStudio />} />
@@ -271,8 +268,8 @@ const App: React.FC = () => {
               </Route>
             </Route>
             
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Fallback route - Trả về trang 404 cho các đường dẫn không tồn tại hoặc đã ngắt bỏ */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
         </ErrorBoundary>

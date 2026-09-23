@@ -8,11 +8,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { AuditPlan } from './audit-plan.entity';
+import { AuditUniverse } from '../../audit-universe/entities/audit-universe.entity';
+import { RiskAssessment } from '../../risk-assessments/entities/risk-assessment.entity';
 
 /**
  * AuditPlanUnit — Normalized relation replacing the JSON blob `selectedUnits` in AuditPlan.
- * Each row represents one audit universe selected for a specific audit plan.
- * Aligns with GIAS 9.4 (Dynamic Plan) requiring queryable, auditable plan units.
+ * Quan hệ dòng kế hoạch - Audit Universe - Assessment đã phê duyệt (RBIA / GIAS 9.4).
  */
 @Entity('audit_plan_units')
 export class AuditPlanUnit {
@@ -26,8 +27,19 @@ export class AuditPlanUnit {
   @JoinColumn({ name: 'planId' })
   plan: AuditPlan;
 
+  @ManyToOne(() => AuditUniverse, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'universeId' })
+  universe: AuditUniverse;
+
   @Column({ nullable: true })
   universeId: number;
+
+  @ManyToOne(() => RiskAssessment, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'assessmentId' })
+  assessment: RiskAssessment;
+
+  @Column({ nullable: true })
+  assessmentId: number;
 
   @Column({ nullable: true })
   universeName: string;

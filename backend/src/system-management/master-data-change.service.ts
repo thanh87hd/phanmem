@@ -206,13 +206,8 @@ export class MasterDataChangeService {
           department: savedDept.name,
           departmentCode: savedDept.code,
           auditCategory: savedDept.unitType || 'ChiNhanh',
-          riskScore:
-            request.riskImpactLevel === 3
-              ? 4.0
-              : request.riskImpactLevel === 2
-                ? 3.0
-                : 2.0,
-          dynamicRiskRating: request.riskImpactLevel === 3 ? 'High' : 'Medium',
+          nextAuditYear: currentYear,
+          status: 'Active',
         });
         await this.universeRepo.save(universe);
       } else if (
@@ -269,7 +264,6 @@ export class MasterDataChangeService {
               oldUniverse.auditCategory =
                 proposedData.unitType || oldDept.unitType;
               oldUniverse.transferredFromDeptCode = oldDept.code;
-              oldUniverse.transferredRiskScore = oldUniverse.riskScore || 3.0;
               oldUniverse.transferNotes = `Kế thừa rủi ro và lịch sử sai phạm từ đơn vị cũ: [${oldDept.code}] ${oldDept.name}`;
 
               await this.universeRepo.save(oldUniverse);

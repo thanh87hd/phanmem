@@ -25,6 +25,10 @@ const AuditExpenses = lazy(() => import('./AuditExpenses'));
 const AuditTrailPage = lazy(() => import('./AuditTrail'));
 const SystemManagement = lazy(() => import('./SystemManagement'));
 const IntegrationSettings = lazy(() => import('./IntegrationSettings'));
+const IndependenceTracker = lazy(() => import('./IndependenceTracker'));
+const MasterDataGovernancePage = lazy(() => import('./MasterDataGovernance'));
+const ExternalDatabaseConnections = lazy(() => import('./ExternalDatabaseConnections'));
+const InfrastructureMonitor = lazy(() => import('./InfrastructureMonitor'));
 
 export const SystemSettingsHub: React.FC = () => {
   const { t } = useTranslation();
@@ -109,6 +113,15 @@ export const SystemSettingsHub: React.FC = () => {
                   </Suspense>
                 ),
               },
+              {
+                key: 'sub5',
+                label: <span><AuditOutlined /> {t('menu.independenceTracker', 'Giám sát Độc lập KTV (IIA 1100)')}</span>,
+                children: (
+                  <Suspense fallback={<HubTabLoading />}>
+                    <IndependenceTracker />
+                  </Suspense>
+                ),
+              },
             ]}
           />
         </Card>
@@ -159,6 +172,33 @@ export const SystemSettingsHub: React.FC = () => {
                 children: (
                   <Suspense fallback={<HubTabLoading />}>
                     <IntegrationSettings />
+                  </Suspense>
+                ),
+              },
+              {
+                key: 'sub3',
+                label: <span><AuditOutlined /> {t('menu.masterData', 'Quản trị Dữ liệu Cốt lõi (Master Data)')}</span>,
+                children: (
+                  <Suspense fallback={<HubTabLoading />}>
+                    <MasterDataGovernancePage />
+                  </Suspense>
+                ),
+              },
+              {
+                key: 'sub4',
+                label: <span><ApiOutlined /> {t('menu.externalDb', 'Kết nối CSDL Ngoài (Core/DWH)')}</span>,
+                children: (
+                  <Suspense fallback={<HubTabLoading />}>
+                    <ExternalDatabaseConnections />
+                  </Suspense>
+                ),
+              },
+              {
+                key: 'sub5',
+                label: <span><SettingOutlined /> {t('menu.infraMonitor', 'Giám sát Hạ tầng & Tải (APM)')}</span>,
+                children: (
+                  <Suspense fallback={<HubTabLoading />}>
+                    <InfrastructureMonitor />
                   </Suspense>
                 ),
               },

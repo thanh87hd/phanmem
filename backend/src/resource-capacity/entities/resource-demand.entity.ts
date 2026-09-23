@@ -4,11 +4,15 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
   Index,
 } from 'typeorm';
+import { AuditPlanUnit } from '../../audit-plans/entities/audit-plan-unit.entity';
 
 @Index(['demandId'], { unique: true })
 @Index(['quarter'])
+@Index(['planUnitId'])
 @Entity('resource_demands')
 export class ResourceDemand {
   @PrimaryGeneratedColumn()
@@ -16,6 +20,13 @@ export class ResourceDemand {
 
   @Column({ name: 'demandId', type: 'varchar', length: 50, unique: true })
   demandId: string;
+
+  @ManyToOne(() => AuditPlanUnit, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'planUnitId' })
+  planUnit: AuditPlanUnit;
+
+  @Column({ name: 'planUnitId', type: 'int', nullable: true })
+  planUnitId: number;
 
   @Column({ name: 'planItemId', type: 'varchar', length: 50, nullable: true })
   planItemId: string;

@@ -24,6 +24,15 @@ import {
   GlobalOutlined, 
   CheckCircleOutlined,
   LockOutlined,
+  BankOutlined,
+  ScheduleOutlined,
+  BarChartOutlined,
+  TrophyOutlined,
+  SolutionOutlined,
+  FolderOpenOutlined,
+  FileSearchOutlined,
+  FileTextOutlined,
+  ReadOutlined,
 } from '@ant-design/icons';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import NotificationBell from '../components/NotificationBell';
@@ -89,32 +98,58 @@ const MainLayout: React.FC = () => {
       icon: <DashboardOutlined />,
       label: t('menu.workbench', '1. Bàn Làm Việc & Điều Hành'),
     },
+    // ═══ CỔNG BAN KIỂM SOÁT (AUDIT COMMITTEE PORTAL - IIA STANDARD 1000) ═══
+    {
+      key: '/audit-committee-portal',
+      icon: <BankOutlined />,
+      label: t('menu.auditCommittee', '🏛️ Cổng Ban Kiểm Soát'),
+      roles: ['Ban kiểm soát', 'Admin', 'Trưởng Ban KTNB'],
+      children: [
+        {
+          key: '/audit-committee-portal',
+          icon: <BankOutlined />,
+          label: t('menu.auditCommitteeOverview', 'Tổng quan BKS & Điều lệ 3 Tuyến'),
+        },
+        {
+          key: '/regulatory-exams',
+          icon: <FileSearchOutlined />,
+          label: t('menu.regulatoryExams', 'Giám sát Đoàn Thanh tra NHNN'),
+        },
+      ],
+    },
+    // ═══ CỔNG ĐƠN VỊ ĐƯỢC KIỂM TOÁN (AUDITEE PORTAL - TUYẾN 1 & 2) ═══
+    {
+      key: '/auditee-portal',
+      icon: <SolutionOutlined />,
+      label: t('menu.auditeePortal', '🏢 Cổng Đơn Vị Được KT'),
+      roles: ['Admin', 'Đơn vị được kiểm toán', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Ban kiểm soát'],
+    },
     // ═══ 2. QUẢN TRỊ RỦI RO & KẾ HOẠCH NĂM (RISK & PLANNING HUB) ═══
     {
       key: '/risk-and-planning',
       icon: <SafetyCertificateOutlined />,
       label: t('menu.groupPlan', '2. Rủi Ro & Kế Hoạch Năm'),
-      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên'],
+      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Ban kiểm soát'],
       children: [
         {
-          key: '/risk-and-planning?tab=universe',
+          key: '/risk-and-planning?step=scope',
           icon: <AppstoreOutlined />,
-          label: t('menu.auditUniverse', 'Vũ trụ KT & Cơ cấu Đơn vị'),
+          label: t('menu.stepScope', '1. Phạm vi kiểm toán'),
         },
         {
-          key: '/risk-and-planning?tab=rcm',
+          key: '/risk-and-planning?step=library',
           icon: <SafetyCertificateOutlined />,
-          label: t('menu.riskControlMatrix', 'Thư viện RCM & Sổ Rủi ro'),
+          label: t('menu.stepLibrary', '2. Thư viện rủi ro & kiểm soát'),
         },
         {
-          key: '/risk-and-planning?tab=assessment',
+          key: '/risk-and-planning?step=prioritization',
           icon: <CalculatorOutlined />,
-          label: t('menu.riskAssessment', 'Đánh giá Rủi ro & Heatmap'),
+          label: t('menu.stepPrioritization', '3. Đánh giá & ưu tiên'),
         },
         {
-          key: '/risk-and-planning?tab=plan',
+          key: '/risk-and-planning?step=plan',
           icon: <CalendarOutlined />,
-          label: t('menu.auditPlan', 'Kế hoạch Năm (AAP) & Nguồn lực'),
+          label: t('menu.stepPlan', '4. Kế hoạch & nguồn lực'),
         },
       ],
     },
@@ -124,13 +159,30 @@ const MainLayout: React.FC = () => {
       icon: <ProjectOutlined />,
       label: t('menu.groupExec', '3. Cuộc Kiểm Toán Thực Địa'),
       roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên'],
+      children: [
+        {
+          key: '/audit-engagements',
+          icon: <ProjectOutlined />,
+          label: t('menu.engagementsList', 'Danh sách Cuộc kiểm toán'),
+        },
+        {
+          key: '/engagement-change-requests',
+          icon: <CheckCircleOutlined />,
+          label: t('menu.changeRequests', 'Phê duyệt Thay đổi Cuộc KT'),
+        },
+        {
+          key: '/working-papers',
+          icon: <FileTextOutlined />,
+          label: t('menu.workingPapers', 'Mẫu biểu & Giấy tờ làm việc'),
+        },
+      ],
     },
     // ═══ 4. TRUNG TÂM PHÁT HIỆN, BÁO CÁO & KHẮC PHỤC (FINDINGS & REPORTING HUB) ═══
     {
       key: '/findings-hub',
       icon: <BugOutlined />,
       label: t('menu.groupReport', '4. Phát Hiện & Báo Cáo KT'),
-      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Đơn vị được kiểm toán'],
+      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Đơn vị được kiểm toán', 'Ban kiểm soát'],
       children: [
         {
           key: '/findings-hub?tab=findings',
@@ -154,15 +206,60 @@ const MainLayout: React.FC = () => {
       key: '/continuous-monitoring',
       icon: <RadarChartOutlined />,
       label: t('menu.continuousMonitoring', '5. Giám Sát Liên Tục & CAATs'),
+      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Ban kiểm soát'],
+    },
+    // ═══ 6. VIỆC NGOÀI ĐOÀN & TIẾN ĐỘ PHÒNG ═══
+    {
+      key: '/general-tasks',
+      icon: <ScheduleOutlined />,
+      label: t('menu.generalTasks', '6. Việc Ngoài Đoàn & Tiến Độ Phòng'),
+      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Ban kiểm soát'],
+    },
+    // ═══ 7. ĐÁNH GIÁ BSC-KPI & NHÂN SỰ ═══
+    {
+      key: '/bsc-kpi',
+      icon: <TrophyOutlined />,
+      label: t('menu.bscKpi', '7. Đánh Giá BSC-KPI & Nhân Sự'),
+      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Ban kiểm soát'],
+    },
+    // ═══ 8. QUẢN LÝ HỒ SƠ & MẪU BIỂU TẬP TRUNG ═══
+    {
+      key: '/document-manager',
+      icon: <FolderOpenOutlined />,
+      label: t('menu.documentManager', '8. Quản Lý Hồ Sơ & Mẫu Biểu'),
       roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên'],
     },
-    // ═══ 6. QUẢN TRỊ HỆ THỐNG & NGUỒN LỰC (SYSTEM ADMIN & SETTINGS) ═══
+    // ═══ 9. CƠ SỞ PHÁP LÝ & KHO TRI THỨC AI ═══
+    {
+      key: '/regulatory-kb',
+      icon: <ReadOutlined />,
+      label: t('menu.knowledgeHub', '9. Pháp Quy & Tri Thức AI'),
+      roles: ['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên', 'Ban kiểm soát', 'Đơn vị được kiểm toán'],
+      children: [
+        {
+          key: '/regulatory-kb',
+          icon: <BookOutlined />,
+          label: t('menu.regulatoryKb', 'Cơ sở Pháp lý & TT NHNN'),
+        },
+        {
+          key: '/ai-knowledge',
+          icon: <BugOutlined />,
+          label: t('menu.aiKnowledge', 'Kho Tri Thức Phát Hiện AI'),
+        },
+      ],
+    },
+    // ═══ 10. QUẢN TRỊ HỆ THỐNG & NGUỒN LỰC (SYSTEM ADMIN & SETTINGS) ═══
     {
       key: '/system-admin',
       icon: <SettingOutlined />,
-      label: t('menu.groupAdmin', '6. Quản Trị Hệ Thống & KTV'),
+      label: t('menu.groupAdmin', '10. Quản Trị Hệ Thống & KTV'),
       roles: ['Admin', 'Trưởng Ban KTNB'],
       children: [
+        {
+          key: '/methodology',
+          icon: <BookOutlined />,
+          label: 'Quản trị Phương pháp luận & HSRR',
+        },
         {
           key: '/system-admin?tab=roles',
           icon: <KeyOutlined />,
@@ -174,6 +271,11 @@ const MainLayout: React.FC = () => {
           label: t('menu.personnel', 'Đội ngũ KTV, Timesheet & CPE'),
         },
         {
+          key: '/system-admin?tab=personnel&subTab=sub5',
+          icon: <AuditOutlined />,
+          label: t('menu.independenceTracker', 'Giám sát Độc lập KTV (IIA 1100)'),
+        },
+        {
           key: '/system-admin?tab=audit-trail',
           icon: <AuditOutlined />,
           label: t('menu.auditTrail', 'Nhật ký Hệ thống (SHA-256)'),
@@ -182,6 +284,11 @@ const MainLayout: React.FC = () => {
           key: '/system-admin?tab=config',
           icon: <SettingOutlined />,
           label: t('menu.systemManagement', 'Tham số & Tích hợp'),
+        },
+        {
+          key: '/system-admin?tab=config&subTab=sub3',
+          icon: <SettingOutlined />,
+          label: t('menu.masterData', 'Quản trị Dữ liệu Cốt lõi'),
         },
       ],
     },
@@ -284,6 +391,21 @@ const MainLayout: React.FC = () => {
             cleanKey.includes('system-admin') ||
             cleanKey.includes('risk-and-planning') ||
             cleanKey.includes('findings-hub') ||
+            cleanKey.includes('methodology') ||
+            cleanKey.includes('general-tasks') ||
+            cleanKey.includes('bsc-kpi') ||
+            cleanKey.includes('audit-committee') ||
+            cleanKey.includes('auditee-portal') ||
+            cleanKey.includes('document-manager') ||
+            cleanKey.includes('regulatory-exams') ||
+            cleanKey.includes('regulatory-kb') ||
+            cleanKey.includes('ai-knowledge') ||
+            cleanKey.includes('audit-engagements') ||
+            cleanKey.includes('engagement-change-requests') ||
+            cleanKey.includes('working-papers') ||
+            cleanKey.includes('defect-codes') ||
+            cleanKey.includes('independence-tracker') ||
+            cleanKey.includes('master-data') ||
             cleanKey.includes('user-guide');
           if (isAlwaysAllowedPage) {
             return true;
@@ -535,7 +657,7 @@ const MainLayout: React.FC = () => {
               {t('menu.topNav.system', 'Hệ thống KTNB')}
             </button>
             <button 
-              onClick={() => navigate('/risk-and-planning?tab=plan&subTab=sub1')}
+              onClick={() => navigate('/risk-and-planning?step=plan')}
               className={`px-3 py-1 rounded-md transition-all text-[11px] md:text-xs font-bold cursor-pointer ${
                 location.pathname.startsWith('/risk-and-planning') ? 'bg-white text-[#d97706] shadow-sm' : 'text-amber-50 hover:text-white hover:bg-black/10'
               }`}

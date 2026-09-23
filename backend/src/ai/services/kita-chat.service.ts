@@ -365,7 +365,7 @@ export class KitaChatService {
           );
           depts.forEach((d) =>
             contextParts.push(
-              `- ${d.name} (${d.code}): loại ${d.unitType}, trạng thái ${d.status}${d.parent ? ', trực thuộc ' + d.parent : ''}`,
+              `- ${d.name} (${d.code}): loại ${d.unitType}, trạng thái ${d.status}${d.parentId ? ', trực thuộc đơn vị #' + d.parentId : ''}`,
             ),
           );
           isEmpty = false;

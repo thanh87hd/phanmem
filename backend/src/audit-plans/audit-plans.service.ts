@@ -584,26 +584,24 @@ export class AuditPlansService {
     const nextIndex = plan.revisions.length + 1;
     const changedUnits = revisionDto.changedUnits || [];
 
-    // Ensure selectedUnits array is initialized
-    if (!plan.selectedUnits) {
-      plan.selectedUnits = [];
-    }
-
     for (const change of changedUnits) {
       if (change.action === 'ADD') {
-        // Add to selectedUnits if not exists
-        const exists = plan.selectedUnits.find(
-          (u) => u.universeId === change.universeId,
-        );
+        const exists = await this.auditPlanUnitRepository.findOne({
+          where: { planId: plan.id, universeId: change.universeId },
+        });
         if (!exists) {
-          plan.selectedUnits.push({
+          const newUnit = this.auditPlanUnitRepository.create({
+            planId: plan.id,
             universeId: change.universeId,
-            name: change.name,
-            riskLevel: 'Low', // fallback placeholder
+            universeName: change.name,
+            riskLevel: 'Low',
             estDays: change.newValues?.estDays || 10,
             ktvCount: change.newValues?.ktvCount || 3,
             justification: change.reason || '',
+            scheduledMonth: 1,
+            targetQuarter: 'Q1',
           });
+          await this.auditPlanUnitRepository.save(newUnit);
         }
 
         // Seed AuditEngagement if not exists
@@ -641,10 +639,10 @@ export class AuditPlansService {
           await this.auditUniverseRepository.save(universe);
         }
       } else if (change.action === 'REMOVE') {
-        // Remove from selectedUnits
-        plan.selectedUnits = plan.selectedUnits.filter(
-          (u) => u.universeId !== change.universeId,
-        );
+        await this.auditPlanUnitRepository.delete({
+          planId: plan.id,
+          universeId: change.universeId,
+        });
 
         // Find matching AuditEngagement
         const existingEngagement =
@@ -671,18 +669,14 @@ export class AuditPlansService {
           }
         }
       } else if (change.action === 'UPDATE') {
-        // Update selectedUnits
-        plan.selectedUnits = plan.selectedUnits.map((u) => {
-          if (u.universeId === change.universeId) {
-            return {
-              ...u,
-              estDays: change.newValues?.estDays ?? u.estDays,
-              ktvCount: change.newValues?.ktvCount ?? u.ktvCount,
-              justification: change.reason || u.justification,
-            };
-          }
-          return u;
-        });
+        await this.auditPlanUnitRepository.update(
+          { planId: plan.id, universeId: change.universeId },
+          {
+            estDays: change.newValues?.estDays,
+            ktvCount: change.newValues?.ktvCount,
+            justification: change.reason,
+          },
+        );
 
         // Update AuditEngagement
         const existingEngagement =

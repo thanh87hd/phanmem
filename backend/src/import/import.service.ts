@@ -10,6 +10,7 @@ import { RiskAssessmentsService } from '../risk-assessments/risk-assessments.ser
 import { RiskControlMatrixService } from '../risk-control-matrix/risk-control-matrix.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { AuditPlan } from '../audit-plans/entities/audit-plan.entity';
+import { AuditPlanUnit } from '../audit-plans/entities/audit-plan-unit.entity';
 import { AuditUniverse } from '../audit-universe/entities/audit-universe.entity';
 import { User } from '../users/entities/user.entity';
 import { ContinuousAuditRule } from '../continuous-monitoring/entities/continuous-audit-rule.entity';
@@ -755,7 +756,23 @@ export class ImportService {
             }
           });
 
-          existingPlan.selectedUnits = mergedUnits;
+          const unitRepo = this.auditPlanRepo.manager.getRepository(AuditPlanUnit);
+          await unitRepo.delete({ planId: existingPlan.id });
+          await unitRepo.save(
+            mergedUnits.map((u) =>
+              unitRepo.create({
+                planId: existingPlan.id,
+                universeId: u.universeId,
+                universeName: u.name,
+                riskLevel: u.riskLevel,
+                estDays: u.estDays || 10,
+                ktvCount: u.ktvCount || 3,
+                scheduledMonth: u.scheduledMonth || 1,
+                targetQuarter: u.targetQuarter || 'Q1',
+              }),
+            ),
+          );
+
           if (ownerTeam && ownerTeam !== 'ToanKhoi')
             existingPlan.ownerTeam = ownerTeam;
           if (approvalNotes) existingPlan.approvalNotes = approvalNotes;
@@ -774,10 +791,26 @@ export class ImportService {
             ownerTeam,
             status,
             approvalNotes,
-            selectedUnits,
           });
 
           const savedPlan = await this.auditPlanRepo.save(newPlan);
+          if (selectedUnits && selectedUnits.length > 0) {
+            const unitRepo = this.auditPlanRepo.manager.getRepository(AuditPlanUnit);
+            await unitRepo.save(
+              selectedUnits.map((u) =>
+                unitRepo.create({
+                  planId: savedPlan.id,
+                  universeId: u.universeId,
+                  universeName: u.name,
+                  riskLevel: u.riskLevel,
+                  estDays: u.estDays || 10,
+                  ktvCount: u.ktvCount || 3,
+                  scheduledMonth: u.scheduledMonth || 1,
+                  targetQuarter: u.targetQuarter || 'Q1',
+                }),
+              ),
+            );
+          }
           results.push({
             status: 'success',
             data: savedPlan,

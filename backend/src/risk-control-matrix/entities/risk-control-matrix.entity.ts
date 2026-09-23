@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Department } from '../../departments/entities/department.entity';
 import { AuditUniverse } from '../../audit-universe/entities/audit-universe.entity';
+import { RiskProfile } from '../../risk-assessments/entities/risk-profile.entity';
 
 export type InherentRiskLevel = 'High' | 'Medium' | 'Low';
 export type ControlType = 'Preventive' | 'Detective';
@@ -31,17 +32,25 @@ export class RiskControlMatrix {
   @Column({ name: 'processName', type: 'varchar', length: 200, nullable: true })
   legacyProcessName: string; // Tên Quy trình (VD: Cho vay KHCN)
 
+  @ManyToOne(() => RiskProfile, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'riskProfileId' })
+  riskProfile: RiskProfile;
+
+  @Index()
+  @Column({ nullable: true })
+  riskProfileId: number;
+
   @Column({ type: 'varchar', length: 200, nullable: true })
   subProcess: string; // Quy trình con
 
   @Column({ type: 'text', nullable: true })
   businessObjective: string; // Mục tiêu kinh doanh
 
-  @Column({ type: 'varchar', length: 255 })
-  riskName: string; // Tên Rủi ro
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  riskName: string; // Tên Rủi ro (dẫn xuất từ RiskProfile)
 
   @Column({ type: 'text', nullable: true })
-  riskDescription: string; // Mô tả rủi ro
+  riskDescription: string; // Mô tả rủi ro (dẫn xuất từ RiskProfile)
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   inherentRiskScore: string; // Điểm rủi ro tiềm tàng (High, Medium, Low)

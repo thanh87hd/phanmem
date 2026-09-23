@@ -103,15 +103,14 @@ export class RcsaService {
           currentYear + 1,
         );
       }
-
-      universe.riskScore = parseFloat((dynamicRiskScore / 3.0).toFixed(2));
-      universe.dynamicRiskRating = dynamicRiskRating;
       await this.entityManager.getRepository(AuditUniverse).save(universe);
 
       results.push({
         id: universe.id,
         name: universe.name,
         legacyDepartmentName: universe.department,
+        riskScore: parseFloat((dynamicRiskScore / 3.0).toFixed(2)),
+        dynamicRiskRating,
         rcsaPart: parseFloat(rcsaPart.toFixed(2)),
         rcsaCount: deptRcsas.length,
         kriPart: parseFloat(kriPart.toFixed(2)),
@@ -119,7 +118,6 @@ export class RcsaService {
         findingsPart: parseFloat(findingsPart.toFixed(2)),
         findingsCount: deptFindings.length,
         dynamicRiskScore,
-        dynamicRiskRating,
         nextAuditYear: universe.nextAuditYear,
       });
     }

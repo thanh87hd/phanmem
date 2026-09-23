@@ -92,14 +92,11 @@ export class RiskAssessmentsService {
       return {
         auditUniverseId: u.id,
         universeName: u.name,
-        riskScore: u.riskScore || 2.5,
-        defectScore:
-          u.pastFindingsScore ||
-          (stats.count > 5 ? 4.0 : stats.count > 0 ? 3.0 : 1.5),
+        riskScore: (u as any).riskScore || 2.5,
+        defectScore: stats.count > 5 ? 4.0 : stats.count > 0 ? 3.0 : 1.5,
         defectCount: stats.count,
         highRiskDefectCount: stats.highRiskCount,
-        dynamicRiskRating:
-          u.dynamicRiskRating || (u.riskScore >= 3.5 ? 'High' : 'Medium'),
+        dynamicRiskRating: (u as any).dynamicRiskRating || 'Medium',
       };
     });
   }

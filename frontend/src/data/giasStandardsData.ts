@@ -376,8 +376,8 @@ export const giasStandardsData: GiasDomain[] = [
               'Phê duyệt Kế hoạch kiểm toán năm trước ngày 31/12 hàng năm.',
               'Phê duyệt các điều chỉnh kế hoạch phát sinh trong năm.'
             ],
-            smartAuditSupport: 'Luồng phê duyệt Kế hoạch kiểm toán năm 3 cấp trên màn hình Kế hoạch Kiểm toán (/audit-plan).',
-            relatedRoute: '/audit-plan'
+            smartAuditSupport: 'Luồng phê duyệt Kế hoạch kiểm toán năm 3 cấp trên Chu trình Lập kế hoạch RBIA (/risk-and-planning?step=plan).',
+            relatedRoute: '/risk-and-planning?step=plan'
           },
           {
             code: 'Standard 8.3',
@@ -424,8 +424,8 @@ export const giasStandardsData: GiasDomain[] = [
               'Khảo sát định kỳ môi trường kiểm soát và xu hướng rủi ro vĩ mô.',
               'Cập nhật danh mục đối tượng trong Vũ trụ Kiểm toán liên tục.'
             ],
-            smartAuditSupport: 'Quản trị Vũ trụ Kiểm toán (/audit-universe) lưu vết toàn bộ đơn vị và quy trình cốt lõi.',
-            relatedRoute: '/audit-universe'
+            smartAuditSupport: 'Quản trị Vũ trụ Kiểm toán (/risk-and-planning?step=scope) lưu vết toàn bộ đơn vị và quy trình cốt lõi.',
+            relatedRoute: '/risk-and-planning?step=scope'
           },
           {
             code: 'Standard 9.2',
@@ -436,8 +436,8 @@ export const giasStandardsData: GiasDomain[] = [
               'Chấm điểm ma trận rủi ro 2 chiều (Xác suất x Mức độ ảnh hưởng).',
               'Tích hợp chỉ số giám sát liên tục KRI vào điểm số rủi ro.'
             ],
-            smartAuditSupport: 'Phân hệ Đánh giá Rủi ro (/risk-assessment) tự động tính toán điểm rủi ro theo trọng số chuẩn hóa.',
-            relatedRoute: '/risk-assessment'
+            smartAuditSupport: 'Phân hệ Đánh giá Rủi ro (/risk-and-planning?step=prioritization) tự động tính toán điểm rủi ro theo trọng số chuẩn hóa.',
+            relatedRoute: '/risk-and-planning?step=prioritization'
           },
           {
             code: 'Standard 9.3',
@@ -448,8 +448,8 @@ export const giasStandardsData: GiasDomain[] = [
               'Ưu tiên 100% các đối tượng có Rủi ro Còn lại ở mức Cao (High Risk).',
               'Đảm bảo tần suất kiểm toán tuân thủ Thông tư 13/2018/TT-NHNN.'
             ],
-            smartAuditSupport: 'Màn hình Lập Kế hoạch (/audit-plan) cho phép gán nguồn lực và tính toán số giờ công (Mandays).',
-            relatedRoute: '/audit-plan'
+            smartAuditSupport: 'Màn hình Lập Kế hoạch (/risk-and-planning?step=plan) cho phép gán nguồn lực và tính toán số giờ công (Mandays).',
+            relatedRoute: '/risk-and-planning?step=plan'
           }
         ]
       },

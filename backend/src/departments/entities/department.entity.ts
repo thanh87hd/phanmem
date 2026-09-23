@@ -23,11 +23,8 @@ export class Department {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ nullable: true })
-  parent: string; // Mã đơn vị cha (code)
-
   @Column({ type: 'int', nullable: true })
-  parentId: number; // ID đơn vị cha
+  parentId: number; // ID đơn vị cha (Chuẩn hóa phân cấp)
 
   @ManyToOne(() => Department, (dept) => dept.children, {
     nullable: true,

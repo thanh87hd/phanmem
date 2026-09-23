@@ -6,12 +6,14 @@ import {
   UpdateDateColumn,
   VersionColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   Index,
 } from 'typeorm';
 import { AuditEngagement } from '../../audit-engagements/entities/audit-engagement.entity';
 import { User } from '../../users/entities/user.entity';
 import { AuditWorkstream } from '../../audit-engagements/entities/audit-workstream.entity';
+import { AuditReviewNote } from './audit-review-note.entity';
 
 @Index(['engagementId', 'status'])
 @Index(['creatorId'])
@@ -114,6 +116,24 @@ export class WorkingPaper {
     timestamp: string;
     notes?: string;
   }[];
+
+  @Column({ nullable: true })
+  preparerId: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  preparedAt: Date;
+
+  @Column({ nullable: true })
+  leadAuditorId: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  leadApprovedAt: Date;
+
+  @Column({ default: 'DRAFT' })
+  signoffStatus: string;
+
+  @OneToMany(() => AuditReviewNote, (note) => note.workingPaper)
+  reviewNoteItems: AuditReviewNote[];
 
   @Column({ nullable: true })
   templateId: number;

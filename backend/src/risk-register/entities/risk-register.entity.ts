@@ -10,58 +10,79 @@ import {
 } from 'typeorm';
 import { AuditUniverse } from '../../audit-universe/entities/audit-universe.entity';
 import { User } from '../../users/entities/user.entity';
+import { RiskProfile } from '../../risk-assessments/entities/risk-profile.entity';
+import { RiskControlMatrix } from '../../risk-control-matrix/entities/risk-control-matrix.entity';
 
 /**
- * Risk Register — Quản lý rủi ro cấp quy trình con (sub-process level).
- *
- * Mapping từ THUCTE Bo_phuong_phap_luan Sheet 05_Risk_Register:
- * - risk_id → id (PK)
- * - audit_object_id → auditObjectId (FK → Universe)
- * - risk_category → riskCategory
- * - design_effectiveness → designEffectiveness (0/0.5/1)
- * - operating_effectiveness → operatingEffectiveness (0/0.5/1)
- *
- * Cũng mapping từ HSRR_TONG_HOP_KTNB_2026.xlsx (16 cột):
- * - Mã_HSRR → hsrrCode
- * - Lĩnh_vực → domain
- * - Nhóm_rủi_ro → riskGroup
+ * Risk Register — Quản lý hồ sơ rủi ro thực tế của một Audit Universe trong chu kỳ đánh giá RBIA.
+ * Tham chiếu RiskProfile (HSRR chuẩn) và RiskControlMatrix (RCM).
  */
-@Index(['auditObjectId', 'domain'])
-@Index(['hsrrCode'])
+@Index(['auditUniverseId', 'assessmentYear'])
+@Index(['riskProfileId'])
 @Entity('risk_registers')
 export class RiskRegister {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // FK → Audit Universe (đối tượng kiểm toán cha)
-  @ManyToOne(() => AuditUniverse, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'auditObjectId' })
-  auditObject: AuditUniverse;
+  // FK → Audit Universe (bắt buộc theo RBIA)
+  @ManyToOne(() => AuditUniverse, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'auditUniverseId' })
+  auditUniverse: AuditUniverse;
 
+  @Index()
+  @Column({ type: 'int', nullable: true })
+  auditUniverseId: number;
+
+  // Backward-compatible alias
   @Column({ type: 'int', nullable: true })
   auditObjectId: number;
 
-  // ==================== Định danh HSRR ====================
+  // FK → Risk Profile (HSRR chuẩn - bắt buộc theo RBIA)
+  @ManyToOne(() => RiskProfile, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'riskProfileId' })
+  riskProfile: RiskProfile;
 
-  @Column({ nullable: true })
-  hsrrCode: string; // Mã HSRR: HS01_HSRR_CNTT, HS08_HSRR_PGDBD...
+  @Index()
+  @Column({ type: 'int', nullable: true })
+  riskProfileId: number;
 
-  @Column({ nullable: true })
-  domain: string; // Lĩnh vực: CNTT, Thanh toán, QTRR, Vận hành, NS, VPQT, TD_CLTD, PGDBD, PTD_DVKD, TD_DVKD, NHDN, NHBL
+  // FK → Risk Control Matrix (RCM - tùy chọn)
+  @ManyToOne(() => RiskControlMatrix, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'riskControlMatrixId' })
+  riskControlMatrix: RiskControlMatrix;
 
-  @Column({ nullable: true })
-  sequenceNo: string; // STT trong lĩnh vực (1, 1.1, 2...)
+  @Index()
+  @Column({ type: 'int', nullable: true })
+  riskControlMatrixId: number;
 
-  // ==================== Phân loại rủi ro ====================
-
-  @Column()
-  riskCategory: string; // Nhóm rủi ro: Rủi ro Hạ tầng CNTT, Rủi ro An ninh mạng...
-
-  @Column()
-  riskTitle: string; // Tên rủi ro cụ thể
+  @Index()
+  @Column({ type: 'int', default: 2026 })
+  assessmentYear: number;
 
   @Column({ type: 'text', nullable: true })
-  riskDescription: string; // Mô tả chi tiết rủi ro
+  contextDescription: string; // Bối cảnh, mô tả rủi ro thực tế tại đơn vị trong kỳ
+
+  // ==================== Định danh HSRR (legacy/fallback) ====================
+
+  @Column({ nullable: true })
+  hsrrCode: string;
+
+  @Column({ nullable: true })
+  domain: string;
+
+  @Column({ nullable: true })
+  sequenceNo: string;
+
+  // ==================== Phân loại rủi ro (legacy/fallback) ====================
+
+  @Column({ nullable: true })
+  riskCategory: string;
+
+  @Column({ nullable: true })
+  riskTitle: string;
+
+  @Column({ type: 'text', nullable: true })
+  riskDescription: string;
 
   // ==================== Đánh giá ảnh hưởng & khả năng ====================
 
@@ -157,9 +178,6 @@ export class RiskRegister {
 
   @Column({ default: 'Active' })
   status: string; // Active | Archived | UnderReview
-
-  @Column({ type: 'int', nullable: true })
-  assessmentYear: number; // Năm đánh giá
 
   @Column({ type: 'jsonb', nullable: true })
   customFields: Record<string, any>;

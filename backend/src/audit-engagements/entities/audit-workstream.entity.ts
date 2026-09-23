@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { AuditEngagement } from './audit-engagement.entity';
 import { User } from '../../users/entities/user.entity';
+import { AuditReviewNote } from '../../working-papers/entities/audit-review-note.entity';
 
 @Entity('audit_workstreams')
 export class AuditWorkstream {
@@ -74,6 +76,9 @@ export class AuditWorkstream {
 
   @Column({ type: 'text', nullable: true })
   reviewNotes: string;
+
+  @OneToMany(() => AuditReviewNote, (note) => note.workstream)
+  reviewNotesList: AuditReviewNote[];
 
   @CreateDateColumn()
   createdAt: Date;
