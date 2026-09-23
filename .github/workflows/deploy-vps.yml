@@ -51,7 +51,7 @@ jobs:
       - name: 🔍 Backend Type Check & Lint
         run: |
           cd backend
-          npx tsc --noEmit
+          npx tsc -p tsconfig.build.json --noEmit
 
       - name: 🏗️ Build Backend (NestJS Fastify)
         run: |
