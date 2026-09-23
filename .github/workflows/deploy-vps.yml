@@ -202,9 +202,9 @@ jobs:
 
       - name: 🩺 Post-Deployment Smoke Test (Health Check)
         run: |
-          echo "Verifying live endpoint https://${{ secrets.VPS_HOST }}..."
+          echo "Verifying live endpoint https://chinhta.io.vn..."
           sleep 5
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.VPS_HOST }}/ || true)
+          HTTP_STATUS=$(curl -s -k -o /dev/null -w "%{http_code}" https://chinhta.io.vn/ || true)
           echo "HTTP Response Status: $HTTP_STATUS"
           if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 301 ] || [ "$HTTP_STATUS" -eq 302 ]; then
             echo "✅ Production site is UP and healthy (HTTP $HTTP_STATUS)!"
