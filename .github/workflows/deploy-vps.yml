@@ -134,11 +134,11 @@ jobs:
       - name: 📤 Transfer Artifacts to VPS
         run: |
           echo "Transferring release archives to ${{ secrets.VPS_HOST }} via IPv4..."
-          scp -4 -o ConnectTimeout=20 -P ${{ secrets.VPS_PORT || 22 }} release-bundle/*.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
+          scp -4 -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10 -P ${{ secrets.VPS_PORT || 22 }} release-bundle/*.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
 
       - name: 🔄 Execute Atomic Deployment & PM2 Reload on VPS
         run: |
-          ssh -4 -o ConnectTimeout=20 -p ${{ secrets.VPS_PORT || 22 }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -se' << 'EOF'
+          ssh -4 -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10 -p ${{ secrets.VPS_PORT || 22 }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -se' << 'EOF'
             set -e
             APP_DIR="/var/www/phanmem"
             BACKUP_DIR="/var/www/phanmem_backups/$(date +%Y%m%d_%H%M%S)"
