@@ -18,6 +18,8 @@ build/
 **/build/
 *.tsbuildinfo
 **/*.tsbuildinfo
+*.zip
+**/*.zip
 
 # ══════════════════════════════════════════════════════════════════
 # 3. ENVIRONMENT FILES — BẢNG MẬT / THÔNG TIN XÁC THỰC
@@ -84,6 +86,7 @@ backend/logs/*
 *.swp
 *.swo
 *~
+~$*
 .DS_Store
 Thumbs.db
 
