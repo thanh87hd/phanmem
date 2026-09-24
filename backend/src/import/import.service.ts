@@ -237,12 +237,35 @@ export class ImportService {
           existingUser = await this.userRepo.findOne({ where: { employeeId } });
         }
 
+        const allowedUserFields = [
+          'fullName',
+          'email',
+          'phone',
+          'landlinePhone',
+          'employeeId',
+          'department',
+          'jobTitle',
+          'position',
+          'teamCode',
+          'workplace',
+          'startDate',
+          'birthDate',
+          'coolingOffEndDate',
+          'status',
+          'resignationDate',
+          'transferDate',
+          'transferDestination',
+          'statusReason',
+        ];
+
         if (existingUser) {
           // Cập nhật thông tin nếu đã tồn tại (Upsert)
-          const updateData: any = { ...cleanItem };
-          delete updateData.password;
-          delete updateData.passwordHash;
-          delete updateData.role;
+          const updateData: any = {};
+          for (const field of allowedUserFields) {
+            if (cleanItem[field] !== undefined) {
+              updateData[field] = cleanItem[field];
+            }
+          }
           if (roleId) updateData.roleId = roleId;
           updateData.status = cleanItem.status || existingUser.status || 'Active';
           updateData.isActive = updateData.status === 'Active';
@@ -250,8 +273,12 @@ export class ImportService {
           return this.usersService.findOneSafe(existingUser.id);
         } else {
           // Thêm mới với mật khẩu mặc định an toàn và cờ đổi mật khẩu lần đầu
-          const createData: any = { ...cleanItem };
-          delete createData.role;
+          const createData: any = {};
+          for (const field of allowedUserFields) {
+            if (cleanItem[field] !== undefined) {
+              createData[field] = cleanItem[field];
+            }
+          }
           return this.usersService.create({
             ...createData,
             username: username || employeeId,

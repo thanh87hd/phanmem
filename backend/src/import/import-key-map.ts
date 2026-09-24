@@ -169,6 +169,8 @@ export const MODULE_KEY_MAPS: Record<string, Record<string, string>> = {
     'sđt di động': 'phone',
     'sđt cố định': 'landlinePhone',
     'điện thoại cố định': 'landlinePhone',
+    'số máy lẻ': 'landlinePhone',
+    'so may le': 'landlinePhone',
     'máy lẻ': 'landlinePhone',
     'cố định': 'landlinePhone',
     landline: 'landlinePhone',
