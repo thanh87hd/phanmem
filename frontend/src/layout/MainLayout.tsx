@@ -87,6 +87,7 @@ const MainLayout: React.FC = () => {
       await api.post('/auth/logout');
     } catch (e) { console.error('Logout error', e); }
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     navigate('/login');
   };
 

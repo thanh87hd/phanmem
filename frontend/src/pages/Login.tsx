@@ -186,6 +186,10 @@ const Login: React.FC = () => {
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
+      // Dọn sạch token cũ trước khi thực hiện phiên đăng nhập mới
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
       const response = await api.post('/auth/login', {
         ...values,
         authMode: activeAuthTab,
@@ -205,6 +209,9 @@ const Login: React.FC = () => {
       if (user.mustChangePassword || user.isPasswordExpired) {
         setTempToken(access_token);
         setTempUser(user);
+        // Lưu ngay token và user vào localStorage để các request tiếp theo sử dụng token hợp lệ vừa cấp
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('user', JSON.stringify(user));
         setChangePasswordReason(
           user.isPasswordExpired
             ? 'Mật khẩu của bạn đã hết hạn (90 ngày). Vui lòng đổi mật khẩu để tiếp tục.'
@@ -243,6 +250,8 @@ const Login: React.FC = () => {
       if (user.mustChangePassword || user.isPasswordExpired) {
         setTempToken(access_token);
         setTempUser(user);
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('user', JSON.stringify(user));
         setChangePasswordReason(
           user.isPasswordExpired
             ? 'Mật khẩu của bạn đã hết hạn (90 ngày). Vui lòng đổi mật khẩu để tiếp tục.'
@@ -273,16 +282,17 @@ const Login: React.FC = () => {
 
     setChangePwLoading(true);
     try {
-      // JWT token is already stored securely in HttpOnly cookie by backend
-      
+      const activeToken = tempToken || localStorage.getItem('token');
       await api.post('/auth/change-password', {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
+      }, {
+        headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {}
       });
 
-      // After successful change, login with new credentials
-      if (tempToken) {
-        localStorage.setItem('token', tempToken);
+      // Sau khi đổi mật khẩu thành công, cập nhật thông tin và điều hướng vào trang chủ
+      if (activeToken) {
+        localStorage.setItem('token', activeToken);
       }
       localStorage.setItem('user', JSON.stringify({ ...tempUser, mustChangePassword: false, isPasswordExpired: false }));
       message.success('Đổi mật khẩu thành công! Chào mừng bạn vào hệ thống.');
@@ -291,7 +301,6 @@ const Login: React.FC = () => {
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Đổi mật khẩu thất bại. Vui lòng thử lại.';
       message.error(msg);
-      await api.post('/auth/logout'); // Clear cookie on failure
     } finally {
       setChangePwLoading(false);
     }

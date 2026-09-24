@@ -41,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await api.post('/auth/logout');
     } catch(e) { console.error('Logout error', e); }
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
     setToken(null);
   };
@@ -73,6 +74,7 @@ export const useAuth = () => {
           await api.post('/auth/logout');
         } catch(e) { console.error('Logout error', e); }
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     };
   }
