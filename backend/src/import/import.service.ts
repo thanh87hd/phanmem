@@ -193,16 +193,33 @@ export class ImportService {
   private async saveItem(module: string, item: any) {
     switch (module) {
       case 'users': {
-        const username = item.username?.trim();
-        const employeeId = item.employeeId?.trim();
+        const cleanItem: any = {};
+        for (const [k, v] of Object.entries(item)) {
+          if (typeof v === 'string') {
+            const trimmed = v.trim();
+            cleanItem[k] = trimmed === '' ? null : trimmed;
+          } else {
+            cleanItem[k] = v;
+          }
+        }
+
+        const username = cleanItem.username;
+        const employeeId = cleanItem.employeeId;
         if (!username && !employeeId) {
           throw new Error('Dòng dữ liệu thiếu Tên đăng nhập và Mã nhân viên');
         }
 
+        // Clean date and jsonb fields
+        if (cleanItem.coolingOffEndDate === '') cleanItem.coolingOffEndDate = null;
+        if (cleanItem.resignationDate === '') cleanItem.resignationDate = null;
+        if (cleanItem.transferDate === '') cleanItem.transferDate = null;
+        if (cleanItem.statusReason === '') cleanItem.statusReason = null;
+        if (cleanItem.transferDestination === '') cleanItem.transferDestination = null;
+
         // Tìm roleId nếu có tên nhóm quyền trong file
-        let roleId = item.roleId;
-        if (!roleId && item.role) {
-          const roleName = String(item.role).trim();
+        let roleId = cleanItem.roleId;
+        if (!roleId && cleanItem.role) {
+          const roleName = String(cleanItem.role).trim();
           const matchedRole = await this.roleRepo.findOne({
             where: { name: roleName },
           });
@@ -222,24 +239,27 @@ export class ImportService {
 
         if (existingUser) {
           // Cập nhật thông tin nếu đã tồn tại (Upsert)
-          const updateData: any = { ...item };
+          const updateData: any = { ...cleanItem };
           delete updateData.password;
           delete updateData.passwordHash;
+          delete updateData.role;
           if (roleId) updateData.roleId = roleId;
-          updateData.status = item.status || existingUser.status || 'Active';
+          updateData.status = cleanItem.status || existingUser.status || 'Active';
           updateData.isActive = updateData.status === 'Active';
           await this.userRepo.update(existingUser.id, updateData);
           return this.usersService.findOneSafe(existingUser.id);
         } else {
           // Thêm mới với mật khẩu mặc định an toàn và cờ đổi mật khẩu lần đầu
+          const createData: any = { ...cleanItem };
+          delete createData.role;
           return this.usersService.create({
-            ...item,
+            ...createData,
             username: username || employeeId,
-            fullName: item.fullName || username || employeeId,
-            password: item.password || '@Lpbank2026!',
+            fullName: cleanItem.fullName || username || employeeId,
+            password: cleanItem.password || '@Lpbank2026!',
             roleId,
-            status: item.status || 'Active',
-            isActive: (item.status || 'Active') === 'Active',
+            status: cleanItem.status || 'Active',
+            isActive: (cleanItem.status || 'Active') === 'Active',
             mustChangePassword: true,
           });
         }
