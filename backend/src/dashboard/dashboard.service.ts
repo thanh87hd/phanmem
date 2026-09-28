@@ -101,22 +101,23 @@ export class DashboardService {
 
     if (!userFilters.isAdmin && userFilters.user) {
       const u = userFilters.user;
+      const allowedTeams = u.teamCode ? [u.teamCode, 'ToanKhoi'] : ['ToanKhoi'];
       if (userFilters.isLanhDaoPhong) {
         whereEng.ownerTeam = u.teamCode;
-        wherePlan.ownerTeam = u.teamCode;
+        wherePlan.ownerTeam = In(allowedTeams);
         whereWp.engagement = { ownerTeam: u.teamCode };
         whereFinding.engagement = { ownerTeam: u.teamCode };
         whereRec.auditFinding = { engagement: { ownerTeam: u.teamCode } };
       } else {
         whereEng.leadAuditorId = u.id;
-        wherePlan.id = -1;
+        wherePlan.ownerTeam = In(allowedTeams);
         whereWp.creatorId = u.id;
         whereFinding.workingPaper = { creatorId: u.id };
         whereRec.assignedToId = u.id;
       }
     } else if (teamCode) {
       whereEng.ownerTeam = teamCode;
-      wherePlan.ownerTeam = teamCode;
+      wherePlan.ownerTeam = In([teamCode, 'ToanKhoi']);
     }
 
     const filters = await this.getDeptFilters(unitType);
@@ -616,11 +617,11 @@ export class DashboardService {
     const whereEng: any = {};
     if (userFilters.user && !userFilters.isAdmin) {
       const u = userFilters.user;
+      const allowedTeams = u.teamCode ? [u.teamCode, 'ToanKhoi'] : ['ToanKhoi'];
+      wherePlan.ownerTeam = In(allowedTeams);
       if (userFilters.isLanhDaoPhong) {
-        wherePlan.ownerTeam = u.teamCode;
         whereEng.ownerTeam = u.teamCode;
       } else {
-        wherePlan.id = -1;
         whereEng.leadAuditorId = u.id;
       }
     }

@@ -140,14 +140,24 @@ export const PlanCreateEditView: React.FC<PlanCreateEditViewProps> = ({
             {/* Tab 1: General Info & Resource Summary */}
             <Tabs.TabPane tab="1. Thông tin chung & Nguồn lực" key="1">
               <Row gutter={24} className="mt-2">
-                <Col span={8}>
+                <Col span={6}>
                   <Form.Item name="year" label={<span className="font-semibold text-slate-700">Năm kế hoạch</span>} rules={[{ required: true, message: 'Nhập năm kế hoạch' }]}>
                     <InputNumber min={2020} max={2099} className="w-full rounded-lg" style={{ height: 40, paddingTop: 4 }} />
                   </Form.Item>
                 </Col>
-                <Col span={16}>
+                <Col span={11}>
                   <Form.Item name="name" label={<span className="font-semibold text-slate-700">Tên Kế hoạch kiểm toán</span>} rules={[{ required: true, message: 'Nhập tên kế hoạch' }]}>
                     <Input className="rounded-lg" style={{ height: 40 }} placeholder="Ví dụ: Kế hoạch Kiểm toán nội bộ năm 2027" />
+                  </Form.Item>
+                </Col>
+                <Col span={7}>
+                  <Form.Item name="ownerTeam" label={<span className="font-semibold text-slate-700">Phòng KTNB phụ trách</span>} initialValue="ToanKhoi">
+                    <Select className="w-full rounded-lg" style={{ height: 40 }}>
+                      <Option value="ToanKhoi">Toàn khối KTNB</Option>
+                      <Option value="PKT_HoiSo">Phòng KT Hội sở</Option>
+                      <Option value="PKT_DVKD">Phòng KT Đơn vị kinh doanh</Option>
+                      <Option value="TongHop">Bộ phận Tổng hợp</Option>
+                    </Select>
                   </Form.Item>
                 </Col>
               </Row>

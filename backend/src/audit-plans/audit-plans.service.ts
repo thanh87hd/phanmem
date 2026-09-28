@@ -65,15 +65,42 @@ export class AuditPlansService {
     await this.auditPlanUnitRepository.save(unitsToInsert);
   }
 
+  formatPlan(plan: any) {
+    if (!plan) return plan;
+    const units = Array.isArray(plan.planUnits)
+      ? plan.planUnits.map((u: any) => ({
+          universeId: u.universeId,
+          name: u.universeName,
+          riskLevel: u.riskLevel,
+          justification: u.justification,
+          estDays: u.estDays,
+          ktvCount: u.ktvCount,
+          scheduledMonth: u.scheduledMonth,
+          targetQuarter: u.targetQuarter,
+          leadAuditorId: u.leadAuditorId,
+          leadAuditorName: u.leadAuditorName,
+          assignedTeamMembers: u.assignedTeamMembers,
+        }))
+      : (plan.selectedUnits || []);
+
+    return {
+      ...plan,
+      selectedUnits: units,
+    };
+  }
+
   async create(createAuditPlanDto: CreateAuditPlanDto) {
     // Tách selectedUnits khỏi DTO trước khi truyền vào TypeORM (selectedUnits là getter, không phải column)
     const { selectedUnits, ...planData } = createAuditPlanDto;
+    if (!planData.ownerTeam) {
+      planData.ownerTeam = 'ToanKhoi';
+    }
     const plan = this.auditPlanRepository.create(planData);
     const saved = await this.auditPlanRepository.save(plan);
-    if (selectedUnits) {
+    if (selectedUnits && selectedUnits.length > 0) {
       await this.syncPlanUnits(saved.id, selectedUnits);
     }
-    // Trả về bản ghi đầy đủ kèm planUnits để getter selectedUnits hoạt động
+    // Trả về bản ghi đầy đủ kèm planUnits và format selectedUnits
     return this.findOne(saved.id);
   }
 
@@ -99,8 +126,11 @@ export class AuditPlansService {
 
     query.orderBy('plan.year', 'DESC').addOrderBy('plan.createdAt', 'DESC');
 
+    let plans: any[] = [];
+
     if (!user) {
-      return query.getMany();
+      plans = await query.getMany();
+      return plans.map((p) => this.formatPlan(p));
     }
 
     const fullUser = await this.userRepo.findOne({
@@ -109,20 +139,37 @@ export class AuditPlansService {
     });
 
     if (!fullUser) {
-      return query.getMany();
+      plans = await query.getMany();
+      return plans.map((p) => this.formatPlan(p));
     }
 
     if (
       ScopeFilterService.isAdminRole(fullUser.role?.name, fullUser.jobTitle)
     ) {
-      return query.getMany();
+      plans = await query.getMany();
+      return plans.map((p) => this.formatPlan(p));
     }
 
-    // Non-admin chỉ được xem kế hoạch thuộc TeamCode của mình
-    query.andWhere('plan.ownerTeam = :userTeam', {
-      userTeam: fullUser.teamCode,
-    });
-    return query.getMany();
+    // Non-admin được xem: kế hoạch Toàn Khối ('ToanKhoi'), chưa gán phòng (NULL hoặc ''), hoặc phòng của mình
+    if (fullUser.teamCode) {
+      query.andWhere(
+        '(plan.ownerTeam = :toanKhoi OR plan.ownerTeam IS NULL OR plan.ownerTeam = \'\' OR plan.ownerTeam = :userTeam)',
+        {
+          toanKhoi: 'ToanKhoi',
+          userTeam: fullUser.teamCode,
+        },
+      );
+    } else {
+      query.andWhere(
+        '(plan.ownerTeam = :toanKhoi OR plan.ownerTeam IS NULL OR plan.ownerTeam = \'\')',
+        {
+          toanKhoi: 'ToanKhoi',
+        },
+      );
+    }
+
+    plans = await query.getMany();
+    return plans.map((p) => this.formatPlan(p));
   }
 
   async getRiskCoverage(year?: number) {
@@ -319,11 +366,12 @@ export class AuditPlansService {
     });
   }
 
-  findOne(id: number) {
-    return this.auditPlanRepository.findOne({
+  async findOne(id: number) {
+    const plan = await this.auditPlanRepository.findOne({
       where: { id },
       relations: ['planUnits'],
     });
+    return this.formatPlan(plan);
   }
 
   async update(id: number, updateAuditPlanDto: UpdateAuditPlanDto) {

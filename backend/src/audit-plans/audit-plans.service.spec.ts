@@ -134,7 +134,7 @@ describe('AuditPlansService', () => {
       });
 
       const result = await service.findOne(1);
-      expect(result).toEqual({ id: 1, title: 'Plan 2026', planUnits: [] });
+      expect(result).toEqual({ id: 1, title: 'Plan 2026', planUnits: [], selectedUnits: [] });
       expect(mockAuditPlanRepo.findOne).toHaveBeenCalledWith({ where: { id: 1 }, relations: ['planUnits'] });
     });
   });

@@ -218,6 +218,10 @@ const AuditPlan: React.FC = () => {
     setUniverseSearch('');
     fetchUniverseList();
     form.resetFields();
+    form.setFieldsValue({
+      year: new Date().getFullYear(),
+      ownerTeam: 'ToanKhoi',
+    });
     setIsModalVisible(true);
   };
 
@@ -226,7 +230,10 @@ const AuditPlan: React.FC = () => {
     setSelectedUnits(record.selectedUnits || []);
     setUniverseSearch('');
     fetchUniverseList();
-    form.setFieldsValue(record);
+    form.setFieldsValue({
+      ...record,
+      ownerTeam: record.ownerTeam || 'ToanKhoi',
+    });
     setIsModalVisible(true);
   };
 
