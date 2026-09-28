@@ -66,12 +66,15 @@ export class AuditPlansService {
   }
 
   async create(createAuditPlanDto: CreateAuditPlanDto) {
-    const plan = this.auditPlanRepository.create(createAuditPlanDto);
+    // Tách selectedUnits khỏi DTO trước khi truyền vào TypeORM (selectedUnits là getter, không phải column)
+    const { selectedUnits, ...planData } = createAuditPlanDto;
+    const plan = this.auditPlanRepository.create(planData);
     const saved = await this.auditPlanRepository.save(plan);
-    if (createAuditPlanDto.selectedUnits) {
-      await this.syncPlanUnits(saved.id, createAuditPlanDto.selectedUnits);
+    if (selectedUnits) {
+      await this.syncPlanUnits(saved.id, selectedUnits);
     }
-    return saved;
+    // Trả về bản ghi đầy đủ kèm planUnits để getter selectedUnits hoạt động
+    return this.findOne(saved.id);
   }
 
   async findAll(
@@ -317,13 +320,20 @@ export class AuditPlansService {
   }
 
   findOne(id: number) {
-    return this.auditPlanRepository.findOneBy({ id });
+    return this.auditPlanRepository.findOne({
+      where: { id },
+      relations: ['planUnits'],
+    });
   }
 
   async update(id: number, updateAuditPlanDto: UpdateAuditPlanDto) {
-    await this.auditPlanRepository.update(id, updateAuditPlanDto);
-    if (updateAuditPlanDto.selectedUnits) {
-      await this.syncPlanUnits(id, updateAuditPlanDto.selectedUnits);
+    // Tách selectedUnits khỏi DTO trước khi truyền vào TypeORM (selectedUnits là getter, không phải column)
+    const { selectedUnits, ...planData } = updateAuditPlanDto;
+    if (Object.keys(planData).length > 0) {
+      await this.auditPlanRepository.update(id, planData);
+    }
+    if (selectedUnits) {
+      await this.syncPlanUnits(id, selectedUnits);
     }
     return this.findOne(id);
   }

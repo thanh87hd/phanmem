@@ -22,4 +22,7 @@ export class CreateAuditPlanDto {
   @IsString()
   @IsOptional()
   ownerTeam?: string;
+
+  @IsOptional()
+  customFields?: Record<string, any>;
 }

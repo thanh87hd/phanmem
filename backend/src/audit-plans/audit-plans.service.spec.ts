@@ -114,6 +114,11 @@ describe('AuditPlansService', () => {
   describe('create and findOne', () => {
     it('should create and save an audit plan', async () => {
       const dto: any = { year: 2026, title: 'Kế hoạch kiểm toán năm 2026' };
+      mockAuditPlanRepo.findOne.mockResolvedValueOnce({
+        id: 1,
+        ...dto,
+        planUnits: [],
+      });
       const result = await service.create(dto);
 
       expect(result).toBeDefined();
@@ -122,20 +127,21 @@ describe('AuditPlansService', () => {
     });
 
     it('should find plan by id', async () => {
-      mockAuditPlanRepo.findOneBy.mockResolvedValue({
+      mockAuditPlanRepo.findOne.mockResolvedValue({
         id: 1,
         title: 'Plan 2026',
+        planUnits: [],
       });
 
       const result = await service.findOne(1);
-      expect(result).toEqual({ id: 1, title: 'Plan 2026' });
-      expect(mockAuditPlanRepo.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(result).toEqual({ id: 1, title: 'Plan 2026', planUnits: [] });
+      expect(mockAuditPlanRepo.findOne).toHaveBeenCalledWith({ where: { id: 1 }, relations: ['planUnits'] });
     });
   });
 
   describe('submitPlan', () => {
     it('should throw NotFoundException when plan does not exist', async () => {
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(null);
+      mockAuditPlanRepo.findOne.mockResolvedValue(null);
 
       await expect(service.submitPlan(99)).rejects.toThrow(NotFoundException);
     });
@@ -154,7 +160,7 @@ describe('AuditPlansService', () => {
           },
         ],
       };
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(mockPlan);
+      mockAuditPlanRepo.findOne.mockResolvedValue(mockPlan);
 
       await expect(service.submitPlan(1)).rejects.toThrow(BadRequestException);
     });
@@ -174,7 +180,7 @@ describe('AuditPlansService', () => {
         ],
         approvalHistory: [],
       };
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(mockPlan);
+      mockAuditPlanRepo.findOne.mockResolvedValue(mockPlan);
       mockAuditPlanRepo.save.mockImplementation((p) => Promise.resolve(p));
 
       // Mock manager getRepository for coverage calculation
@@ -197,7 +203,7 @@ describe('AuditPlansService', () => {
         status: 'PendingApproval',
         approvalHistory: [],
       };
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(mockPlan);
+      mockAuditPlanRepo.findOne.mockResolvedValue(mockPlan);
       mockAuditPlanRepo.save.mockImplementation((p) => Promise.resolve(p));
 
       const result = await service.approveL1(
@@ -214,7 +220,7 @@ describe('AuditPlansService', () => {
 
     it('should reject approveL1 if status is not Draft or PendingApproval', async () => {
       const mockPlan: any = { id: 1, status: 'Approved' };
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(mockPlan);
+      mockAuditPlanRepo.findOne.mockResolvedValue(mockPlan);
 
       await expect(service.approveL1(1, 10, 'Trưởng phòng')).rejects.toThrow(
         BadRequestException,
@@ -227,7 +233,7 @@ describe('AuditPlansService', () => {
         status: 'Reviewed_L1',
         reviewerL1Id: 10,
       };
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(mockPlan);
+      mockAuditPlanRepo.findOne.mockResolvedValue(mockPlan);
 
       await expect(
         service.approveL2(1, 10, 'Trưởng phòng kiêm Trưởng ban'),
@@ -243,7 +249,7 @@ describe('AuditPlansService', () => {
         selectedUnits: [],
         approvalHistory: [],
       };
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(mockPlan);
+      mockAuditPlanRepo.findOne.mockResolvedValue(mockPlan);
       mockAuditPlanRepo.save.mockImplementation((p) => Promise.resolve(p));
 
       const result = await service.approveL2(
@@ -267,7 +273,7 @@ describe('AuditPlansService', () => {
         revisionCount: 0,
         approvalHistory: [],
       };
-      mockAuditPlanRepo.findOneBy.mockResolvedValue(mockPlan);
+      mockAuditPlanRepo.findOne.mockResolvedValue(mockPlan);
       mockAuditPlanRepo.save.mockImplementation((p) => Promise.resolve(p));
 
       const result = await service.rejectPlan(
