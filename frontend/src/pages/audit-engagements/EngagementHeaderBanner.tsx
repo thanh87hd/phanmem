@@ -92,7 +92,7 @@ export const EngagementHeaderBanner: React.FC<EngagementHeaderBannerProps> = ({
               )}
             </Space>
           </div>
-          {selectedEngagement.teamMembers &&
+          {Array.isArray(selectedEngagement.teamMembers) &&
             selectedEngagement.teamMembers.length > 0 && (
               <div style={{ marginTop: 8 }}>
                 <Text type="secondary">

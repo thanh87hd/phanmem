@@ -45,6 +45,50 @@ import { useCurrentUser } from '../../utils/useCurrentUser';
 
 const { Title, Text, Paragraph } = Typography;
 
+const isUserInTeamMembers = (teamMembers: any, currentUserId?: number, currentFullName?: string): boolean => {
+  if (!teamMembers) return false;
+
+  let membersList: any[] = [];
+  if (Array.isArray(teamMembers)) {
+    membersList = teamMembers;
+  } else if (typeof teamMembers === 'string') {
+    try {
+      const parsed = JSON.parse(teamMembers);
+      if (Array.isArray(parsed)) {
+        membersList = parsed;
+      } else if (currentFullName && teamMembers.toLowerCase().includes(currentFullName.toLowerCase())) {
+        return true;
+      }
+    } catch {
+      if (currentFullName && teamMembers.toLowerCase().includes(currentFullName.toLowerCase())) {
+        return true;
+      }
+    }
+  } else if (typeof teamMembers === 'object') {
+    membersList = Object.values(teamMembers);
+  }
+
+  if (!Array.isArray(membersList)) {
+    return false;
+  }
+
+  return membersList.some((m: any) => {
+    if (!m) return false;
+    if (typeof m === 'number' || typeof m === 'string') {
+      return (
+        m === currentUserId ||
+        (currentFullName && String(m).toLowerCase().includes(currentFullName.toLowerCase()))
+      );
+    }
+    const uid = m.userId ?? m.id;
+    const name = m.fullName ?? m.name ?? m.username;
+    return (
+      (currentUserId && uid === currentUserId) ||
+      (currentFullName && name && String(name).toLowerCase().includes(currentFullName.toLowerCase()))
+    );
+  });
+};
+
 export const AuditWorkspaceHub: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
@@ -130,9 +174,7 @@ export const AuditWorkspaceHub: React.FC = () => {
   const assignedEngagements = engagements.filter((eng: any) => {
     if (isLead && hubMode === 'all') return true;
     const isLeadOfEng = eng.leadAuditorId === currentUserId || eng.leadAuditor === currentFullName;
-    const isMember = (eng.teamMembers || []).some(
-      (m: any) => m.userId === currentUserId || m.fullName === currentFullName
-    );
+    const isMember = isUserInTeamMembers(eng.teamMembers, currentUserId, currentFullName);
     return isLeadOfEng || isMember;
   });
   const myEngagements = (isLead && hubMode === 'all') ? engagements : (assignedEngagements.length > 0 ? assignedEngagements : engagements);
@@ -562,9 +604,10 @@ export const AuditWorkspaceHub: React.FC = () => {
               const doneWp = engWps.filter((w: any) => w.status === 'Approved' || w.status === 'Completed' || w.status === 'Reviewed').length;
               const wpPercent = totalWp > 0 ? Math.round((doneWp / totalWp) * 100) : (eng.progress || 0);
 
-              const docs = dossierMap[eng.id] || [];
+              const rawDocs = dossierMap[eng.id];
+              const docs = Array.isArray(rawDocs) ? rawDocs : [];
               const requiredTypes = ['DECISION', 'PROPOSAL', 'OUTLINE', 'SAMPLING_PLAN'];
-              const completedRequired = requiredTypes.filter(t => docs.some((d: any) => d.documentType === t)).length;
+              const completedRequired = requiredTypes.filter(t => docs.some((d: any) => d && d.documentType === t)).length;
 
               return (
                 <Col xs={24} md={12} key={eng.id}>

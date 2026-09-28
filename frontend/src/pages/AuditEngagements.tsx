@@ -613,9 +613,9 @@ const AuditEngagements: React.FC = () => {
         checkAuditorSafety(record.leadAuditorId, 'leadAuditor', matchedUser.fullName, record.auditedDepartment);
       }
     }
-    if (record.teamMembers && record.auditedDepartment) {
+    if (Array.isArray(record.teamMembers) && record.auditedDepartment) {
       record.teamMembers.forEach((tm: any, index: number) => {
-        if (tm.userId) {
+        if (tm && tm.userId) {
           checkAuditorSafety(tm.userId, `teamMember_${index}`, tm.fullName, record.auditedDepartment);
         }
       });
@@ -672,7 +672,7 @@ const AuditEngagements: React.FC = () => {
       }
 
       // Map team members JSON array with full names
-      if (payload.teamMembers) {
+      if (Array.isArray(payload.teamMembers)) {
         payload.teamMembers = payload.teamMembers.map((tm: any) => {
           const matchedUser = users.find((u: any) => u.id === tm.userId);
           return {

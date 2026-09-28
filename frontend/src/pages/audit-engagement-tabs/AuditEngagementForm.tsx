@@ -92,7 +92,7 @@ export const AuditEngagementForm: React.FC<AuditEngagementFormProps> = ({
               }
             }
             if ('teamMembers' in changedValues || 'auditedDepartment' in changedValues) {
-              const team = allValues.teamMembers || [];
+              const team = Array.isArray(allValues.teamMembers) ? allValues.teamMembers : [];
               const dept = allValues.auditedDepartment;
               team.forEach((tm: any, index: number) => {
                 if (tm && tm.userId && dept) {
