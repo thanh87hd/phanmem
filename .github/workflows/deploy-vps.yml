@@ -162,6 +162,11 @@ jobs:
             mkdir -p "$APP_DIR/backend"
             tar -xzf /tmp/backend-dist.tar.gz -C "$APP_DIR/backend"
             
+            # 2.5. Cài đặt/đồng bộ Backend dependencies trên VPS
+            echo ">>> Installing Backend dependencies..."
+            cd "$APP_DIR/backend"
+            npm ci --legacy-peer-deps --omit=dev || npm install --legacy-peer-deps --omit=dev
+            
             # 3. Giải nén Migrations & Chạy Migration DB
             echo ">>> Running Database Migrations..."
             mkdir -p "$APP_DIR/backend/src/database"

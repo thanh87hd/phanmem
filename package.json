@@ -24,13 +24,11 @@
     "deploy:chinhta": "node scripts/deploy-chinhta.js"
   },
   "dependencies": {
-    "@fastify/multipart": "^10.1.0",
     "@playwright/test": "^1.62.1",
     "pg": "^8.21.0",
     "playwright": "^1.62.1"
   },
   "devDependencies": {
-    "@dietrichgebert/ponytail": "^4.8.4",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2"
   },
