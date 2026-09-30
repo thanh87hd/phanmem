@@ -165,7 +165,7 @@ jobs:
             # 2.5. Cài đặt/đồng bộ Backend dependencies trên VPS
             echo ">>> Installing Backend dependencies..."
             cd "$APP_DIR/backend"
-            npm ci --legacy-peer-deps --omit=dev || npm install --legacy-peer-deps --omit=dev
+            npm ci --legacy-peer-deps --omit=dev --ignore-scripts || npm install --legacy-peer-deps --omit=dev --ignore-scripts
             
             # 3. Giải nén Migrations & Chạy Migration DB
             echo ">>> Running Database Migrations..."
