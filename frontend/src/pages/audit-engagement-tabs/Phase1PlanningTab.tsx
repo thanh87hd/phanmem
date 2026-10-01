@@ -28,6 +28,7 @@ interface Phase1PlanningTabProps {
   setIsRcmModalVisible: (visible: boolean) => void;
   currentUser: any;
   onOpenStageGateModal?: (targetPhase: 'phase2' | 'phase3' | 'phase4' | 'closed') => void;
+  checkAuditorSafety?: (userId: number, fieldKey: string, auditorName: string, departmentName: string) => void;
 }
 
 export const Phase1PlanningTab: React.FC<Phase1PlanningTabProps> = ({
@@ -45,6 +46,7 @@ export const Phase1PlanningTab: React.FC<Phase1PlanningTabProps> = ({
   setIsRcmModalVisible,
   currentUser,
   onOpenStageGateModal,
+  checkAuditorSafety,
 }) => {
   const { t } = useTranslation();
   const [scopeForm] = Form.useForm();
@@ -98,25 +100,53 @@ export const Phase1PlanningTab: React.FC<Phase1PlanningTabProps> = ({
                   teamMembers: selectedEngagement.teamMembers || selectedEngagement.expectedTeamMembers || [],
                   leadAuditorId: selectedEngagement.leadAuditorId || selectedEngagement.expectedLeadAuditorId,
                 }}
+                onValuesChange={(changedValues, allValues) => {
+                  const deptName = selectedEngagement?.auditedDepartment || selectedEngagement?.branchName || '';
+                  if (checkAuditorSafety) {
+                    if ('leadAuditorId' in changedValues) {
+                      const u = users.find(x => x.id === allValues.leadAuditorId);
+                      if (u && deptName) checkAuditorSafety(u.id, 'leadAuditor', u.fullName, deptName);
+                    }
+                    if ('teamMembers' in changedValues) {
+                      const team = Array.isArray(allValues.teamMembers) ? allValues.teamMembers : [];
+                      team.forEach((tm: any, index: number) => {
+                        if (tm && tm.userId && deptName) {
+                          const u = users.find(x => x.id === tm.userId);
+                          if (u) checkAuditorSafety(tm.userId, `teamMember_${index}`, u.fullName, deptName);
+                        }
+                      });
+                    }
+                  }
+                }}
                 onFinish={async (values) => {
                   try {
-                    await fetch(`/api/audit-engagements/${selectedEngagement.id}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        decisionNo: values.decisionNo,
-                        decisionDate: values.decisionDate ? values.decisionDate.format('YYYY-MM-DD') : null,
-                        teamMembers: values.teamMembers,
-                        leadAuditorId: values.leadAuditorId,
-                      })
-                    });
-                    message.success('Đã cập nhật thông tin thực tế thành công');
-                    const res = await fetch('/api/audit-engagements');
-                    const data = await res.json();
-                    setEngagements(data);
-                    setSelectedEngagement(data.find((e: any) => e.id === selectedEngagement.id));
-                  } catch (err) {
-                    message.error('Lỗi cập nhật');
+                    const leadUser = users.find((u: any) => u.id === values.leadAuditorId);
+                    const cleanedTeam = (values.teamMembers || []).map((tm: any) => {
+                      const u = users.find((usr: any) => usr.id === tm.userId);
+                      return {
+                        userId: tm.userId,
+                        fullName: u ? u.fullName : '',
+                        role: tm.role || 'Thành viên'
+                      };
+                    }).filter((tm: any) => tm.userId);
+
+                    const payload = {
+                      decisionNo: values.decisionNo,
+                      decisionDate: values.decisionDate ? values.decisionDate.format('YYYY-MM-DD') : null,
+                      teamMembers: cleanedTeam,
+                      leadAuditorId: values.leadAuditorId,
+                      leadAuditor: leadUser ? leadUser.fullName : undefined,
+                      allowWarning: true,
+                    };
+
+                    await api.patch(`/audit-engagements/${selectedEngagement.id}`, payload);
+                    message.success('Đã cập nhật thông tin nhân sự thực tế thành công');
+                    await fetchEngagements();
+                    const res = await api.get(`/audit-engagements/${selectedEngagement.id}`);
+                    setSelectedEngagement(res.data);
+                  } catch (err: any) {
+                    console.error(err);
+                    message.error(err.response?.data?.message || 'Lỗi cập nhật');
                   }
                 }}
               >
@@ -158,9 +188,25 @@ export const Phase1PlanningTab: React.FC<Phase1PlanningTabProps> = ({
                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
                       <Title level={5} className="!mb-4 !text-blue-800">👥 Nhân sự Thực tế (Theo Quyết định ban hành)</Title>
                       <Form.Item name="leadAuditorId" label={<span className="font-medium">Trưởng đoàn chính thức</span>}>
-                        <Select placeholder="Chọn Trưởng đoàn" showSearch optionFilterProp="children" className="h-10">
+                        <Select 
+                          placeholder="Chọn Trưởng đoàn (danhpc, Phan Cảnh Danh...)" 
+                          showSearch 
+                          optionFilterProp="filterLabel"
+                          filterOption={(input, option: any) => {
+                            const user = users.find(u => u.id === option?.value);
+                            if (!user) return false;
+                            const search = `${user.fullName} ${user.username} ${user.jobTitle || ''} ${user.email || ''}`.toLowerCase();
+                            return search.includes(input.toLowerCase());
+                          }}
+                          className="h-10"
+                        >
                           {users.map(u => (
-                            <Option key={u.id} value={u.id}>{u.fullName}</Option>
+                            <Option key={u.id} value={u.id} filterLabel={`${u.fullName} ${u.username} ${u.jobTitle || ''}`}>
+                              <div className="flex items-center justify-between">
+                                <span><strong>{u.fullName}</strong> <span className="text-slate-500 font-mono text-xs">(@{u.username})</span></span>
+                                {u.jobTitle && <span className="text-xs text-slate-400 ml-2">{u.jobTitle}</span>}
+                              </div>
+                            </Option>
                           ))}
                         </Select>
                       </Form.Item>
@@ -173,24 +219,48 @@ export const Phase1PlanningTab: React.FC<Phase1PlanningTabProps> = ({
                         {(fields, { add, remove }) => (
                           <div className="space-y-3">
                             {fields.map(({ key, name, ...restField }) => (
-                              <Space key={key} style={{ display: 'flex' }} align="baseline">
-                                <Form.Item {...restField} name={[name, 'userId']} style={{ margin: 0, width: 200 }}>
-                                  <Select placeholder="Chọn thành viên" showSearch optionFilterProp="children" className="h-10">
-                                    {users.map(u => (
-                                      <Option key={u.id} value={u.id}>{u.fullName}</Option>
-                                    ))}
-                                  </Select>
-                                </Form.Item>
-                                <Form.Item {...restField} name={[name, 'role']} style={{ margin: 0, width: 160 }}>
-                                  <Select placeholder="Vai trò" className="h-10">
-                                    <Option value="Trưởng đoàn kiểm toán">Trưởng đoàn</Option>
-                                    <Option value="Phó Trưởng đoàn kiểm toán">Phó Trưởng đoàn</Option>
-                                    <Option value="Trưởng nhóm kiểm toán">Trưởng nhóm</Option>
-                                    <Option value="Thành viên">Thành viên</Option>
-                                  </Select>
-                                </Form.Item>
-                                <Button type="text" danger onClick={() => remove(name)} className="h-10">{t('common.btnDelete', 'Xóa')}</Button>
-                              </Space>
+                              <div key={key}>
+                                <Space style={{ display: 'flex' }} align="baseline">
+                                  <Form.Item {...restField} name={[name, 'userId']} style={{ margin: 0, width: 220 }}>
+                                    <Select 
+                                      placeholder="Chọn KTV (thiendh, maict...)" 
+                                      showSearch 
+                                      optionFilterProp="filterLabel"
+                                      filterOption={(input, option: any) => {
+                                        const user = users.find(u => u.id === option?.value);
+                                        if (!user) return false;
+                                        const search = `${user.fullName} ${user.username} ${user.jobTitle || ''} ${user.email || ''}`.toLowerCase();
+                                        return search.includes(input.toLowerCase());
+                                      }}
+                                      className="h-10"
+                                    >
+                                      {users.map(u => (
+                                        <Option key={u.id} value={u.id} filterLabel={`${u.fullName} ${u.username} ${u.jobTitle || ''}`}>
+                                          <div className="flex items-center justify-between">
+                                            <span><strong>{u.fullName}</strong> <span className="text-slate-500 font-mono text-xs">(@{u.username})</span></span>
+                                            {u.jobTitle && <span className="text-xs text-slate-400 ml-2">{u.jobTitle}</span>}
+                                          </div>
+                                        </Option>
+                                      ))}
+                                    </Select>
+                                  </Form.Item>
+                                  <Form.Item {...restField} name={[name, 'role']} style={{ margin: 0, width: 170 }} initialValue="Thành viên">
+                                    <Select placeholder="Vai trò" className="h-10">
+                                      <Option value="Trưởng đoàn kiểm toán">Trưởng đoàn</Option>
+                                      <Option value="Phó Trưởng đoàn kiểm toán">Phó Trưởng đoàn</Option>
+                                      <Option value="Trưởng nhóm kiểm toán">Trưởng nhóm</Option>
+                                      <Option value="KTV Tín dụng">KTV Tín dụng</Option>
+                                      <Option value="KTV Kế toán & Kho quỹ">KTV Kế toán & Kho quỹ</Option>
+                                      <Option value="KTV CNTT">KTV CNTT</Option>
+                                      <Option value="Thành viên">Thành viên</Option>
+                                    </Select>
+                                  </Form.Item>
+                                  <Button type="text" danger onClick={() => remove(name)} className="h-10">{t('common.btnDelete', 'Xóa')}</Button>
+                                </Space>
+                                {safetyWarnings[`teamMember_${name}`] && (
+                                  <Alert message={safetyWarnings[`teamMember_${name}`]} type="warning" showIcon className="mt-2" />
+                                )}
+                              </div>
                             ))}
                             <Button type="dashed" onClick={() => add()} block className="h-10 rounded-lg border-blue-300 text-blue-600 bg-white">
                               + Thêm nhân sự thực tế

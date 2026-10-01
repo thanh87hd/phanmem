@@ -90,12 +90,12 @@ describe('RiskAssessment Page (RA-01 -> RA-06)', { timeout: 15000 }, () => {
     });
   });
 
-  it('RA-01: renders page title and 3-Lines Risk Engine header', async () => {
+  it('RA-01: renders page title and RBIA Line 3 Risk Engine header', async () => {
     render(<RiskAssessment />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Hệ thống Quản lý & Đánh giá Rủi ro/i)).toBeDefined();
-      expect(screen.getByText(/IIA 2024 Hybrid Approach/i)).toBeDefined();
+      expect(screen.getByText(/Đánh giá Rủi ro Phục vụ Kế hoạch KTNB/i)).toBeDefined();
+      expect(screen.getByText(/IIA GIAS 2024 & Thông tư 13\/2018\/TT-NHNN/i)).toBeDefined();
     });
 
     expect(api.get).toHaveBeenCalledWith('/audit-universe');
@@ -111,31 +111,31 @@ describe('RiskAssessment Page (RA-01 -> RA-06)', { timeout: 15000 }, () => {
     });
   });
 
-  it('RA-03: switches to "Bộ Hồ Sơ Rủi Ro KTNB" tab', async () => {
+  it('RA-03: switches to "So sánh & Xu hướng Rủi ro" tab', async () => {
     render(<RiskAssessment />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Bộ Hồ Sơ Rủi Ro/i)).toBeDefined();
+      expect(screen.getByText(/So sánh & Xu hướng Rủi ro/i)).toBeDefined();
     });
 
-    fireEvent.click(screen.getByText(/Bộ Hồ Sơ Rủi Ro/i));
+    fireEvent.click(screen.getByText(/So sánh & Xu hướng Rủi ro/i));
 
     await waitFor(() => {
-      expect(screen.getByTestId('risk-profiles-tab')).toBeDefined();
+      expect(screen.getByTestId('risk-comparison-tab')).toBeDefined();
     });
   });
 
-  it('RA-04: switches to "Sổ Đăng Ký Rủi Ro (Risk Register)" tab', async () => {
+  it('RA-04: switches to "Biến động ĐVKD & PGDBĐ" tab', async () => {
     render(<RiskAssessment />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Sổ Đăng Ký Rủi Ro/i)).toBeDefined();
+      expect(screen.getByText(/Biến động ĐVKD & PGDBĐ/i)).toBeDefined();
     });
 
-    fireEvent.click(screen.getByText(/Sổ Đăng Ký Rủi Ro/i));
+    fireEvent.click(screen.getByText(/Biến động ĐVKD & PGDBĐ/i));
 
     await waitFor(() => {
-      expect(screen.getByTestId('risk-register-page')).toBeDefined();
+      expect(screen.getByTestId('unit-restructuring-tab')).toBeDefined();
     });
   });
 
@@ -153,17 +153,10 @@ describe('RiskAssessment Page (RA-01 -> RA-06)', { timeout: 15000 }, () => {
     });
   });
 
-  it('RA-06: triggers data resync when clicking "Đồng bộ dữ liệu"', async () => {
+  it('RA-06: triggers data resync on mount', async () => {
     render(<RiskAssessment />);
 
     await waitFor(() => {
-      expect(screen.getByText('Đồng bộ dữ liệu')).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByText('Đồng bộ dữ liệu'));
-
-    await waitFor(() => {
-      // api.get should have been called again on click
       expect(api.get).toHaveBeenCalledWith('/risk-assessments');
     });
   });

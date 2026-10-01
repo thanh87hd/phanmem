@@ -575,6 +575,12 @@ const AuditEngagements: React.FC = () => {
   const handleCreateEngagement = () => {
     setEditingEngagement(null);
     engagementForm.resetFields();
+    engagementForm.setFieldsValue({
+      teamMembers: [],
+      engagementType: 'Planned',
+      ownerTeam: 'PKT_DVKD',
+      engagementCode: `ENG-${new Date().getFullYear()}-HN01`,
+    });
     setSafetyWarnings({});
     setIsEngagementModalVisible(true);
   };
@@ -626,7 +632,22 @@ const AuditEngagements: React.FC = () => {
 
   const saveEngagement = async (isExpectedInfo: boolean = false) => {
     try {
-      const values = await engagementForm.validateFields();
+      // Tự động làm sạch các dòng thành viên trống trước khi validate
+      const currentTeam = engagementForm.getFieldValue('teamMembers');
+      if (Array.isArray(currentTeam)) {
+        const cleaned = currentTeam.filter((tm: any) => tm && tm.userId);
+        engagementForm.setFieldsValue({ teamMembers: cleaned });
+      }
+
+      let values: any;
+      if (isExpectedInfo) {
+        // Lưu dự kiến: Chỉ cần tên cuộc kiểm toán, không chặn các trường khác
+        await engagementForm.validateFields(['name']);
+        values = engagementForm.getFieldsValue();
+      } else {
+        values = await engagementForm.validateFields();
+      }
+
       if (values.planId && !values.planName) {
         const foundPlan = auditPlans.find((p: any) => p.id === values.planId);
         if (foundPlan) values.planName = foundPlan.name;
@@ -678,7 +699,7 @@ const AuditEngagements: React.FC = () => {
           return {
             userId: tm.userId,
             fullName: matchedUser ? matchedUser.fullName : '',
-            role: tm.role
+            role: tm.role || 'Thành viên'
           };
         }).filter((tm: any) => tm.userId);
       } else {
@@ -702,8 +723,9 @@ const AuditEngagements: React.FC = () => {
       fetchEngagements();
     } catch (error: any) {
       console.error('Error saving engagement:', error);
-      if (error?.errorFields) {
-        message.warning('Vui lòng kiểm tra lại các trường bắt buộc đang để trống.');
+      if (error?.errorFields && error.errorFields.length > 0) {
+        const fieldMsgs = error.errorFields.map((f: any) => f.errors?.[0] || f.name.join('.')).filter(Boolean).join('; ');
+        message.warning(`Vui lòng kiểm tra lại: ${fieldMsgs}`);
         return;
       }
       const msg = error.response?.data?.message;
@@ -1078,6 +1100,7 @@ const AuditEngagements: React.FC = () => {
                     setIsRcmModalVisible={setIsRcmModalVisible}
                     currentUser={currentUser}
                     onOpenStageGateModal={handleOpenStageGateModal}
+                    checkAuditorSafety={checkAuditorSafety}
                   />
                 )
               },

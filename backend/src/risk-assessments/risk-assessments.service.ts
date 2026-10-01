@@ -125,31 +125,49 @@ export class RiskAssessmentsService {
       }
     }
 
+    // Flatten modifiers object → entity booleans (khi frontend gửi dạng { isRecurring, isOverdueCritical, isEmergingRisk })
+    const dto = createRiskAssessmentDto as any;
+    const modifiers = dto.modifiers || {};
+    const isRecurring = dto.isRecurring ?? modifiers.isRecurring ?? false;
+    const isOverdueCritical = dto.isOverdueCritical ?? modifiers.isOverdueCritical ?? false;
+    const isEmergingRisk = dto.isEmergingRisk ?? modifiers.isEmergingRisk ?? false;
+
     // Use Unified Risk Engine (THUCTE) for scoring
     const engineInput = {
       inherentRiskScore:
-        createRiskAssessmentDto.inherentRiskScore ??
-        createRiskAssessmentDto.totalScore,
+        dto.inherentRiskScore ?? dto.totalScore,
       controlEffectiveness:
-        createRiskAssessmentDto.controlEffectiveness || 'Adequate',
-      riskVelocity: createRiskAssessmentDto.riskVelocity || 'Stable',
-      criteriaScores: (createRiskAssessmentDto as any).criteriaScores,
-      impactScores: (createRiskAssessmentDto as any).impactScores,
-      likelihoodScores: (createRiskAssessmentDto as any).likelihoodScores,
-      designEffectiveness: (createRiskAssessmentDto as any).designEffectiveness,
-      operatingEffectiveness: (createRiskAssessmentDto as any)
-        .operatingEffectiveness,
-      isRecurring: (createRiskAssessmentDto as any).isRecurring,
-      isOverdueCritical: (createRiskAssessmentDto as any).isOverdueCritical,
-      isEmergingRisk: (createRiskAssessmentDto as any).isEmergingRisk,
+        dto.controlEffectiveness || 'Adequate',
+      riskVelocity: dto.riskVelocity || 'Stable',
+      criteriaScores: dto.criteriaScores,
+      impactScores: dto.impactScores,
+      likelihoodScores: dto.likelihoodScores,
+      designEffectiveness: dto.designEffectiveness,
+      operatingEffectiveness: dto.operatingEffectiveness,
+      isRecurring,
+      isOverdueCritical,
+      isEmergingRisk,
     };
     const engineResult = this.unifiedRiskEngine.calculate(engineInput);
 
-    const { department, universeName, assessedBy, ...dtoWithoutRelations } =
-      createRiskAssessmentDto;
+    const {
+      department,
+      universeName,
+      assessedBy,
+      modifiers: _modifiers,
+      scoringMode: _scoringMode,
+      riskLevelCode: _riskLevelCode,
+      riskBand: _riskBand,
+      nextAuditYear: _nextAuditYear,
+      rationale: _rationale,
+      highRiskFactors: _highRiskFactors,
+      status: _status,
+      ...dtoWithoutRelations
+    } = dto;
+
     const assessment = this.riskAssessmentRepository.create({
       ...dtoWithoutRelations,
-      legacyUniverseName: universeName,
+      legacyUniverseName: universeName || createRiskAssessmentDto.universeName,
       legacyDepartmentName: department,
       assessedById: user?.userId || user?.id,
       legacyAssessedByUserId: user?.userId || user?.id,
@@ -159,8 +177,14 @@ export class RiskAssessmentsService {
       residualRiskScore: engineResult.residualRiskScore,
       adjustedResidualScore: engineResult.adjustedResidualScore,
       riskVelocity: engineInput.riskVelocity,
+      isRecurring,
+      isOverdueCritical,
+      isEmergingRisk,
       auditFrequency:
         createRiskAssessmentDto.auditFrequency ?? engineResult.auditFrequency,
+      // Lưu rationale vào notes nếu notes chưa có
+      notes: dtoWithoutRelations.notes || _rationale || undefined,
+      // Status luôn là Draft khi tạo mới (workflow submit tách biệt)
       status: 'Draft',
     });
     return this.riskAssessmentRepository.save(assessment);
@@ -229,6 +253,13 @@ export class RiskAssessmentsService {
     }
 
     const dto = updateRiskAssessmentDto as any;
+
+    // Flatten modifiers object → entity booleans
+    const modifiers = dto.modifiers || {};
+    const isRecurring = dto.isRecurring ?? modifiers.isRecurring ?? undefined;
+    const isOverdueCritical = dto.isOverdueCritical ?? modifiers.isOverdueCritical ?? undefined;
+    const isEmergingRisk = dto.isEmergingRisk ?? modifiers.isEmergingRisk ?? undefined;
+
     if (
       dto.inherentRiskScore !== undefined ||
       dto.controlEffectiveness !== undefined ||
@@ -250,9 +281,9 @@ export class RiskAssessmentsService {
           dto.designEffectiveness ?? existing.designEffectiveness,
         operatingEffectiveness:
           dto.operatingEffectiveness ?? existing.operatingEffectiveness,
-        isRecurring: dto.isRecurring ?? existing.isRecurring,
-        isOverdueCritical: dto.isOverdueCritical ?? existing.isOverdueCritical,
-        isEmergingRisk: dto.isEmergingRisk ?? existing.isEmergingRisk,
+        isRecurring: isRecurring ?? existing.isRecurring,
+        isOverdueCritical: isOverdueCritical ?? existing.isOverdueCritical,
+        isEmergingRisk: isEmergingRisk ?? existing.isEmergingRisk,
       });
       dto.inherentRiskScore = engineResult.inherentRiskScore;
       dto.residualRiskScore = engineResult.residualRiskScore;
@@ -261,12 +292,30 @@ export class RiskAssessmentsService {
       dto.auditFrequency = engineResult.auditFrequency;
     }
 
-    const { department, universeName, assessedBy, ...dtoWithoutRelations } =
-      updateRiskAssessmentDto;
+    const {
+      department,
+      universeName,
+      assessedBy,
+      modifiers: _modifiers,
+      scoringMode: _scoringMode,
+      riskLevelCode: _riskLevelCode,
+      riskBand: _riskBand,
+      nextAuditYear: _nextAuditYear,
+      rationale: _rationale,
+      highRiskFactors: _highRiskFactors,
+      status: _status,
+      ...dtoWithoutRelations
+    } = dto;
+
     await this.riskAssessmentRepository.update(id, {
       ...dtoWithoutRelations,
       legacyUniverseName: universeName,
       legacyDepartmentName: department,
+      ...(isRecurring !== undefined && { isRecurring }),
+      ...(isOverdueCritical !== undefined && { isOverdueCritical }),
+      ...(isEmergingRisk !== undefined && { isEmergingRisk }),
+      // Lưu rationale vào notes nếu notes chưa có
+      ...((_rationale && !dtoWithoutRelations.notes) && { notes: _rationale }),
     });
     return this.findOne(id);
   }

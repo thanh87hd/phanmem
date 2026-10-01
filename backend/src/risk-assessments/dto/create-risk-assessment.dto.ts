@@ -15,9 +15,10 @@ export class CreateRiskAssessmentDto {
   @IsInt()
   auditUniverseId?: number;
 
+  // universeName is optional — backend resolves it from auditUniverseId if not provided
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Tên quy trình không được để trống' })
-  universeName: string;
+  universeName?: string;
 
   @IsOptional()
   @IsString()
@@ -32,17 +33,16 @@ export class CreateRiskAssessmentDto {
   })
   auditCategory?: string;
 
-  @IsOptional()
-  @IsString()
-
   // ==================== Scoring ====================
+
   @IsNumber()
   assessmentYear: number;
 
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
-  totalScore: number;
+  totalScore?: number;
 
   @IsOptional()
   criteriaScores?: any; // JSON chi tiết chấm điểm từng tiêu chí
@@ -59,9 +59,9 @@ export class CreateRiskAssessmentDto {
   @Max(5)
   likelihood?: number;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Mức độ rủi ro không được để trống' })
-  riskLevel: string;
+  riskLevel?: string;
 
   // ==================== Inherent → Control → Residual Risk (Basel/BCBS) ====================
 
@@ -86,6 +86,11 @@ export class CreateRiskAssessmentDto {
   residualRiskScore?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  adjustedResidualScore?: number;
+
+  @IsOptional()
   @IsString()
   @IsIn(['Increasing', 'Stable', 'Decreasing'], {
     message: 'riskVelocity phải là: Increasing, Stable, Decreasing',
@@ -98,6 +103,58 @@ export class CreateRiskAssessmentDto {
     message: 'riskAppetite phải là: Accept, Mitigate, Avoid, Transfer',
   })
   riskAppetite?: string;
+
+  // ==================== THUCTE Scoring Model: Impact / Likelihood / Control Components ====================
+
+  @IsOptional()
+  impactScores?: any[]; // Chi tiết 5 thành phần Impact (THUCTE)
+
+  @IsOptional()
+  likelihoodScores?: any[]; // Chi tiết 4 thành phần Likelihood (THUCTE)
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  designEffectiveness?: number; // 0 | 0.5 | 1 — Trọng số 40%
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  operatingEffectiveness?: number; // 0 | 0.5 | 1 — Trọng số 60%
+
+  @IsOptional()
+  modifiers?: any; // { isRecurring, isOverdueCritical, isEmergingRisk }
+
+  @IsOptional()
+  highRiskFactors?: any; // 12 tiêu chí nhận diện đơn vị rủi ro cao (Điều 4.3 QT 3002)
+
+  // ==================== Scoring Metadata (Client-side computed, stored for display) ====================
+
+  @IsOptional()
+  @IsString()
+  scoringMode?: string; // 'thucte' | 'criteria'
+
+  @IsOptional()
+  @IsString()
+  riskLevelCode?: string; // 'Low' | 'Medium' | 'High' | 'Critical' (English code)
+
+  @IsOptional()
+  @IsString()
+  riskBand?: string; // 'Xanh' | 'Vàng' | 'Cam' | 'Đỏ' (Vietnamese band)
+
+  @IsOptional()
+  @IsNumber()
+  nextAuditYear?: number; // Năm kiểm toán đề xuất tiếp theo
+
+  @IsOptional()
+  @IsString()
+  rationale?: string; // Ghi chú / Căn cứ điều chỉnh điểm hoặc nhận định
+
+  @IsOptional()
+  @IsString()
+  status?: string; // Draft | Submitted | Approved | Rejected
 
   // ==================== Audit Planning ====================
 

@@ -28,6 +28,7 @@ import {
   FileExcelOutlined,
   FileImageOutlined,
   InboxOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 import dayjs from 'dayjs';
@@ -118,6 +119,18 @@ export const AttachmentManager: React.FC<AttachmentManagerProps> = ({
 
   const [uploadForm] = Form.useForm();
   const [verifyForm] = Form.useForm();
+
+  // Preview state for PDF / image files
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewMime, setPreviewMime] = useState<string>('');
+  const [previewName, setPreviewName] = useState<string>('');
+
+  const handlePreview = (link: FileLinkItem) => {
+    const url = `/api/file-assets/links/${link.id}/download`;
+    setPreviewUrl(url);
+    setPreviewMime(link.fileAsset?.mimeType || '');
+    setPreviewName(link.fileAsset?.originalName || 'Tài liệu');
+  };
 
   const fetchLinks = useCallback(async () => {
     if (!ownerId) return;
@@ -364,37 +377,52 @@ export const AttachmentManager: React.FC<AttachmentManagerProps> = ({
           {
             title: 'Thao tác',
             key: 'action',
-            width: 100,
+            width: 120,
             align: 'right',
-            render: (_, record) => (
-              <div className="flex justify-end space-x-1">
-                <Tooltip title="Tải tệp xuống">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<DownloadOutlined />}
-                    onClick={() => handleDownload(record)}
-                  />
-                </Tooltip>
-                {!readOnly && (
-                  <Popconfirm
-                    title="Xác nhận gỡ tệp đính kèm này?"
-                    okText="Xóa"
-                    cancelText="Hủy"
-                    onConfirm={() => handleDelete(record.id)}
-                  >
-                    <Tooltip title="Gỡ liên kết">
+            render: (_, record) => {
+              const asset = record.fileAsset;
+              const canPreview = asset?.mimeType?.includes('pdf') || asset?.mimeType?.startsWith('image/');
+              return (
+                <div className="flex justify-end space-x-1">
+                  {canPreview && (
+                    <Tooltip title="Xem trước">
                       <Button
                         type="text"
-                        danger
                         size="small"
-                        icon={<DeleteOutlined />}
+                        icon={<EyeOutlined />}
+                        onClick={() => handlePreview(record)}
+                        className="text-blue-600 hover:text-blue-800"
                       />
                     </Tooltip>
-                  </Popconfirm>
-                )}
-              </div>
-            ),
+                  )}
+                  <Tooltip title="Tải tệp xuống">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<DownloadOutlined />}
+                      onClick={() => handleDownload(record)}
+                    />
+                  </Tooltip>
+                  {!readOnly && (
+                    <Popconfirm
+                      title="Xác nhận gỡ tệp đính kèm này?"
+                      okText="Xóa"
+                      cancelText="Hủy"
+                      onConfirm={() => handleDelete(record.id)}
+                    >
+                      <Tooltip title="Gỡ liên kết">
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
+                  )}
+                </div>
+              );
+            },
           },
         ]}
       />
@@ -515,6 +543,44 @@ export const AttachmentManager: React.FC<AttachmentManagerProps> = ({
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal Xem Trước Tài Liệu (PDF / Ảnh) */}
+      <Modal
+        title={
+          <span className="flex items-center gap-2">
+            <EyeOutlined className="text-blue-500" />
+            Xem trước: <strong>{previewName}</strong>
+          </span>
+        }
+        open={!!previewUrl}
+        onCancel={() => { setPreviewUrl(null); setPreviewMime(''); setPreviewName(''); }}
+        footer={
+          <Button icon={<DownloadOutlined />} onClick={() => previewUrl && window.open(previewUrl, '_blank')}>
+            Tải xuống để xem đầy đủ
+          </Button>
+        }
+        width="85%"
+        style={{ top: 20 }}
+        destroyOnClose
+      >
+        {previewUrl && (
+          previewMime.startsWith('image/') ? (
+            <div className="flex justify-center max-h-[75vh] overflow-auto">
+              <img
+                src={previewUrl}
+                alt={previewName}
+                style={{ maxWidth: '100%', objectFit: 'contain' }}
+              />
+            </div>
+          ) : (
+            <iframe
+              src={previewUrl}
+              title={previewName}
+              style={{ width: '100%', height: '75vh', border: 'none', borderRadius: 8 }}
+            />
+          )
+        )}
       </Modal>
     </div>
   );

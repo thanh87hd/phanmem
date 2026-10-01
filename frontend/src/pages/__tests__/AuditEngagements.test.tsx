@@ -7,6 +7,7 @@ import api from '../../services/api';
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ state: null }),
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
 vi.mock('react-i18next', () => ({

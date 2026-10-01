@@ -67,6 +67,14 @@ describe('AuthService', () => {
           provide: SecurityConfigService,
           useValue: mockSecurityConfig,
         },
+        {
+          provide: 'CACHE_MANAGER',
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 

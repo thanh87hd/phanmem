@@ -142,3 +142,8 @@ temp/
 *.temp
 .cache/
 **/.cache/
+_deploy_clean/
+backend/run_backend.js
+backend/scripts/test_system_full_e2e.js
+frontend/run_browser_test.mjs
+frontend/tc_wp_test.mjs

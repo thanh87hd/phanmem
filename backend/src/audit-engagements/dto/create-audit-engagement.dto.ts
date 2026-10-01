@@ -4,12 +4,17 @@ import {
   IsOptional,
   IsDateString,
   IsNumber,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateAuditEngagementDto {
   @IsString()
   @IsNotEmpty({ message: 'Tên cuộc kiểm toán không được để trống' })
   name: string;
+
+  @IsString()
+  @IsOptional()
+  engagementCode?: string;
 
   @IsNumber()
   @IsOptional()
@@ -180,4 +185,12 @@ export class CreateAuditEngagementDto {
   @IsString()
   @IsOptional()
   reason?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  allowWarning?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  bypassIndependenceCheck?: boolean;
 }

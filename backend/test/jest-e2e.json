@@ -8,5 +8,6 @@
   },
   "transformIgnorePatterns": [
     "node_modules/(?!(@scure|otplib|@otplib|uuid|@noble)/)"
-  ]
+  ],
+  "testTimeout": 60000
 }

@@ -23,7 +23,8 @@ import {
   Tooltip, 
   Badge,
   Select,
-  Alert 
+  Alert,
+  Popconfirm
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -239,6 +240,17 @@ export const Phase2FieldworkTab: React.FC<Phase2FieldworkTabProps> = ({
   const isLead = selectedEngagement?.leadAuditorId === currentUser?.id || 
                  currentUser?.role === 'admin' || 
                  currentUser?.role === 'audit_director';
+
+  // Quick submit WP for review directly from table row (no need to open drawer)
+  const handleQuickSubmitWp = async (wpId: number) => {
+    try {
+      await api.post(`/working-papers/${wpId}/submit`);
+      message.success('Đã nộp Giấy tờ làm việc cho Trưởng đoàn soát xét thành công!');
+      fetchWorkingPapers();
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || 'Lỗi khi nộp duyệt');
+    }
+  };
 
   // Filter Working Papers based on Role & Assignment
   const filteredWorkingPapers = workingPapers.filter(wp => {
@@ -535,21 +547,53 @@ export const Phase2FieldworkTab: React.FC<Phase2FieldworkTabProps> = ({
     {
       title: 'Thao tác',
       key: 'action',
-      width: 140,
+      width: 200,
       render: (_: any, r: any) => {
         const isSubmitted = r.status === 'Submitted' || r.status === 'PendingReview';
         const isRework = r.status === 'Rework' || r.status === 'Rejected';
+        const isDraft = !r.status || r.status === 'Draft';
+        const isMyWp = r.creatorId === currentUser?.id ||
+                       r.creatorUser?.id === currentUser?.id ||
+                       (currentUser?.fullName && r.creator?.toLowerCase().includes(currentUser.fullName.toLowerCase()));
+
+        let mainLabel = 'Chi tiết';
+        if (isLead && isSubmitted) mainLabel = 'Soát xét';
+        else if (isRework && isMyWp) mainLabel = 'Sửa lại';
+        else if (isDraft && isMyWp) mainLabel = 'Soạn thảo WP';
+
         return (
-          <Space size="small">
-            <Button 
-              type="primary" 
-              size="small" 
-              icon={isLead && isSubmitted ? <SafetyOutlined /> : <EditOutlined />} 
+          <Space size="small" wrap>
+            <Button
+              type="primary"
+              size="small"
+              icon={isLead && isSubmitted ? <SafetyOutlined /> : <EditOutlined />}
               onClick={() => handleOpenDrawer(r)}
-              className={isLead && isSubmitted ? "bg-amber-600 hover:bg-amber-700 text-xs font-semibold" : "bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold"}
+              className={isLead && isSubmitted
+                ? 'bg-amber-600 hover:bg-amber-700 text-xs font-semibold'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold'
+              }
             >
-              {isLead && isSubmitted ? 'Soát xét' : isRework ? 'Sửa lại' : 'Chi tiết'}
+              {mainLabel}
             </Button>
+            {/* Nút "Gửi duyệt" inline — hiện khi WP là Draft/Rework và đang xem là creator */}
+            {(isDraft || isRework) && isMyWp && r.id && (
+              <Popconfirm
+                title="Nộp Giấy tờ làm việc cho Trưởng đoàn soát xét?"
+                description="Hồ sơ sẽ chuyển sang trạng thái Chờ duyệt và tạm khóa chỉnh sửa."
+                okText="Xác nhận nộp"
+                cancelText="Hủy"
+                onConfirm={() => handleQuickSubmitWp(r.id)}
+              >
+                <Button
+                  size="small"
+                  type="default"
+                  icon={<SendOutlined />}
+                  className="border-blue-500 text-blue-600 hover:bg-blue-50 text-xs font-semibold"
+                >
+                  Gửi duyệt
+                </Button>
+              </Popconfirm>
+            )}
           </Space>
         );
       }

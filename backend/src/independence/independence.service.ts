@@ -144,6 +144,19 @@ export class IndependenceService implements OnModuleInit {
     return { success: true };
   }
 
+  private normalizeDeptName(str: string): string {
+    return (str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase()
+      .replace(/\bcn\b/g, 'chi nhanh')
+      .replace(/[^a-z0-9]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   async checkAssignmentSafety(
     userId: number,
     auditorName: string,
@@ -151,6 +164,7 @@ export class IndependenceService implements OnModuleInit {
   ): Promise<{ safe: boolean; reason?: string }> {
     const currentYear = new Date().getFullYear();
     const todayStr = new Date().toISOString().split('T')[0];
+    const normDept = this.normalizeDeptName(departmentName);
 
     // 1. Kiểm tra khai báo xung đột lợi ích (Conflict Declaration)
     const conflict = await this.conflictRepo.findOne({
@@ -162,11 +176,11 @@ export class IndependenceService implements OnModuleInit {
     });
 
     if (conflict) {
-      const isRelevant = !conflict.details || conflict.details.toLowerCase().includes(departmentName.toLowerCase());
+      const normDetails = this.normalizeDeptName(conflict.details || '');
+      const isRelevant = !conflict.details || normDetails.includes(normDept) || normDept.includes(normDetails);
       if (isRelevant) {
         if (conflict.caeApprovalStatus === 'Approved') {
           // Ngoại lệ đã được Trưởng Ban KTNB phê duyệt với biện pháp kiểm soát bổ sung
-          // Cho phép phân công nhưng ghi nhận cảnh báo
         } else {
           return {
             safe: false,
@@ -177,25 +191,32 @@ export class IndependenceService implements OnModuleInit {
     }
 
     // 2. Kiểm tra bắt buộc quay vòng kiểm toán viên theo Thông tư 13/2018/TT-NHNN (không kiểm toán liên tiếp quá 3 năm)
-    const rotation = await this.rotationRepo.findOne({
+    const rotations = await this.rotationRepo.find({
       where: {
         auditorName,
-        departmentName,
         isRestricted: true,
       },
     });
 
-    if (rotation && rotation.nextAllowedAuditDate > todayStr) {
+    const activeRotation = rotations.find((r) => {
+      const normR = this.normalizeDeptName(r.departmentName);
+      return (normR.includes(normDept) || normDept.includes(normR)) && r.nextAllowedAuditDate > todayStr;
+    });
+
+    if (activeRotation) {
       return {
         safe: false,
-        reason: `Bắt buộc phải quay vòng kiểm toán viên theo Thông tư 13/2018/TT-NHNN (Kiểm toán viên đã tham gia kiểm toán đơn vị này liên tục 3 năm trước đó). Ngày được phép kiểm toán lại: ${rotation.nextAllowedAuditDate}`,
+        reason: `Bắt buộc phải quay vòng kiểm toán viên theo Thông tư 13/2018/TT-NHNN (Kiểm toán viên đã tham gia kiểm toán đơn vị này liên tục 3 năm trước đó). Ngày được phép kiểm toán lại: ${activeRotation.nextAllowedAuditDate}`,
       };
     }
 
     // 3. Kiểm tra cách ly đơn vị cũ (Cooling-Off 12 tháng theo IIA Standard 2.2)
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (user && user.priorDepartments && user.coolingOffEndDate) {
-      const isPastCoolingOff = user.coolingOffEndDate < todayStr;
+      const endDateStr = typeof user.coolingOffEndDate === 'string'
+        ? user.coolingOffEndDate.split('T')[0]
+        : (user.coolingOffEndDate as Date).toISOString().split('T')[0];
+      const isPastCoolingOff = endDateStr < todayStr;
 
       // priorDepartments có thể là string[] (jsonb) hoặc string thuần (legacy)
       const priorDeptRaw = user.priorDepartments;
@@ -211,13 +232,15 @@ export class IndependenceService implements OnModuleInit {
         }
       }
 
-      const priorDeptText = priorDeptList.join(' ').toLowerCase();
-      const isConflict = priorDeptText.includes(departmentName.toLowerCase());
+      const isConflict = priorDeptList.some((p) => {
+        const normP = this.normalizeDeptName(p);
+        return normP.includes(normDept) || normDept.includes(normP);
+      });
 
       if (!isPastCoolingOff && isConflict) {
         return {
           safe: false,
-          reason: `Vi phạm thời hạn cách ly độc lập (Cooling-off) theo Chuẩn mực IIA 2.2. Kiểm toán viên từng công tác tại đơn vị "${priorDeptList.join(', ')}" và đang trong thời hạn cách ly 12 tháng đến ngày ${user.coolingOffEndDate}.`,
+          reason: `Vi phạm thời hạn cách ly độc lập (Cooling-off) theo Chuẩn mực IIA 2.2. Kiểm toán viên từng công tác tại đơn vị "${priorDeptList.join(', ')}" và đang trong thời hạn cách ly 12 tháng đến ngày ${endDateStr}.`,
         };
       }
     }

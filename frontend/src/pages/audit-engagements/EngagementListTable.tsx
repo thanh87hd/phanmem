@@ -52,13 +52,19 @@ export const EngagementListTable: React.FC<EngagementListTableProps> = ({
 
   const engagementColumns = [
     {
-      title: 'Tên cuộc KT',
+      title: 'Mã & Tên cuộc KT',
       dataIndex: 'name',
       key: 'name',
-      width: 240,
-      ellipsis: true,
-      render: (text: string) => (
-        <span className="font-semibold text-slate-800">{text}</span>
+      width: 260,
+      render: (text: string, record: any) => (
+        <div className="flex flex-col gap-1">
+          {record.engagementCode && (
+            <Tag color="cyan" className="w-fit font-mono text-[11px] px-1.5 py-0.5 m-0 font-bold">
+              {record.engagementCode}
+            </Tag>
+          )}
+          <span className="font-semibold text-slate-800">{text}</span>
+        </div>
       ),
     },
     ...dynamicCols,

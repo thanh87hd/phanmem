@@ -485,9 +485,13 @@ export class AuditEngagementsService {
           departmentName,
         );
         if (!check.safe) {
-          throw new BadRequestException(
-            `[Chặn phân công - Xung đột độc lập] Trưởng đoàn: ${check.reason}`,
-          );
+          if (cleanDto.allowWarning || cleanDto.bypassIndependenceCheck || cleanDto.isExpectedInfo) {
+            cleanDto.independenceWarning = check.reason;
+          } else {
+            throw new BadRequestException(
+              `[Chặn phân công - Xung đột độc lập] Trưởng đoàn: ${check.reason}`,
+            );
+          }
         }
       }
 
@@ -500,14 +504,21 @@ export class AuditEngagementsService {
             departmentName,
           );
           if (!check.safe) {
-            throw new BadRequestException(
-              `[Chặn phân công - Xung đột độc lập] ${member.fullName}: ${check.reason}`,
-            );
+            if (cleanDto.allowWarning || cleanDto.bypassIndependenceCheck || cleanDto.isExpectedInfo) {
+              member.independenceWarning = check.reason;
+            } else {
+              throw new BadRequestException(
+                `[Chặn phân công - Xung đột độc lập] ${member.fullName}: ${check.reason}`,
+              );
+            }
           }
         }
       }
     }
     // ===== End Independence Auto-Block =====
+
+    delete cleanDto.allowWarning;
+    delete cleanDto.bypassIndependenceCheck;
 
     await this.repo.update(id, cleanDto);
     const updated = await this.findOne(id);

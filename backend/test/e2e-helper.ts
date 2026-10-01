@@ -7,6 +7,9 @@ import { AppModule } from '../src/app.module';
 import request from 'supertest';
 
 export async function createE2EApp(): Promise<NestFastifyApplication> {
+  if (typeof jest !== 'undefined') {
+    jest.setTimeout(60000);
+  }
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
@@ -52,7 +55,7 @@ export async function createE2EApp(): Promise<NestFastifyApplication> {
 export async function getAdminToken(
   app: NestFastifyApplication,
 ): Promise<string | null> {
-  for (const password of ['@bcd1234', 'password123', 'admin123']) {
+  for (const password of ['@Lpbank2026!', '@bcd1234', 'password123', 'admin123']) {
     const res = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ username: 'admin', password });

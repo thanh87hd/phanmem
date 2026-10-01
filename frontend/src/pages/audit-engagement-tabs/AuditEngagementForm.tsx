@@ -62,7 +62,7 @@ export const AuditEngagementForm: React.FC<AuditEngagementFormProps> = ({
           </Button>
           <Button 
             onClick={() => saveEngagement(true)} 
-            className="shadow-md rounded-xl h-10 px-6 font-semibold"
+            className="shadow-md rounded-xl h-10 px-6 font-semibold border-amber-500 text-amber-700 hover:bg-amber-50"
           >
             Lưu dự kiến
           </Button>
@@ -71,7 +71,7 @@ export const AuditEngagementForm: React.FC<AuditEngagementFormProps> = ({
             onClick={() => saveEngagement(false)} 
             className="shadow-md rounded-xl bg-[#ea9105] hover:bg-[#d07e00] border-none font-semibold h-10 px-6 text-white"
           >
-            {editingEngagement ? [t('auditEngagements.update', 'Cập nhật')] : t('auditEngagements.createACall', 'Tạo cuộc KT')}
+            {editingEngagement ? 'Cập nhật' : 'Lưu'}
           </Button>
         </Space>
       </div>
@@ -81,50 +81,84 @@ export const AuditEngagementForm: React.FC<AuditEngagementFormProps> = ({
           form={engagementForm} 
           layout="vertical"
           onValuesChange={(changedValues, allValues) => {
-            if ('leadAuditorId' in changedValues || 'auditedDepartment' in changedValues) {
+            const selectedDept = departments.find((d: any) => d.id === allValues.auditedDepartmentId);
+            const deptName = selectedDept ? selectedDept.name : '';
+
+            if ('leadAuditorId' in changedValues || 'auditedDepartmentId' in changedValues) {
               const userId = allValues.leadAuditorId;
-              const dept = allValues.auditedDepartment;
-              if (userId && dept) {
+              if (userId && deptName) {
                 const matchedUser = users.find((u: any) => u.id === userId);
                 if (matchedUser) {
-                  checkAuditorSafety(userId, 'leadAuditor', matchedUser.fullName, dept);
+                  checkAuditorSafety(userId, 'leadAuditor', matchedUser.fullName, deptName);
                 }
               }
             }
-            if ('teamMembers' in changedValues || 'auditedDepartment' in changedValues) {
+            if ('teamMembers' in changedValues || 'auditedDepartmentId' in changedValues) {
               const team = Array.isArray(allValues.teamMembers) ? allValues.teamMembers : [];
-              const dept = allValues.auditedDepartment;
               team.forEach((tm: any, index: number) => {
-                if (tm && tm.userId && dept) {
+                if (tm && tm.userId && deptName) {
                   const matchedUser = users.find((u: any) => u.id === tm.userId);
                   if (matchedUser) {
-                    checkAuditorSafety(tm.userId, `teamMember_${index}`, matchedUser.fullName, dept);
+                    checkAuditorSafety(tm.userId, `teamMember_${index}`, matchedUser.fullName, deptName);
                   }
                 }
               });
             }
           }}
         >
-          <Form.Item name="name" label={<span className="font-semibold text-slate-700">{t('auditEngagements.nameOfTheAudit', 'Tên cuộc kiểm toán')}</span>} rules={[{ required: true, message: t('auditEngagements.enterTheNameOfTheAudit', 'Nhập tên cuộc kiểm toán') }]}>
-            <Input placeholder={t('auditEngagements.forExampleCreditProcessAccounting', 'Ví dụ: KT Quy trình Tín dụng...')} className="rounded-lg h-10" />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item 
+                name="engagementCode" 
+                label={<span className="font-semibold text-slate-700">Mã cuộc kiểm toán</span>} 
+                rules={[{ required: true, message: 'Vui lòng nhập mã cuộc kiểm toán (ví dụ: ENG-2026-HN01)' }]}
+              >
+                <Input placeholder="Ví dụ: ENG-2026-HN01" className="rounded-lg h-10 font-mono" />
+              </Form.Item>
+            </Col>
+            <Col span={16}>
+              <Form.Item 
+                name="name" 
+                label={<span className="font-semibold text-slate-700">{t('auditEngagements.nameOfTheAudit', 'Tên cuộc kiểm toán')}</span>} 
+                rules={[{ required: true, message: t('auditEngagements.enterTheNameOfTheAudit', 'Nhập tên cuộc kiểm toán') }]}
+              >
+                <Input placeholder={t('auditEngagements.forExampleCreditProcessAccounting', 'Ví dụ: Kiểm toán hoạt động cấp tín dụng CN Hà Nội')} className="rounded-lg h-10" />
+              </Form.Item>
+            </Col>
+          </Row>
+
           <Form.Item name="planName" label={<span className="font-semibold text-slate-700">{t('auditEngagements.belongsToThePlan', 'Thuộc kế hoạch')}</span>}>
-            <Input placeholder={t('auditEngagements.forExamplePlan2026', 'Ví dụ: Kế hoạch 2026')} className="rounded-lg h-10" />
+            <Input placeholder={t('auditEngagements.forExamplePlan2026', 'Ví dụ: Kế hoạch kiểm toán năm 2026')} className="rounded-lg h-10" />
           </Form.Item>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="leadAuditorId" label={<span className="font-semibold text-slate-700">{t('auditEngagements.headOfAuditTeam', 'Trưởng đoàn kiểm toán')}</span>} rules={[{ required: true, message: t('auditEngagements.pleaseSelectGroupLeader', 'Vui lòng chọn Trưởng đoàn') }]}>
-                <Select placeholder={t('auditEngagements.selectTeamLeader', 'Chọn Trưởng đoàn')} showSearch optionFilterProp="children" className="h-10">
+                <Select 
+                  placeholder={t('auditEngagements.selectTeamLeader', 'Chọn Trưởng đoàn (tìm theo tên hoặc username danhpc...)')} 
+                  showSearch 
+                  optionFilterProp="filterLabel"
+                  filterOption={(input, option: any) => {
+                    const user = users.find(u => u.id === option?.value);
+                    if (!user) return false;
+                    const search = `${user.fullName} ${user.username} ${user.jobTitle || ''} ${user.email || ''}`.toLowerCase();
+                    return search.includes(input.toLowerCase());
+                  }}
+                  className="h-10"
+                >
                   {users.map(u => (
-                    <Option key={u.id} value={u.id}>
-                      {u.fullName} ({u.jobTitle || u.username})
+                    <Option key={u.id} value={u.id} filterLabel={`${u.fullName} ${u.username} ${u.jobTitle || ''}`}>
+                      <div className="flex items-center justify-between">
+                        <span><strong>{u.fullName}</strong> <span className="text-slate-500 font-mono text-xs">(@{u.username})</span></span>
+                        {u.jobTitle && <span className="text-xs text-slate-400 ml-2">{u.jobTitle}</span>}
+                      </div>
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
               {safetyWarnings['leadAuditor'] && (
                 <div style={{ marginTop: -12, marginBottom: 12 }}>
-                  <Text type="warning" style={{ fontSize: 12, display: 'block', background: '#fffbe6', padding: '4px 8px', borderRadius: 4, border: '1px solid #ffe58f' }}>
+                  <Text type="warning" style={{ fontSize: 12, display: 'block', background: '#fffbe6', padding: '6px 10px', borderRadius: 6, border: '1px solid #ffe58f' }}>
                     ⚠️ {safetyWarnings['leadAuditor']}
                   </Text>
                 </div>
@@ -133,7 +167,7 @@ export const AuditEngagementForm: React.FC<AuditEngagementFormProps> = ({
             <Col span={12}>
               <Form.Item name="auditedDepartmentId" label={<span className="font-semibold text-slate-700">{t('auditEngagements.auditedUnit', 'Đơn vị được kiểm toán')}</span>} rules={[{ required: true, message: t('auditEngagements.pleaseSelectAUnit', 'Vui lòng chọn đơn vị') }]}>
                 <Select
-                  placeholder={t('auditEngagements.chooseAnAuditingUnit', 'Chọn đơn vị kiểm toán...')}
+                  placeholder={t('auditEngagements.chooseAnAuditingUnit', 'Chọn đơn vị kiểm toán (ví dụ: Chi nhánh Hà Nội...)')}
                   showSearch
                   optionFilterProp="label"
                   className="h-10"
@@ -154,43 +188,61 @@ export const AuditEngagementForm: React.FC<AuditEngagementFormProps> = ({
               {(fields, { add, remove }) => (
                 <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
                   {fields.map(({ key, name, ...restField }) => (
-                    <Space key={key} style={{ display: 'flex', marginBottom: 8, flexWrap: 'wrap' }} align="baseline">
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'userId']}
-                        rules={[{ required: true, message: t('auditEngagements.selectMember', 'Chọn thành viên') }]}
-                        style={{ margin: 0, width: 220 }}
-                      >
-                        <Select placeholder={t('auditEngagements.selectMember', 'Chọn thành viên')} showSearch optionFilterProp="children" className="h-10">
-                          {users.map(u => (
-                            <Option key={u.id} value={u.id}>
-                              {u.fullName}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'role']}
-                        rules={[{ required: true, message: t('auditEngagements.selectRole', 'Chọn vai trò') }]}
-                        style={{ margin: 0, width: 200 }}
-                      >
-                        <Select placeholder={t('auditEngagements.selectDelegationRole', 'Chọn vai trò đoàn')} className="h-10">
-                          <Option value={t('auditEngagements.headOfAuditTeam', 'Trưởng đoàn kiểm toán')}>{t('auditEngagements.headOfAuditTeam', 'Trưởng đoàn kiểm toán')}</Option>
-                          <Option value={t('auditEngagements.deputyHeadOfTheAuditTeam', 'Phó Trưởng đoàn kiểm toán')}>{t('auditEngagements.deputyHeadOfTheAuditTeam', 'Phó Trưởng đoàn kiểm toán')}</Option>
-                          <Option value={t('auditEngagements.auditTeamLeader', 'Trưởng nhóm kiểm toán')}>{t('auditEngagements.auditTeamLeader', 'Trưởng nhóm kiểm toán')}</Option>
-                          <Option value={t('auditEngagements.member', 'Thành viên')}>{t('auditEngagements.member', 'Thành viên')}</Option>
-                        </Select>
-                      </Form.Item>
-                      <Button type="text" danger onClick={() => remove(name)} className="h-10 font-semibold">{t('auditTemplates.btnDelete', 'Xóa')}</Button>
+                    <div key={key} style={{ marginBottom: 10 }}>
+                      <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'userId']}
+                          style={{ margin: 0, flex: 1, minWidth: 240 }}
+                        >
+                          <Select 
+                            placeholder={t('auditEngagements.selectMember', 'Chọn KTV (tìm theo tên hoặc thiendh, maict...)')} 
+                            showSearch 
+                            optionFilterProp="filterLabel"
+                            filterOption={(input, option: any) => {
+                              const user = users.find(u => u.id === option?.value);
+                              if (!user) return false;
+                              const search = `${user.fullName} ${user.username} ${user.jobTitle || ''} ${user.email || ''}`.toLowerCase();
+                              return search.includes(input.toLowerCase());
+                            }}
+                            className="h-10"
+                          >
+                            {users.map(u => (
+                              <Option key={u.id} value={u.id} filterLabel={`${u.fullName} ${u.username} ${u.jobTitle || ''}`}>
+                                <div className="flex items-center justify-between">
+                                  <span><strong>{u.fullName}</strong> <span className="text-slate-500 font-mono text-xs">(@{u.username})</span></span>
+                                  {u.jobTitle && <span className="text-xs text-slate-400 ml-2">{u.jobTitle}</span>}
+                                </div>
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'role']}
+                          style={{ margin: 0, width: 220 }}
+                          initialValue={t('auditEngagements.member', 'Thành viên')}
+                        >
+                          <Select placeholder={t('auditEngagements.selectDelegationRole', 'Chọn vai trò đoàn')} className="h-10">
+                            <Option value="Trưởng đoàn kiểm toán">{t('auditEngagements.headOfAuditTeam', 'Trưởng đoàn kiểm toán')}</Option>
+                            <Option value="Phó Trưởng đoàn kiểm toán">{t('auditEngagements.deputyHeadOfTheAuditTeam', 'Phó Trưởng đoàn kiểm toán')}</Option>
+                            <Option value="Trưởng nhóm kiểm toán">{t('auditEngagements.auditTeamLeader', 'Trưởng nhóm kiểm toán')}</Option>
+                            <Option value="KTV Tín dụng">KTV Tín dụng</Option>
+                            <Option value="KTV Kế toán & Kho quỹ">KTV Kế toán & Kho quỹ</Option>
+                            <Option value="KTV CNTT">KTV CNTT</Option>
+                            <Option value="Thành viên">{t('auditEngagements.member', 'Thành viên')}</Option>
+                          </Select>
+                        </Form.Item>
+                        <Button type="text" danger onClick={() => remove(name)} className="h-10 font-semibold">{t('auditTemplates.btnDelete', 'Xóa')}</Button>
+                      </div>
                       {safetyWarnings[`teamMember_${name}`] && (
-                        <div style={{ width: '100%', marginTop: 4, marginBottom: 4 }}>
-                          <Text type="warning" style={{ fontSize: 12, display: 'block', background: '#fffbe6', padding: '4px 8px', borderRadius: 4, border: '1px solid #ffe58f' }}>
+                        <div style={{ width: '100%', marginTop: 4 }}>
+                          <Text type="warning" style={{ fontSize: 12, display: 'block', background: '#fffbe6', padding: '6px 10px', borderRadius: 6, border: '1px solid #ffe58f' }}>
                             ⚠️ {safetyWarnings[`teamMember_${name}`]}
                           </Text>
                         </div>
                       )}
-                    </Space>
+                    </div>
                   ))}
                   <Button type="dashed" onClick={() => add()} block style={{ marginTop: fields.length > 0 ? 8 : 0 }} className="h-10 rounded-lg">
                     {t('auditEngagements.addGroupMembers', '+ Thêm thành viên đoàn')}
@@ -282,11 +334,17 @@ export const AuditEngagementForm: React.FC<AuditEngagementFormProps> = ({
             {t('auditTemplates.form.btnCancel', 'Hủy bỏ')}
           </Button>
           <Button 
+            onClick={() => saveEngagement(true)} 
+            className="rounded-xl px-6 h-10 font-semibold border-amber-500 text-amber-700 hover:bg-amber-50"
+          >
+            Lưu dự kiến
+          </Button>
+          <Button 
             type="primary" 
             onClick={() => saveEngagement(false)} 
             className="rounded-xl bg-[#ea9105] hover:bg-[#d07e00] border-none px-6 font-semibold h-10 text-white"
           >
-            {editingEngagement ? [t('auditEngagements.update', 'Cập nhật')] : t('auditEngagements.createACall', 'Tạo cuộc KT')}
+            {editingEngagement ? 'Cập nhật' : 'Lưu'}
           </Button>
         </div>
       </Card>

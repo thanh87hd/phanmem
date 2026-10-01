@@ -190,6 +190,7 @@ export const UnifiedRiskScoringModal: React.FC<UnifiedRiskScoringModalProps> = (
         riskVelocity: velocity,
         assessmentYear: initialData?.assessmentYear || new Date().getFullYear(),
         rationale: initialData?.rationale || initialData?.priorityReason || '',
+        riskAppetite: initialData?.riskAppetite || undefined,
       });
 
       // Trigger initial calculation
@@ -362,8 +363,13 @@ export const UnifiedRiskScoringModal: React.FC<UnifiedRiskScoringModalProps> = (
       const values = await form.validateFields();
       setLoading(true);
 
+      // Đảm bảo universeName luôn được điền từ danh sách auditUniverses
+      const selectedUniverse = auditUniverses.find((u) => u.id === values.auditUniverseId);
+      const resolvedUniverseName = values.universeName || selectedUniverse?.name || initialData?.universeName || initialData?.name || '';
+
       const payload: any = {
         ...values,
+        universeName: resolvedUniverseName,
         scoringMode,
         inherentRiskScore: calcResult.inherentRiskScore,
         controlEffectiveness: calcResult.controlEffectiveness,
@@ -376,8 +382,8 @@ export const UnifiedRiskScoringModal: React.FC<UnifiedRiskScoringModalProps> = (
         totalScore: calcResult.inherentRiskScore,
         auditFrequency: calcResult.auditFrequency,
         nextAuditYear: calcResult.suggestedAuditYear,
-        status: submitForApproval ? 'Submitted' : (initialData?.status || 'Draft'),
         highRiskFactors,
+        // Không gửi status — backend luôn set Draft khi create, submit dùng workflow riêng
       };
 
       if (scoringMode === 'thucte') {
@@ -411,10 +417,20 @@ export const UnifiedRiskScoringModal: React.FC<UnifiedRiskScoringModalProps> = (
         response = await api.post('/risk-assessments', payload);
       }
 
+      // Nếu chọn Lưu & Gửi phê duyệt, gọi thêm endpoint submit workflow
+      if (submitForApproval && response?.data?.id) {
+        await api.patch(`/risk-assessments/${response.data.id}/submit`);
+      }
+
       message.success(submitForApproval ? 'Đã lưu và gửi phê duyệt đánh giá rủi ro thành công!' : 'Đã lưu kết quả chấm điểm rủi ro thành công!');
       onSuccess(response.data);
       onCancel();
     } catch (e: any) {
+      if (e?.errorFields) {
+        // Ant Design form validation error — hiển thị lỗi field cụ thể
+        message.warning('Vui lòng kiểm tra lại các trường bắt buộc trong form');
+        return;
+      }
       message.error(e?.response?.data?.message || 'Có lỗi xảy ra khi lưu kết quả chấm điểm');
     } finally {
       setLoading(false);
@@ -522,7 +538,21 @@ export const UnifiedRiskScoringModal: React.FC<UnifiedRiskScoringModalProps> = (
                 <InputNumber style={{ width: '100%' }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col span={4}>
+              <Form.Item
+                name="riskAppetite"
+                label={<span style={{ fontWeight: 600 }}>Khẩu vị rủi ro</span>}
+                style={{ marginBottom: 4 }}
+              >
+                <Select placeholder="Chọn khẩu vị..." size="small" allowClear>
+                  <Option value="Accept">✅ Chấp nhận (Accept)</Option>
+                  <Option value="Mitigate">🛡️ Giảm thiểu (Mitigate)</Option>
+                  <Option value="Avoid">🚫 Tránh (Avoid)</Option>
+                  <Option value="Transfer">🔄 Chuyển giao (Transfer)</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={4}>
               <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#0f172a' }}>
                 Phương pháp chấm điểm:
               </div>
@@ -663,6 +693,85 @@ export const UnifiedRiskScoringModal: React.FC<UnifiedRiskScoringModalProps> = (
                               </Row>
                             </div>
                           ))}
+                        </div>
+                      ),
+                    },
+                    {
+                      key: 'control',
+                      label: (
+                        <span style={{ fontWeight: 600 }}>
+                          <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 4 }} />
+                          3. Kiểm Soát & Khẩu Vị (Control & Appetite)
+                        </span>
+                      ),
+                      children: (
+                        <div style={{ padding: '12px 6px' }}>
+                          <div style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 14 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                              <span style={{ fontWeight: 600, color: '#1e293b', fontSize: 13 }}>🛡️ Đánh giá Hệ thống Kiểm soát (CE):</span>
+                              <Tag color={calcResult.controlMultiplier <= 0.5 ? 'green' : calcResult.controlMultiplier <= 0.75 ? 'gold' : 'red'}>
+                                {calcResult.controlEffectiveness === 'Strong' ? 'Tốt (0.5)' : calcResult.controlEffectiveness === 'Adequate' ? 'Đạt (0.75)' : 'Yếu (1.0)'} — Hệ số: {calcResult.controlMultiplier}
+                              </Tag>
+                            </div>
+
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                                <span style={{ fontWeight: 600 }}>Thiết kế kiểm soát (Design — 40%):</span>
+                                <Tag color={designEffectiveness === 1 ? 'green' : designEffectiveness === 0.5 ? 'gold' : 'red'}>
+                                  {designEffectiveness === 1 ? '1.0 (Hiệu lực đầy đủ)' : designEffectiveness === 0.5 ? '0.5 (Một phần)' : '0.0 (Không hiệu lực)'}
+                                </Tag>
+                              </div>
+                              <Radio.Group
+                                value={designEffectiveness}
+                                onChange={(e) => handleDEChange(e.target.value)}
+                                style={{ width: '100%', display: 'flex' }}
+                              >
+                                <Radio.Button value={1.0} style={{ flex: 1, textAlign: 'center', fontSize: 12 }}>1.0 Tốt / Đầy đủ</Radio.Button>
+                                <Radio.Button value={0.5} style={{ flex: 1, textAlign: 'center', fontSize: 12 }}>0.5 Trung bình / Một phần</Radio.Button>
+                                <Radio.Button value={0.0} style={{ flex: 1, textAlign: 'center', fontSize: 12 }}>0.0 Yếu / Không hiệu lực</Radio.Button>
+                              </Radio.Group>
+                            </div>
+
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                                <span style={{ fontWeight: 600 }}>Vận hành kiểm soát (Operating — 60%):</span>
+                                <Tag color={operatingEffectiveness === 1 ? 'green' : operatingEffectiveness === 0.5 ? 'gold' : 'red'}>
+                                  {operatingEffectiveness === 1 ? '1.0 (Hiệu lực đầy đủ)' : operatingEffectiveness === 0.5 ? '0.5 (Một phần)' : '0.0 (Không hiệu lực)'}
+                                </Tag>
+                              </div>
+                              <Radio.Group
+                                value={operatingEffectiveness}
+                                onChange={(e) => handleOEChange(e.target.value)}
+                                style={{ width: '100%', display: 'flex' }}
+                              >
+                                <Radio.Button value={1.0} style={{ flex: 1, textAlign: 'center', fontSize: 12 }}>1.0 Tốt / Tuân thủ cao</Radio.Button>
+                                <Radio.Button value={0.5} style={{ flex: 1, textAlign: 'center', fontSize: 12 }}>0.5 Trung bình / Có sai sót</Radio.Button>
+                                <Radio.Button value={0.0} style={{ flex: 1, textAlign: 'center', fontSize: 12 }}>0.0 Yếu / Vi phạm nghiêm trọng</Radio.Button>
+                              </Radio.Group>
+                            </div>
+                          </div>
+
+                          <div style={{ background: '#fffbeb', padding: 14, borderRadius: 10, border: '1px solid #fde68a' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                              <span style={{ fontWeight: 600, color: '#92400e', fontSize: 13 }}>🎯 Khẩu Vị Rủi Ro (Risk Appetite):</span>
+                              <Tag color="orange" style={{ fontWeight: 600 }}>
+                                {form.getFieldValue('riskAppetite') === 'Mitigate' ? 'Giảm thiểu (Mitigate)' :
+                                 form.getFieldValue('riskAppetite') === 'Accept' ? 'Chấp nhận (Accept)' :
+                                 form.getFieldValue('riskAppetite') === 'Avoid' ? 'Tránh (Avoid)' :
+                                 form.getFieldValue('riskAppetite') === 'Transfer' ? 'Chuyển giao (Transfer)' : 'Chưa chọn'}
+                              </Tag>
+                            </div>
+                            <Radio.Group
+                              value={form.getFieldValue('riskAppetite') || 'Mitigate'}
+                              onChange={(e) => form.setFieldsValue({ riskAppetite: e.target.value })}
+                              style={{ width: '100%', display: 'flex', gap: 6 }}
+                            >
+                              <Radio.Button value="Mitigate" style={{ flex: 1, textAlign: 'center', fontSize: 11 }}>🛡️ Giảm thiểu</Radio.Button>
+                              <Radio.Button value="Accept" style={{ flex: 1, textAlign: 'center', fontSize: 11 }}>✅ Chấp nhận</Radio.Button>
+                              <Radio.Button value="Avoid" style={{ flex: 1, textAlign: 'center', fontSize: 11 }}>🚫 Tránh</Radio.Button>
+                              <Radio.Button value="Transfer" style={{ flex: 1, textAlign: 'center', fontSize: 11 }}>🔄 Chuyển giao</Radio.Button>
+                            </Radio.Group>
+                          </div>
                         </div>
                       ),
                     },
