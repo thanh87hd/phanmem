@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, Card, Alert, Button } from 'antd';
+import { Tabs, Card, Alert, Button, Result } from 'antd';
 import type { TabsProps } from 'antd';
 import {
   AppstoreOutlined,
@@ -16,6 +16,7 @@ import {
 } from '@ant-design/icons';
 import HubHeaderBanner from '../components/HubHeaderBanner';
 import HubTabLoading from '../components/HubTabLoading';
+import { hasRouteAccess } from '../utils/roleAccess';
 
 // Lazy-load sub-components
 const AuditUniverse = lazy(() => import('./AuditUniverse'));
@@ -322,6 +323,42 @@ export const RiskAndPlanningHub: React.FC = () => {
     ],
     [currentView, handleViewChange, t]
   );
+
+  const userRole = useMemo(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u)?.role || '' : '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const isPlanAllowed = useMemo(() => {
+    return hasRouteAccess(['admin', 'cae', 'tppp', 'lead', 'caats', 'bks'], userRole);
+  }, [userRole]);
+
+  if (currentStep === 'plan' && !isPlanAllowed) {
+    return (
+      <div style={{ padding: '0 8px' }}>
+        <HubHeaderBanner
+          title={t('menu.groupPlan', 'CHU TRÌNH LẬP KẾ HOẠCH KIỂM TOÁN DỰA TRÊN RỦI RO (RBIA)')}
+          tagText="IIA GIAS 2024 & TT 13"
+          tagColor="#d97706"
+          description="Quy trình lập kế hoạch kiểm toán nội bộ dựa trên rủi ro dành riêng cho Tuyến 3 (KTNB). Tín hiệu rủi ro Tuyến 1, Tuyến 2 (KRI, RCSA), CAATs và phát hiện kỳ trước là dữ liệu đầu vào chỉ-đọc."
+        />
+        <Result
+          status="403"
+          title="403 Forbidden"
+          subTitle={t('protectedRoute.youDoNotHaveAccessTo', 'Bạn không có quyền truy cập vào chức năng này.')}
+          extra={
+            <Button type="primary" onClick={() => handleStepChange('scope')}>
+              {t('common.back', 'Quay lại Phạm vi & Thư viện')}
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '0 8px' }}>

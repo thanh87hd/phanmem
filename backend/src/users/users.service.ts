@@ -46,10 +46,17 @@ export class UsersService {
     }
   }
 
-  sanitizeUser(user: any): any {
+  isPrivilegedUser(user?: any): boolean {
+    if (!user) return true;
+    const roleName = user.role?.name || user.role || user.roleName || '';
+    const jobTitle = user.jobTitle || '';
+    return ScopeFilterService.isAdminRole(roleName, jobTitle);
+  }
+
+  sanitizeUser(user: any, isPrivileged = true): any {
     if (!user) return user;
     if (Array.isArray(user)) {
-      return user.map((u) => this.sanitizeUser(u));
+      return user.map((u) => this.sanitizeUser(u, isPrivileged));
     }
     const {
       passwordHash,
@@ -59,6 +66,17 @@ export class UsersService {
       passwordResetToken,
       ...safeUser
     } = user;
+
+    if (!isPrivileged) {
+      delete safeUser.failedLoginAttempts;
+      delete safeUser.lockedUntil;
+      delete safeUser.lastLoginIp;
+      delete safeUser.passwordResetExpires;
+      delete safeUser.twoFactorEnabled;
+      delete safeUser.birthDate;
+      delete safeUser.employeeId;
+    }
+
     return safeUser;
   }
 
@@ -79,20 +97,23 @@ export class UsersService {
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role');
 
+    let isPrivileged = !user;
     if (user && user.userId) {
       const fullUser = await this.userRepository.findOne({
         where: { id: user.userId },
         relations: ['role'],
       });
 
-      if (
-        fullUser &&
-        !ScopeFilterService.isAdminRole(fullUser.role?.name, fullUser.jobTitle)
-      ) {
-        if (fullUser.department) {
+      if (fullUser) {
+        isPrivileged = ScopeFilterService.isAdminRole(fullUser.role?.name, fullUser.jobTitle);
+        if (!isPrivileged && fullUser.department) {
           qb.andWhere('user.department = :dept', { dept: fullUser.department });
         }
+      } else {
+        isPrivileged = this.isPrivilegedUser(user);
       }
+    } else if (user) {
+      isPrivileged = this.isPrivilegedUser(user);
     }
 
     const statusParam = query?.status;
@@ -112,16 +133,30 @@ export class UsersService {
 
     qb.orderBy('user.id', 'ASC');
     const users = await qb.getMany();
-    return this.sanitizeUser(users);
+    return this.sanitizeUser(users, isPrivileged);
   }
 
   findOne(id: number) {
     return this.userRepository.findOne({ where: { id }, relations: ['role'] });
   }
 
-  async findOneSafe(id: number) {
+  async findOneSafe(id: number, currentUser?: any) {
     const user = await this.findOne(id);
-    return this.sanitizeUser(user);
+    let isPrivileged = !currentUser;
+    if (currentUser && currentUser.userId) {
+      const fullUser = await this.userRepository.findOne({
+        where: { id: currentUser.userId },
+        relations: ['role'],
+      });
+      if (fullUser) {
+        isPrivileged = ScopeFilterService.isAdminRole(fullUser.role?.name, fullUser.jobTitle);
+      } else {
+        isPrivileged = this.isPrivilegedUser(currentUser);
+      }
+    } else if (currentUser) {
+      isPrivileged = this.isPrivilegedUser(currentUser);
+    }
+    return this.sanitizeUser(user, isPrivileged);
   }
 
   findOneByUsername(username: string) {

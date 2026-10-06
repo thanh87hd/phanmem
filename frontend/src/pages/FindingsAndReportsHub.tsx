@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, Card } from 'antd';
+import { Tabs, Card, Result, Button } from 'antd';
 import type { TabsProps } from 'antd';
 import { 
   BugOutlined, 
@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import HubHeaderBanner from '../components/HubHeaderBanner';
 import HubTabLoading from '../components/HubTabLoading';
+import { hasRouteAccess } from '../utils/roleAccess';
 
 // Lazy-load sub-components
 const AuditFindings = lazy(() => import('./AuditFindings'));
@@ -128,6 +129,42 @@ export const FindingsAndReportsHub: React.FC = () => {
       ),
     },
   ], [currentTab, currentSubTab, handleSubTabChange, t]);
+
+  const userRole = useMemo(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u)?.role || '' : '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const isRecsAllowed = useMemo(() => {
+    return hasRouteAccess(['admin', 'cae', 'tppp', 'lead', 'ktv', 'auditee', 'bks'], userRole);
+  }, [userRole]);
+
+  if (currentTab === 'recommendations' && !isRecsAllowed) {
+    return (
+      <div style={{ padding: '0 8px' }}>
+        <HubHeaderBanner
+          title={t('menu.groupReport', 'TRUNG TÂM PHÁT HIỆN, BÁO CÁO & THEO DÕI KHẮC PHỤC')}
+          tagText="CHUẨN MỰC 5C & SLA"
+          tagColor="#10b981"
+          description="Hợp nhất quản lý Phát hiện Kiểm toán 5C toàn hàng, Soạn thảo và Ký duyệt Báo cáo chính thức, Giám sát tiến độ Khắc phục Kiến nghị"
+        />
+        <Result
+          status="403"
+          title="403 Forbidden"
+          subTitle={t('protectedRoute.youDoNotHaveAccessTo', 'Bạn không có quyền truy cập vào chức năng này.')}
+          extra={
+            <Button type="primary" onClick={() => handleTabChange('findings')}>
+              {t('common.back', 'Quay lại Danh mục Phát hiện')}
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '0 8px' }}>

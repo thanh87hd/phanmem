@@ -53,8 +53,8 @@ export class UsersController {
 
   @Get(':id')
   @CheckPolicies((ability) => ability.can(Action.Read, User))
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOneSafe(+id);
+  findOne(@Param('id') id: string, @Request() req: any) {
+    return this.usersService.findOneSafe(+id, req.user);
   }
 
   @Patch(':id/status')

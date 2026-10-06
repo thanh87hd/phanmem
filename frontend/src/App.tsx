@@ -183,25 +183,24 @@ const App: React.FC = () => {
               {/* Routes for Everyone */}
               <Route path="user-guide" element={<UserGuide />} />
               <Route path="timesheet" element={<TimesheetPage />} />
-              <Route path="auditee-portal" element={<AuditeePortal />} />
-              <Route path="bsc-kpi" element={<BscKpiPage />} />
               <Route path="master-data-governance" element={<MasterDataGovernance />} />
-   
-              {/* ═══════════════════════════════════════════════════════════════
-                  PHASE 4: 3 MEGA HUBS — ENTRY POINTS DUY NHẤT
-                  ═══════════════════════════════════════════════════════════════ */}
-              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Trưởng Ban KTNB', 'Trưởng đoàn', 'Kiểm toán viên']} />}>
-                {/* ═══ Hub 1: Rủi Ro & Kế Hoạch Năm ═══ */}
-                <Route path="risk-and-planning" element={<RiskAndPlanningHub />} />
+
+              {/* ═══ Màn 4: Cổng Đơn Vị Được Kiểm Toán (Tất cả trừ CAATs) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae', 'tppp', 'lead', 'ktv', 'auditee', 'bks']} />}>
+                <Route path="auditee-portal" element={<AuditeePortal />} />
+              </Route>
+
+              {/* ═══ Màn 13: Đánh Giá BSC-KPI Nhân Sự (Tất cả trừ Auditee) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae', 'tppp', 'lead', 'ktv', 'caats', 'bks']} />}>
+                <Route path="bsc-kpi" element={<BscKpiPage />} />
+              </Route>
+
+              {/* ═══ Màn 9 & 15: Hub 2 & Pháp Quy & AI (Tất cả vai trò kể cả Auditee & BKS) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae', 'tppp', 'lead', 'ktv', 'caats', 'auditee', 'bks']} />}>
                 {/* ═══ Hub 2: Phát Hiện & Báo Cáo ═══ */}
                 <Route path="findings-hub" element={<FindingsAndReportsHub />} />
-                {/* ═══ Hub 3: Quản Trị Hệ Thống ═══ */}
-                <Route path="system-admin" element={<SystemSettingsHub />} />
-
-                {/* ═══════════════════════════════════════════════════════════════
-                    COMPATIBILITY REDIRECTS — Bảo toàn bookmark & URL cũ (ADR-0011)
-                    Nguyên tắc: Tuyệt đối không làm hỏng bookmark của KTV.
-                    ═══════════════════════════════════════════════════════════════ */}
+                <Route path="regulatory-kb" element={<RegulatoryKnowledgeBase />} />
+                <Route path="ai-knowledge" element={<FindingKnowledgeBase />} />
 
                 {/* Hub 2 Redirects: Phát Hiện & Báo Cáo */}
                 <Route path="audit-findings" element={<Navigate to="/findings-hub?tab=findings&subTab=sub1" replace />} />
@@ -210,39 +209,53 @@ const App: React.FC = () => {
                 <Route path="audit-reports" element={<Navigate to="/findings-hub?tab=reports&subTab=sub1" replace />} />
                 <Route path="audit-ratings" element={<Navigate to="/findings-hub?tab=reports&subTab=sub2" replace />} />
                 <Route path="recommendations" element={<Navigate to="/findings-hub?tab=recommendations" replace />} />
+              </Route>
 
-                {/* Dedicated Workspaces — Giữ nguyên, không redirect vào Hub */}
+              {/* ═══ Màn 5, 7, 11, 14: Hub 1 & Kiểm Toán & CAATs (Tất cả nội bộ + BKS, Chặn Auditee) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae', 'tppp', 'lead', 'ktv', 'caats', 'bks']} />}>
+                {/* ═══ Hub 1: Rủi Ro & Kế Hoạch Năm ═══ */}
+                <Route path="risk-and-planning" element={<RiskAndPlanningHub />} />
                 <Route path="audit-engagements" element={<AuditEngagements />} />
                 <Route path="continuous-monitoring" element={<ContinuousMonitoring />} />
                 <Route path="execution-dashboard" element={<ExecutionDashboard />} />
-                <Route path="audit-programs" element={<AuditPrograms />} />
-                <Route path="working-papers" element={<WorkingPapers />} />
-                <Route path="quality-control" element={<QualityControl />} />
-                <Route path="evidences" element={<Evidences />} />
                 <Route path="document-manager" element={<DocumentManager />} />
-                <Route path="audit-templates" element={<AuditTemplates />} />
-                <Route path="data-analytics" element={<DataAnalytics />} />
-                <Route path="task-management" element={<TaskManagement />} />
-                <Route path="general-tasks" element={<GeneralTasks />} />
-                <Route path="resource-calendar" element={<ResourceCalendar />} />
                 <Route path="summary-reports" element={<SummaryReports />} />
                 <Route path="raci-governance" element={<RaciGovernanceView />} />
                 <Route path="engagement-change-requests" element={<EngagementChangeRequests />} />
-                <Route path="ai-knowledge" element={<FindingKnowledgeBase />} />
-                <Route path="regulatory-kb" element={<RegulatoryKnowledgeBase />} />
+              </Route>
+
+              {/* ═══ Màn 8 & 12: Giấy Tờ Làm Việc & Nhiệm Vụ Đoàn (Chỉ Đoàn KT & KTV, Chặn Auditee & Chặn BKS) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae', 'tppp', 'lead', 'ktv', 'caats']} />}>
+                <Route path="working-papers" element={<WorkingPapers />} />
+                <Route path="general-tasks" element={<GeneralTasks />} />
+                <Route path="audit-programs" element={<AuditPrograms />} />
+                <Route path="quality-control" element={<QualityControl />} />
+                <Route path="evidences" element={<Evidences />} />
+                <Route path="audit-templates" element={<AuditTemplates />} />
+                <Route path="data-analytics" element={<DataAnalytics />} />
+                <Route path="task-management" element={<TaskManagement />} />
+                <Route path="resource-calendar" element={<ResourceCalendar />} />
                 <Route path="dynamic-app/:resourceName" element={<DynamicAppView />} />
               </Route>
-   
-              {/* Admin & Ban Kiểm Soát Routes */}
-              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Trưởng Ban KTNB', 'Ban Kiểm soát', 'Ban kiểm soát']} />}>
+
+              {/* ═══ Màn 2: Cổng Ban Kiểm Soát & Independence (Admin, CAE, BKS) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae', 'bks']} />}>
                 <Route path="audit-committee" element={<AuditCommitteePortal />} />
                 <Route path="audit-committee-portal" element={<AuditCommitteePortal />} />
-                <Route path="regulatory-exams" element={<RegulatoryExams />} />
                 <Route path="independence-tracker" element={<IndependenceTracker />} />
               </Route>
-   
-              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Trưởng Ban KTNB']} />}>
-                {/* Quản trị Phương pháp luận, HSRR & Mã lỗi (Admin & Trưởng Ban KTNB) */}
+
+              {/* ═══ Màn 3: Giám Sát Đoàn Thanh Tra NHNN (Admin, CAE, TP/PP, BKS) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae', 'tppp', 'bks']} />}>
+                <Route path="regulatory-exams" element={<RegulatoryExams />} />
+              </Route>
+
+              {/* ═══ Màn 16: Quản Trị Hệ Thống (Chỉ Admin & Lãnh Đạo Khối CAE) ═══ */}
+              <Route element={<ProtectedRoute allowGroups={['admin', 'cae']} />}>
+                {/* ═══ Hub 3: Quản Trị Hệ Thống ═══ */}
+                <Route path="system-admin" element={<SystemSettingsHub />} />
+
+                {/* Quản trị Phương pháp luận, HSRR & Mã lỗi (Admin & CAE) */}
                 <Route path="methodology" element={<MethodologyManagement />} />
                 <Route path="defect-codes" element={<DefectCodeList />} />
 
@@ -259,7 +272,7 @@ const App: React.FC = () => {
                 <Route path="training-cpe" element={<Navigate to="/system-admin?tab=personnel&subTab=sub3" replace />} />
                 <Route path="audit-expenses" element={<Navigate to="/system-admin?tab=personnel&subTab=sub4" replace />} />
 
-                {/* Admin-only Dedicated Workspaces — Giữ nguyên */}
+                {/* Admin-only Dedicated Workspaces */}
                 <Route path="password-change-requests" element={<PasswordChangeRequests />} />
                 <Route path="process-analysis" element={<ProcessAnalysis />} />
                 <Route path="knowledge-extraction" element={<KnowledgeExtraction />} />
