@@ -1,5 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import type { StarterKitOptions } from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
@@ -22,8 +23,10 @@ const CollaborativeEditor: React.FC<Props> = ({ docName, userName = 'Unknown' })
 
   const editor = useEditor({
     extensions: [
-      // Disable TipTap's built-in history – Yjs manages undo/redo via its own mechanism.
-      StarterKit.configure({ history: false }),
+      // ĐÃ SỬA: Tiptap v3 đổi tên tuỳ chọn tắt history thành `undoRedo`. Trước đây
+      // dùng key `history: false` nên bị BỎ QUA lúc chạy → UndoRedo vẫn được đăng ký
+      // và @tiptap/extension-collaboration cảnh báo xung đột (Yjs tự quản lý undo/redo).
+      StarterKit.configure({ undoRedo: false }),
       Collaboration.configure({ document: ydocRef.current }),
     ],
   });

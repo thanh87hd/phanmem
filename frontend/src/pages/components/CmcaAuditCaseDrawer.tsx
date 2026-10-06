@@ -105,7 +105,7 @@ const CmcaAuditCaseDrawer: React.FC<Props> = ({ auditCase, open, onClose, onUpda
       {/* Alert Details */}
       {auditCase.alert && (
         <>
-          <Divider orientation="left" style={{ fontSize: 13 }}>Cảnh báo gốc</Divider>
+          <Divider titlePlacement="left" style={{ fontSize: 13 }}>Cảnh báo gốc</Divider>
           <div style={{ background: '#fff7e6', padding: 12, borderRadius: 6, marginBottom: 16 }}>
             <Text strong>{auditCase.alert.title}</Text>
             <div style={{ marginTop: 4 }}><Text type="secondary">{auditCase.alert.description}</Text></div>
@@ -119,7 +119,7 @@ const CmcaAuditCaseDrawer: React.FC<Props> = ({ auditCase, open, onClose, onUpda
       )}
 
       {/* Explanation Form */}
-      <Divider orientation="left" style={{ fontSize: 13 }}>Biểu mẫu Giải trình & Thẩm định</Divider>
+      <Divider titlePlacement="left" style={{ fontSize: 13 }}>Biểu mẫu Giải trình & Thẩm định</Divider>
       <Form
         form={form}
         layout="vertical"

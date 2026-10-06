@@ -1,12 +1,49 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
+import { Repository, EntityManager, DeepPartial } from 'typeorm';
 import { KriAlert } from './entities/kri-alert.entity';
 import { AuditUniverse } from '../audit-universe/entities/audit-universe.entity';
 import * as ExcelJS from 'exceljs';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateKriAlertDto } from './dto/create-kri-alert.dto';
 import { UpdateKriAlertDto } from './dto/update-kri-alert.dto';
+
+export interface KriUploadedFile {
+  originalname: string;
+  buffer?: Buffer;
+  path?: string;
+  size?: number;
+  mimetype?: string;
+}
+
+/**
+ * Một dòng so sánh KRI giữa 2 kỳ báo cáo.
+ *
+ * Trước đây interface này được khai báo CỤC BỘ trong `compareKriPeriods`, khiến
+ * TypeScript không thể "đặt tên" cho kiểu trả về của method công khai
+ * (TS4053/TS4055) — làm hỏng `npm run build:tsc` và chặn CI. Nay đưa ra phạm vi
+ * module và export để controller/DTO khác tham chiếu được.
+ */
+export interface KriPeriodComparisonItem {
+  kriCode: string;
+  kriName?: string;
+  departmentName?: string;
+  period1Value?: string;
+  period1Threshold?: string;
+  period1Severity?: string;
+  period2Value?: string;
+  period2Threshold?: string;
+  period2Severity?: string;
+  severityChanged?: boolean;
+  thresholdChanged?: boolean;
+  valueChanged?: boolean;
+  /** Trường dùng cho nhóm "không đổi" (giữ nguyên giá trị kỳ 1). */
+  value?: string;
+  threshold?: string;
+  severity?: string;
+  /** Xu hướng biến động giữa 2 kỳ. */
+  trend?: string;
+}
 
 @Injectable()
 export class KriAlertsService {
@@ -21,17 +58,24 @@ export class KriAlertsService {
   /**
    * Helper chuẩn hóa và đồng bộ dữ liệu dual-read/write cho KRI
    */
-  private normalizeKriData(data: any): any {
-    const observedValue =
-      data.observedValue || data.currentValue || data.figure || '';
-    const currentValue =
-      data.currentValue || data.observedValue || data.figure || '';
-    const figure = data.figure || data.observedValue || data.currentValue || '';
+  private normalizeKriData<T extends Record<string, unknown>>(data: T): T & Record<string, unknown> {
+    const raw = data as Record<string, unknown>;
+    const observedValue = String(
+      raw.observedValue || raw.currentValue || raw.figure || '',
+    );
+    const currentValue = String(
+      raw.currentValue || raw.observedValue || raw.figure || '',
+    );
+    const figure = String(
+      raw.figure || raw.observedValue || raw.currentValue || '',
+    );
 
-    const thresholdValue =
-      data.thresholdValue || data.threshold || '0';
-    const threshold =
-      data.threshold || data.thresholdValue || '';
+    const thresholdValue = String(
+      raw.thresholdValue || raw.threshold || '0',
+    );
+    const threshold = String(
+      raw.threshold || raw.thresholdValue || '',
+    );
 
     return {
       ...data,
@@ -43,16 +87,24 @@ export class KriAlertsService {
     };
   }
 
-  async createKriAlert(dto: CreateKriAlertDto | any): Promise<KriAlert> {
-    const normalized = this.normalizeKriData(dto);
-    const alert = this.kriRepository.create(normalized);
-    return this.kriRepository.save(alert as any) as unknown as Promise<KriAlert>;
+  async createKriAlert(dto: CreateKriAlertDto): Promise<KriAlert> {
+    const normalized = this.normalizeKriData(
+      dto as unknown as Record<string, unknown>,
+    );
+    const alert = this.kriRepository.create(
+      normalized as unknown as DeepPartial<KriAlert>,
+    );
+    return this.kriRepository.save(alert);
   }
 
-  async createKriBulk(dtoList: any[]): Promise<KriAlert[]> {
-    const normalizedList = dtoList.map((dto) => this.normalizeKriData(dto));
-    const alerts = this.kriRepository.create(normalizedList);
-    return this.kriRepository.save(alerts as any) as unknown as Promise<KriAlert[]>;
+  async createKriBulk(dtoList: CreateKriAlertDto[]): Promise<KriAlert[]> {
+    const normalizedList = dtoList.map((dto) =>
+      this.normalizeKriData(dto as unknown as Record<string, unknown>),
+    );
+    const alerts = this.kriRepository.create(
+      normalizedList as unknown as DeepPartial<KriAlert>[],
+    );
+    return this.kriRepository.save(alerts);
   }
 
   async findAllKriAlerts(): Promise<KriAlert[]> {
@@ -71,9 +123,11 @@ export class KriAlertsService {
     return alert;
   }
 
-  async update(id: number, dto: UpdateKriAlertDto | any): Promise<KriAlert> {
+  async update(id: number, dto: UpdateKriAlertDto): Promise<KriAlert> {
     const alert = await this.findOne(id);
-    const normalized = this.normalizeKriData(dto);
+    const normalized = this.normalizeKriData(
+      dto as unknown as Record<string, unknown>,
+    );
     Object.assign(alert, normalized);
     return this.kriRepository.save(alert);
   }
@@ -94,7 +148,7 @@ export class KriAlertsService {
   // ==================== KRI BULK UPLOAD (shared metadata for all files) ====================
 
   async uploadKriBulkFiles(
-    files: any[],
+    files: KriUploadedFile[],
     metadata: {
       reportMonth?: number;
       reportYear?: number;
@@ -104,7 +158,14 @@ export class KriAlertsService {
   ) {
     const uploadBatchId = uuidv4();
     const allAlerts: KriAlert[] = [];
-    const fileResults: any[] = [];
+    const fileResults: Array<{
+      fileName: string;
+      fileSize?: number;
+      rowsParsed: number;
+      alertsCreated: number;
+      status: 'success' | 'error';
+      errorMessage?: string;
+    }> = [];
     const universes = await this.entityManager
       .getRepository(AuditUniverse)
       .find();
@@ -112,7 +173,7 @@ export class KriAlertsService {
     for (const file of files) {
       try {
         const rows = await this.parseKriFile(file);
-        const alerts: any[] = [];
+        const alerts: KriAlert[] = [];
 
         for (const row of rows) {
           const alertData = this.buildAlertFromRow(
@@ -136,14 +197,15 @@ export class KriAlertsService {
           alertsCreated: saved.length,
           status: 'success',
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
         fileResults.push({
           fileName: file.originalname,
           fileSize: file.size,
           rowsParsed: 0,
           alertsCreated: 0,
           status: 'error',
-          errorMessage: error.message,
+          errorMessage: msg,
         });
       }
     }
@@ -160,8 +222,8 @@ export class KriAlertsService {
 
   // ==================== KRI PER-FILE UPLOAD (each file has own metadata) ====================
 
-  async uploadKriPerFile(files: any[], filesMetadataRaw: string) {
-    let filesMetadata: any[] = [];
+  async uploadKriPerFile(files: KriUploadedFile[], filesMetadataRaw: string) {
+    let filesMetadata: Array<Record<string, unknown>> = [];
     try {
       filesMetadata = JSON.parse(filesMetadataRaw || '[]');
     } catch {
@@ -170,7 +232,17 @@ export class KriAlertsService {
 
     const uploadBatchId = uuidv4();
     const allAlerts: KriAlert[] = [];
-    const fileResults: any[] = [];
+    const fileResults: Array<{
+      fileName: string;
+      fileSize?: number;
+      rowsParsed: number;
+      alertsCreated: number;
+      reportMonth?: number;
+      reportYear?: number;
+      auditUniverseId?: number;
+      status: 'success' | 'error';
+      errorMessage?: string;
+    }> = [];
     const universes = await this.entityManager
       .getRepository(AuditUniverse)
       .find();
@@ -178,26 +250,28 @@ export class KriAlertsService {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const meta =
-        filesMetadata.find((m) => m.fileName === file.originalname) ||
-        filesMetadata[i] ||
+        (filesMetadata.find((m) => m.fileName === file.originalname) as Record<string, string | number>) ||
+        (filesMetadata[i] as Record<string, string | number>) ||
         {};
 
       const metadata = {
         reportMonth: meta.reportMonth
-          ? parseInt(meta.reportMonth, 10)
+          ? parseInt(String(meta.reportMonth), 10)
           : undefined,
-        reportYear: meta.reportYear ? parseInt(meta.reportYear, 10) : undefined,
+        reportYear: meta.reportYear
+          ? parseInt(String(meta.reportYear), 10)
+          : undefined,
         auditUniverseId: meta.auditUniverseId
-          ? parseInt(meta.auditUniverseId, 10)
+          ? parseInt(String(meta.auditUniverseId), 10)
           : undefined,
-        departmentCode: meta.departmentCode || undefined,
+        departmentCode: meta.departmentCode ? String(meta.departmentCode) : undefined,
         sourceFileName: file.originalname,
         uploadBatchId,
       };
 
       try {
         const rows = await this.parseKriFile(file);
-        const alerts: any[] = [];
+        const alerts: KriAlert[] = [];
 
         for (const row of rows) {
           const alertData = this.buildAlertFromRow(row, metadata, universes);
@@ -216,13 +290,14 @@ export class KriAlertsService {
           auditUniverseId: metadata.auditUniverseId,
           status: 'success',
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
         fileResults.push({
           fileName: file.originalname,
           rowsParsed: 0,
           alertsCreated: 0,
           status: 'error',
-          errorMessage: error.message,
+          errorMessage: msg,
         });
       }
     }
@@ -245,15 +320,20 @@ export class KriAlertsService {
       .trim();
   }
 
-  public async parseKriFile(file: any): Promise<any[]> {
-    const parsedRows: any[] = [];
+  public async parseKriFile(
+    file: KriUploadedFile,
+  ): Promise<Record<string, unknown>[]> {
+    if (!file.path) {
+      throw new Error('File path is required to read KRI workbook.');
+    }
+    const parsedRows: Record<string, unknown>[] = [];
     const workbook = new ExcelJS.stream.xlsx.WorkbookReader(file.path, {
       worksheets: 'emit',
       sharedStrings: 'cache',
     });
 
     let sheetName = '';
-    const rawRows: any[][] = [];
+    const rawRows: unknown[][] = [];
 
     for await (const worksheetReader of workbook) {
       for await (const row of worksheetReader) {
@@ -263,7 +343,7 @@ export class KriAlertsService {
         }
       }
       if (rawRows.length > 0) {
-        sheetName = (worksheetReader as any).name;
+        sheetName = (worksheetReader as { name?: string }).name || 'Sheet1';
         break;
       }
     }
@@ -414,11 +494,38 @@ export class KriAlertsService {
     return parsedRows;
   }
 
+  /**
+   * Ép một giá trị `unknown` (đọc từ ô Excel) về chuỗi an toàn.
+   *
+   * `parseKriFile` trả về `Record<string, unknown>[]` nên mọi giá trị trong
+   * `row` đều là `unknown`; dùng `||` trực tiếp sẽ cho ra `unknown`/`{}` và
+   * không gán được vào các trường `string` của `KriAlert`. Hàm này chuẩn hoá
+   * đúng NGỮ NGHĨA cũ (`''` và `0` coi như rỗng) mà vẫn giữ type an toàn.
+   */
+  private asString(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    return '';
+  }
+
+  /** Ép giá trị `unknown` về số; trả `undefined` nếu không phải số hợp lệ. */
+  private asNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      const n = Number(value);
+      if (Number.isFinite(n)) return n;
+    }
+    return undefined;
+  }
+
   private buildAlertFromRow(
-    row: any,
-    metadata: any,
+    row: Record<string, unknown>,
+    metadata: Record<string, unknown>,
     universes: AuditUniverse[],
-  ): any {
+  ): DeepPartial<KriAlert> {
     const category = String(row._parsedCategory || '').trim();
     const metrics = String(row._parsedMetrics || '').trim();
     const dataSource = String(row._parsedDataSource || '').trim();
@@ -431,18 +538,23 @@ export class KriAlertsService {
     const note = String(row._parsedNote || '').trim();
 
     const departmentName =
-      row.departmentName ||
-      row['Đơn vị'] ||
-      row['Don vi'] ||
-      row['Bộ phận'] ||
-      row['Bo phan'] ||
-      metadata.departmentCode ||
-      '';
+      this.asString(row.departmentName) ||
+      this.asString(row['Đơn vị']) ||
+      this.asString(row['Don vi']) ||
+      this.asString(row['Bộ phận']) ||
+      this.asString(row['Bo phan']) ||
+      this.asString(metadata.departmentCode);
     const unit =
-      row.unit || row['Đơn vị tính'] || row['Don vi tinh'] || row['Unit'] || '';
+      this.asString(row.unit) ||
+      this.asString(row['Đơn vị tính']) ||
+      this.asString(row['Don vi tinh']) ||
+      this.asString(row['Unit']);
 
     const existingSeverity =
-      currentRating || row.severity || row['Mức độ'] || row['Muc do'] || '';
+      currentRating ||
+      this.asString(row.severity) ||
+      this.asString(row['Mức độ']) ||
+      this.asString(row['Muc do']);
     let severity = 'Medium';
     const cleanSev = existingSeverity.toLowerCase();
     if (
@@ -474,21 +586,21 @@ export class KriAlertsService {
       severity = 'Low';
     } else {
       severity = this.autoDetectSeverity(
-        row.kriCode || 'KRI_IMPORT',
+        this.asString(row.kriCode) || 'KRI_IMPORT',
         figure,
         threshold,
       );
     }
 
     const kriCode =
-      row.kriCode ||
-      row['Mã KRI'] ||
-      row['Ma KRI'] ||
-      row['KRI Code'] ||
+      this.asString(row.kriCode) ||
+      this.asString(row['Mã KRI']) ||
+      this.asString(row['Ma KRI']) ||
+      this.asString(row['KRI Code']) ||
       `KRI_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     // Auto-match auditUniverseId & departmentId
-    let auditUniverseId = metadata.auditUniverseId;
+    let auditUniverseId = this.asNumber(metadata.auditUniverseId);
     let departmentId: number | undefined = undefined;
     if (departmentName) {
       const matched = universes.find(
@@ -519,11 +631,13 @@ export class KriAlertsService {
       mitigation,
       departmentId,
       departmentName:
-        departmentName || metadata.departmentCode || 'Không xác định',
+        departmentName ||
+        this.asString(metadata.departmentCode) ||
+        'Không xác định',
       departmentCode:
-        metadata.departmentCode ||
-        row.departmentCode ||
-        row['Mã đơn vị'] ||
+        this.asString(metadata.departmentCode) ||
+        this.asString(row.departmentCode) ||
+        this.asString(row['Mã đơn vị']) ||
         undefined,
 
       observedValue,
@@ -532,12 +646,12 @@ export class KriAlertsService {
       unit: unit || undefined,
       note: note || undefined,
       severity,
-      status: row.status || 'Active',
-      reportMonth: metadata.reportMonth,
-      reportYear: metadata.reportYear,
+      status: this.asString(row.status) || 'Active',
+      reportMonth: this.asNumber(metadata.reportMonth),
+      reportYear: this.asNumber(metadata.reportYear),
       auditUniverseId: auditUniverseId || undefined,
-      sourceFileName: metadata.sourceFileName,
-      uploadBatchId: metadata.uploadBatchId,
+      sourceFileName: this.asString(metadata.sourceFileName) || undefined,
+      uploadBatchId: this.asString(metadata.uploadBatchId) || undefined,
     };
   }
 
@@ -766,10 +880,10 @@ export class KriAlertsService {
 
     const allCodes = new Set([...Object.keys(map1), ...Object.keys(map2)]);
 
-    const added: any[] = [];
-    const removed: any[] = [];
-    const changed: any[] = [];
-    const unchanged: any[] = [];
+    const added: KriPeriodComparisonItem[] = [];
+    const removed: KriPeriodComparisonItem[] = [];
+    const changed: KriPeriodComparisonItem[] = [];
+    const unchanged: KriPeriodComparisonItem[] = [];
 
     for (const code of allCodes) {
       const a1 = map1[code];
@@ -875,7 +989,18 @@ export class KriAlertsService {
       .orderBy('kri.createdAt', 'DESC')
       .getMany();
 
-    const batches: Record<string, any> = {};
+    interface KriBatchRecord {
+      uploadBatchId: string;
+      createdAt: Date;
+      reportMonth?: number;
+      reportYear?: number;
+      totalAlerts: number;
+      files: Set<string>;
+      departments: Set<string>;
+      months: Set<string>;
+    }
+
+    const batches: Record<string, KriBatchRecord> = {};
     for (const alert of allWithBatch) {
       const batchId = alert.uploadBatchId;
       if (!batches[batchId]) {
@@ -902,7 +1027,7 @@ export class KriAlertsService {
       }
     }
 
-    return Object.values(batches).map((b: any) => ({
+    return Object.values(batches).map((b: KriBatchRecord) => ({
       ...b,
       files: Array.from(b.files),
       fileCount: b.files.size,

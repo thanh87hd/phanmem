@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, IsNull, Not } from 'typeorm';
+import { Repository, In, IsNull, Not, FindOptionsWhere } from 'typeorm';
 import { AuditPlan } from '../audit-plans/entities/audit-plan.entity';
 import { AuditEngagement } from '../audit-engagements/entities/audit-engagement.entity';
 import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
@@ -10,6 +10,16 @@ import { RiskAssessment } from '../risk-assessments/entities/risk-assessment.ent
 import { Department } from '../departments/entities/department.entity';
 import { User } from '../users/entities/user.entity';
 import { ScopeFilterService } from '../utils/scope-filter.service';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+
+export interface ViolationItem {
+  id: number | string;
+  title?: string;
+  unit: string;
+  law: string;
+  estimatedFine: number;
+  desc?: string;
+}
 
 @Injectable()
 export class DashboardService {
@@ -28,7 +38,7 @@ export class DashboardService {
     @InjectRepository(User) private userRepo: Repository<User>,
   ) {}
 
-  private async getUserFilters(user: any) {
+  private async getUserFilters(user?: JwtPayload | null) {
     if (!user || !user.userId)
       return { isAdmin: true, isLanhDaoPhong: false, user: null };
 
@@ -84,7 +94,7 @@ export class DashboardService {
   }
 
   async getStats(
-    user: any,
+    user?: JwtPayload | null,
     teamCode?: string,
     unitType?: string,
     departmentId?: string,
@@ -93,11 +103,11 @@ export class DashboardService {
   ) {
     const userFilters = await this.getUserFilters(user);
 
-    const whereEng: any = {};
-    const wherePlan: any = {};
-    const whereRec: any = {};
-    const whereWp: any = {};
-    const whereFinding: any = {};
+    const whereEng: FindOptionsWhere<AuditEngagement> = {};
+    const wherePlan: FindOptionsWhere<AuditPlan> = {};
+    const whereRec: FindOptionsWhere<Recommendation> = {};
+    const whereWp: FindOptionsWhere<WorkingPaper> = {};
+    const whereFinding: FindOptionsWhere<AuditFinding> = {};
 
     if (!userFilters.isAdmin && userFilters.user) {
       const u = userFilters.user;
@@ -157,12 +167,14 @@ export class DashboardService {
 
     if (departmentId) {
       whereEng.legacyAuditedDepartment = departmentId;
+      const currentFindingEng = (whereFinding.engagement as FindOptionsWhere<AuditEngagement>) || {};
       whereFinding.engagement = {
-        ...whereFinding.engagement,
+        ...currentFindingEng,
         legacyAuditedDepartment: departmentId,
       };
+      const currentWpEng = (whereWp.engagement as FindOptionsWhere<AuditEngagement>) || {};
       whereWp.engagement = {
-        ...whereWp.engagement,
+        ...currentWpEng,
         legacyAuditedDepartment: departmentId,
       };
       whereRec.legacyDepartment = departmentId;
@@ -265,7 +277,7 @@ export class DashboardService {
   }
 
   async getRiskDistribution(
-    user: any,
+    user?: JwtPayload | null,
     teamCode?: string,
     unitType?: string,
     departmentId?: string,
@@ -274,8 +286,8 @@ export class DashboardService {
   ) {
     const userFilters = await this.getUserFilters(user);
     const filters = await this.getDeptFilters(unitType);
-    const whereRa: any = {};
-    const whereFinding: any = {};
+    const whereRa: FindOptionsWhere<RiskAssessment> = {};
+    const whereFinding: FindOptionsWhere<AuditFinding> = {};
 
     if (!userFilters.isAdmin && userFilters.user) {
       const u = userFilters.user;
@@ -309,14 +321,15 @@ export class DashboardService {
     }
 
     if (departmentId) {
-      whereRa.legacyDepartment = departmentId;
+      whereRa.legacyDepartmentName = departmentId;
       const engs = await this.engRepo.find({
         where: { legacyAuditedDepartment: departmentId },
       });
       const engIds = engs.map((e) => e.id);
       if (engIds.length > 0) {
-        if (whereFinding.engagementId && whereFinding.engagementId._value) {
-          const intersected = whereFinding.engagementId._value.filter(
+        const engIdVal = whereFinding.engagementId as unknown as { _value?: number[] };
+        if (engIdVal && Array.isArray(engIdVal._value)) {
+          const intersected = engIdVal._value.filter(
             (id: number) => engIds.includes(id),
           );
           whereFinding.engagementId =
@@ -331,8 +344,9 @@ export class DashboardService {
 
     if (year) {
       whereRa.assessmentYear = parseInt(year);
+      const curEngWhere = (whereFinding.engagement as FindOptionsWhere<AuditEngagement>) || {};
       whereFinding.engagement = {
-        ...whereFinding.engagement,
+        ...curEngWhere,
         plan: { year: parseInt(year) },
       };
     }
@@ -395,7 +409,7 @@ export class DashboardService {
   }
 
   async getAuditProgress(
-    user: any,
+    user?: JwtPayload | null,
     teamCode?: string,
     unitType?: string,
     departmentId?: string,
@@ -403,7 +417,7 @@ export class DashboardService {
     auditUniverse?: string,
   ) {
     const userFilters = await this.getUserFilters(user);
-    const where: any = {};
+    const where: FindOptionsWhere<AuditEngagement> = {};
 
     if (!userFilters.isAdmin && userFilters.user) {
       const u = userFilters.user;
@@ -476,7 +490,7 @@ export class DashboardService {
   }
 
   async getRecommendationByDept(
-    user: any,
+    user?: JwtPayload | null,
     teamCode?: string,
     unitType?: string,
     departmentId?: string,
@@ -484,7 +498,7 @@ export class DashboardService {
     auditUniverse?: string,
   ) {
     const userFilters = await this.getUserFilters(user);
-    const where: any = {};
+    const where: FindOptionsWhere<Recommendation> = {};
 
     if (!userFilters.isAdmin && userFilters.user) {
       const u = userFilters.user;
@@ -507,10 +521,12 @@ export class DashboardService {
       where.legacyDepartment = departmentId;
     }
     if (year) {
+      const currentFindingWhere = (where.auditFinding as FindOptionsWhere<AuditFinding>) || {};
+      const currentEngWhere = (currentFindingWhere.engagement as FindOptionsWhere<AuditEngagement>) || {};
       where.auditFinding = {
-        ...where.auditFinding,
+        ...currentFindingWhere,
         engagement: {
-          ...where.auditFinding?.engagement,
+          ...currentEngWhere,
           plan: { year: parseInt(year) },
         },
       };
@@ -546,7 +562,7 @@ export class DashboardService {
   }
 
   async getRiskWidgets(
-    user: any,
+    user?: JwtPayload | null,
     unitType?: string,
     departmentId?: string,
     year?: string,
@@ -554,8 +570,8 @@ export class DashboardService {
   ) {
     const userFilters = await this.getUserFilters(user);
     const filters = await this.getDeptFilters(unitType);
-    const wherePending: any = { status: 'Submitted' };
-    const whereTop: any = { status: 'Approved' };
+    const wherePending: FindOptionsWhere<RiskAssessment> = { status: 'Submitted' };
+    const whereTop: FindOptionsWhere<RiskAssessment> = { status: 'Approved' };
 
     if (!userFilters.isAdmin && userFilters.user) {
       const u = userFilters.user;
@@ -579,7 +595,7 @@ export class DashboardService {
     }
 
     if (departmentId) {
-      whereTop.legacyDepartment = departmentId;
+      whereTop.legacyDepartmentName = departmentId;
     }
 
     const pendingAssessments = await this.raRepo.find({
@@ -603,7 +619,7 @@ export class DashboardService {
   }
 
   async getExecutiveGroupedOverview(
-    user: any,
+    user?: JwtPayload | null,
     year?: string,
     quarter?: string,
     startDate?: string,
@@ -613,8 +629,8 @@ export class DashboardService {
     const targetYear = parseInt(year || '') || new Date().getFullYear();
 
     // 1. Theme 1: Jobs & Stages
-    const wherePlan: any = { year: targetYear };
-    const whereEng: any = {};
+    const wherePlan: FindOptionsWhere<AuditPlan> = { year: targetYear };
+    const whereEng: FindOptionsWhere<AuditEngagement> = {};
     if (userFilters.user && !userFilters.isAdmin) {
       const u = userFilters.user;
       const allowedTeams = u.teamCode ? [u.teamCode, 'ToanKhoi'] : ['ToanKhoi'];
@@ -664,13 +680,15 @@ export class DashboardService {
           e.leadAuditorUser?.username ||
           'Trưởng đoàn',
         status: e.status,
-        progress: (e as any).progressPercent || 0,
+        progress:
+          (e as AuditEngagement & { progressPercent?: number })
+            .progressPercent || 0,
         startDate: e.startDate,
         endDate: e.endDate,
       }));
 
     // 2. Theme 2: Findings
-    const whereFinding: any = {};
+    const whereFinding: FindOptionsWhere<AuditFinding> = {};
     if (filteredEngs.length > 0) {
       whereFinding.engagementId = In(filteredEngs.map((e) => e.id));
     }
@@ -750,7 +768,7 @@ export class DashboardService {
         law: string;
         cases: number;
         estimatedFine: number;
-        list: any[];
+        list: ViolationItem[];
       }
     > = {};
     nd340Findings.forEach((f) => {
@@ -788,7 +806,7 @@ export class DashboardService {
     );
 
     // 4. Theme 4: Remediation
-    const whereRec: any = {};
+    const whereRec: FindOptionsWhere<Recommendation> = {};
     if (findings.length > 0) {
       whereRec.findingId = In(findings.map((f) => f.id));
     }

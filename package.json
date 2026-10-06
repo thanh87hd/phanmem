@@ -21,7 +21,14 @@
     "test:audit-team": "playwright test e2e/tests/e2e_audit_team_lifecycle.spec.ts --project=chromium",
     "package:ubuntu": "node scripts/package-for-ubuntu.js",
     "assemble:ubuntu": "node scripts/assemble-deploy-folder.js",
-    "deploy:chinhta": "node scripts/deploy-chinhta.js"
+    "deploy:chinhta": "node scripts/deploy-chinhta.js",
+    "test:api:vps": "node scripts/test-api-comprehensive.cjs --target=vps",
+    "test:uat:planning": "npm --prefix frontend run test:e2e -- e2e/uat-rbia-planning.spec.ts --project=uat",
+    "test:uat:fieldwork": "npm --prefix frontend run test:e2e -- e2e/uat-fieldwork-papers.spec.ts --project=uat",
+    "test:uat:findings": "npm --prefix frontend run test:e2e -- e2e/uat-findings-reports.spec.ts --project=uat",
+    "test:uat:portals": "npm --prefix frontend run test:e2e -- e2e/uat-portals-monitoring.spec.ts --project=uat",
+    "test:uat:admin": "npm --prefix frontend run test:e2e -- e2e/uat-admin-governance.spec.ts --project=uat",
+    "test:uat:all": "npm --prefix frontend run test:e2e -- e2e/uat-smoke.spec.ts e2e/uat-rbia-planning.spec.ts e2e/uat-fieldwork-papers.spec.ts e2e/uat-findings-reports.spec.ts e2e/uat-portals-monitoring.spec.ts e2e/uat-admin-governance.spec.ts --project=uat"
   },
   "dependencies": {
     "@playwright/test": "^1.62.1",

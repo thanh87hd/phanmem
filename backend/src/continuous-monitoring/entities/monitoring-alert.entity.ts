@@ -27,7 +27,7 @@ export class MonitoringAlert {
   unitName: string; // Tên chi nhánh / đơn vị liên quan
 
   @Column({ type: 'json', nullable: true })
-  relatedData: any; // Thông tin giao dịch/đối tượng nghi vấn
+  relatedData: Record<string, unknown> | null; // Thông tin giao dịch/đối tượng nghi vấn
 
   @Column({ default: 'Open' })
   status: string; // Open | UnderInvestigation | FalsePositive | Resolved

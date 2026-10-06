@@ -7,12 +7,16 @@ import {
   Query,
   Body,
   UseGuards,
-  Request,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { DashboardConfigService } from './dashboard-config.service';
+import {
+  DashboardConfigService,
+  DashboardWidgetItem,
+} from './dashboard-config.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @Controller('dashboard/config')
 @UseGuards(JwtAuthGuard)
@@ -25,12 +29,12 @@ export class DashboardConfigController {
    */
   @Get(':dashboardKey')
   async getConfig(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Param('dashboardKey') dashboardKey: string,
     @Query('tabKey') tabKey?: string,
   ) {
     return this.configService.getConfig(
-      req.user.userId,
+      user.userId,
       dashboardKey,
       tabKey || 'default',
     );
@@ -43,31 +47,27 @@ export class DashboardConfigController {
    */
   @Put(':dashboardKey')
   async saveConfig(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Param('dashboardKey') dashboardKey: string,
     @Body()
     body: {
       tabKey?: string;
-      widgets: Array<{
-        widgetId: string;
-        visible: boolean;
-        order: number;
-        size: 'full' | 'half' | 'quarter';
-      }>;
+      widgets: DashboardWidgetItem[];
     },
   ) {
     try {
       return await this.configService.saveConfig(
-        req.user.userId,
+        user.userId,
         dashboardKey,
         body.tabKey || 'default',
         body.widgets,
       );
-    } catch (error: any) {
-      throw new HttpException(
-        error.message || 'Lỗi khi lưu cấu hình Dashboard',
-        HttpStatus.FORBIDDEN,
-      );
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : 'Lỗi khi lưu cấu hình Dashboard';
+      throw new HttpException(msg, HttpStatus.FORBIDDEN);
     }
   }
 
@@ -78,21 +78,22 @@ export class DashboardConfigController {
    */
   @Post(':dashboardKey/reset')
   async resetConfig(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Param('dashboardKey') dashboardKey: string,
     @Body() body: { tabKey?: string },
   ) {
     try {
       return await this.configService.resetConfig(
-        req.user.userId,
+        user.userId,
         dashboardKey,
         body?.tabKey || 'default',
       );
-    } catch (error: any) {
-      throw new HttpException(
-        error.message || 'Lỗi khi reset cấu hình Dashboard',
-        HttpStatus.FORBIDDEN,
-      );
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : 'Lỗi khi reset cấu hình Dashboard';
+      throw new HttpException(msg, HttpStatus.FORBIDDEN);
     }
   }
 

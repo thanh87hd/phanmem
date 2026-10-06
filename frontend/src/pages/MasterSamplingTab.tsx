@@ -58,7 +58,7 @@ const MasterSamplingTab: React.FC<MasterSamplingTabProps> = ({ engagementId }) =
   const [isSampleDrawerVisible, setIsSampleDrawerVisible] = useState(false);
 
   // Controlled expanded rows for batches table so row stays open on updates
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+  const [expandedRowKeys, setExpandedRowKeys] = useState<readonly React.Key[]>([]);
 
   const [form] = Form.useForm();
   const [assessForm] = Form.useForm();

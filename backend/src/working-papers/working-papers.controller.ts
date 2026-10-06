@@ -16,7 +16,11 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { FileInterceptor } from '../common/interceptors/fastify-file-interceptor';
+import type { FastifyReply } from 'fastify';
+import {
+  FileInterceptor,
+  FastifyUploadedFile,
+} from '../common/interceptors/fastify-file-interceptor';
 
 import { WorkingPapersService } from './working-papers.service';
 import { WorkingPapersDataExchangeService } from './working-papers-data-exchange.service';
@@ -60,7 +64,7 @@ export class WorkingPapersController {
     await this.auditTrailService.log({
       action: 'CREATE',
       resource: 'working-papers',
-      resourceId: (result as any)?.id,
+      resourceId: result?.id,
       userId: user.userId,
       username: user.username,
       newValue: { title: dto.title },
@@ -87,7 +91,7 @@ export class WorkingPapersController {
   }
 
   @Get('template/credit-excel')
-  async downloadCreditTemplate(@Res() res: any) {
+  async downloadCreditTemplate(@Res() res: FastifyReply) {
     const buffer = await this.dataExchangeService.generateCreditTemplate();
     res.header(
       'Content-Type',
@@ -101,7 +105,7 @@ export class WorkingPapersController {
   }
 
   @Get('template/ptd-excel')
-  async downloadPtdTemplate(@Res() res: any) {
+  async downloadPtdTemplate(@Res() res: FastifyReply) {
     const buffer = await this.dataExchangeService.generatePtdTemplate();
     res.header(
       'Content-Type',
@@ -193,7 +197,7 @@ export class WorkingPapersController {
   @UseInterceptors(FileInterceptor('file', excelUploadOptions))
   async importCreditExcel(
     @Param('id') id: string,
-    @UploadedFile() file: any,
+    @UploadedFile() file: FastifyUploadedFile & { path?: string },
     @CurrentUser() user: JwtPayload,
   ) {
     if (!file) {
@@ -221,7 +225,7 @@ export class WorkingPapersController {
   /** Xuất file Excel 40 cột Tín dụng thực tế */
   @Get(':id/export-credit-excel')
   @CheckPolicies((ability) => ability.can(Action.Read, WorkingPaper))
-  async exportCreditExcel(@Param('id') id: string, @Res() res: any) {
+  async exportCreditExcel(@Param('id') id: string, @Res() res: FastifyReply) {
     const buffer = await this.dataExchangeService.exportCreditWorkingPaper(+id);
     res.header(
       'Content-Type',
@@ -240,7 +244,7 @@ export class WorkingPapersController {
   @UseInterceptors(FileInterceptor('file', excelUploadOptions))
   async importPtdExcel(
     @Param('id') id: string,
-    @UploadedFile() file: any,
+    @UploadedFile() file: FastifyUploadedFile & { path?: string },
     @CurrentUser() user: JwtPayload,
   ) {
     if (!file) {
@@ -268,7 +272,7 @@ export class WorkingPapersController {
   /** Xuất file Excel 20 cột Phi tín dụng & Khắc phục thực tế */
   @Get(':id/export-ptd-excel')
   @CheckPolicies((ability) => ability.can(Action.Read, WorkingPaper))
-  async exportPtdExcel(@Param('id') id: string, @Res() res: any) {
+  async exportPtdExcel(@Param('id') id: string, @Res() res: FastifyReply) {
     const buffer = await this.dataExchangeService.exportPtdWorkingPaper(+id);
     res.header(
       'Content-Type',
@@ -283,7 +287,7 @@ export class WorkingPapersController {
 
   @Get(':id/export-excel')
   @CheckPolicies((ability) => ability.can(Action.Read, WorkingPaper))
-  async exportExcel(@Param('id') id: string, @Res() res: any) {
+  async exportExcel(@Param('id') id: string, @Res() res: FastifyReply) {
     try {
       const buffer = await this.workingPapersService.generateExcel(+id);
       res.header(
@@ -295,9 +299,10 @@ export class WorkingPapersController {
         `attachment; filename=WorkingPaper_${id}.xlsx`,
       );
       res.send(buffer);
-    } catch (error: any) {
-      this.logger.error(`Lỗi xuất Excel WP #${id}`, error);
-      res.status(500).send({ message: error.message || 'Lỗi xuất file Excel' });
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Lỗi xuất Excel WP #${id}`, err);
+      res.status(500).send({ message: err?.message || 'Lỗi xuất file Excel' });
     }
   }
 
@@ -306,7 +311,8 @@ export class WorkingPapersController {
   @UseInterceptors(FileInterceptor('file', excelUploadOptions))
   async importExcel(
     @Param('id') id: string,
-    @UploadedFile() file: any,
+    @UploadedFile()
+    file: FastifyUploadedFile & { _buf?: Buffer; path?: string },
     @CurrentUser() user: JwtPayload,
   ) {
     if (!file) {
@@ -329,7 +335,7 @@ export class WorkingPapersController {
 
   @Get(':id/export/word')
   @CheckPolicies((ability) => ability.can(Action.Read, WorkingPaper))
-  async exportWord(@Param('id') id: string, @Res() res: any) {
+  async exportWord(@Param('id') id: string, @Res() res: FastifyReply) {
     try {
       const buffer = await this.workingPapersService.generateWord(+id);
       res.header(
@@ -341,9 +347,10 @@ export class WorkingPapersController {
         `attachment; filename=WorkingPaper_${id}.docx`,
       );
       res.send(buffer);
-    } catch (error: any) {
-      this.logger.error(`Lỗi xuất Word WP #${id}`, error);
-      res.status(500).send({ message: error.message || 'Lỗi xuất file Word' });
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Lỗi xuất Word WP #${id}`, err);
+      res.status(500).send({ message: err?.message || 'Lỗi xuất file Word' });
     }
   }
 }

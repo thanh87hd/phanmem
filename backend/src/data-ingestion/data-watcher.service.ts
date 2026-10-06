@@ -50,9 +50,10 @@ export class DataWatcherService implements OnModuleInit {
       if (!fs.existsSync(dupsDir)) {
         fs.mkdirSync(dupsDir, { recursive: true });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       this.logger.warn(
-        `Could not create inbox/archive directories: ${err.message}`,
+        `Could not create inbox/archive directories: ${error?.message}`,
       );
     }
   }
@@ -178,14 +179,15 @@ export class DataWatcherService implements OnModuleInit {
           .processBatch(savedBatch.id)
           .catch((err) =>
             this.logger.error(
-              `Async pipeline error on ${batchCode}: ${err.message}`,
+              `Async pipeline error on ${batchCode}: ${(err as Error)?.message}`,
             ),
           );
 
         processedBatches.push(savedBatch);
-      } catch (fileErr: any) {
+      } catch (fileErr: unknown) {
+        const error = fileErr as Error;
         this.logger.error(
-          `Error processing inbox file ${fileName}: ${fileErr.message}`,
+          `Error processing inbox file ${fileName}: ${error?.message}`,
         );
       }
     }

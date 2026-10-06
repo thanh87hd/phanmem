@@ -6,11 +6,15 @@ import {
 import { CreateAuditReportDto } from './dto/create-audit-report.dto';
 import { UpdateAuditReportDto } from './dto/update-audit-report.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { AuditReport } from './entities/audit-report.entity';
 import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
 import { Recommendation } from '../recommendations/entities/recommendation.entity';
 import { ScopeFilterService } from '../utils/scope-filter.service';
+import {
+  teamMembersContainsClause,
+  teamMembersJsonParam,
+} from '../common/utils/team-members-filter.util';
 import { AuditSample } from '../audit-findings/entities/audit-sample.entity';
 import { AuditReportsExportService } from './audit-reports-export.service';
 import { ReportDistribution } from './entities/report-distribution.entity';
@@ -50,8 +54,8 @@ export class AuditReportsService {
 
     if (user && !isAdmin) {
       query.andWhere(
-        '(engagement.leadAuditorId = :userId OR engagement.teamMembers LIKE :likeUserId)',
-        { userId: user.userId, likeUserId: `%"userId":${user.userId}%` },
+        `(engagement.leadAuditorId = :userId OR ${teamMembersContainsClause('engagement')})`,
+        { userId: user.userId, jsonUser: teamMembersJsonParam(user.userId) },
       );
     }
     return query.getMany();
@@ -69,11 +73,45 @@ export class AuditReportsService {
     });
   }
 
-  async update(id: number, dto: UpdateAuditReportDto) {
+  /**
+   * Cập nhật nội dung báo cáo.
+   *
+   * UAT TC-REP-03: Báo cáo đã phát hành (Issued) hoặc đã bảo toàn (Archived) là bản ghi
+   * bất biến — chặn ngay ở tầng nghiệp vụ (không chỉ ẩn nút trên UI).
+   * `options.allowLockedReport` là cửa hẹp dành riêng cho luồng ghi kỹ thuật của hệ thống,
+   * KHÔNG được dùng cho luồng PATCH của người dùng.
+   */
+  async update(
+    id: number,
+    dto: UpdateAuditReportDto,
+    options?: { allowLockedReport?: boolean },
+  ) {
+    const current = await this.findOne(id);
+
+    const lockedStatuses = ['Issued', 'Archived'];
+    if (
+      !options?.allowLockedReport &&
+      current &&
+      lockedStatuses.includes(current.status)
+    ) {
+      throw new BadRequestException(
+        `Báo cáo ở trạng thái "${current.status}" đã được phát hành/bảo toàn, không thể chỉnh sửa nội dung.`,
+      );
+    }
+
+    // TC-REP-03: `status` là trường của QUY TRÌNH PHÊ DUYỆT, không phải nội dung.
+    // Nếu cho PATCH đổi trạng thái thì có thể nhảy thẳng Draft → Issued, bỏ qua cả
+    // 3 cấp phê duyệt và không đóng dấu issuedBy/date. Chỉ chặn khi trạng thái ĐỔI
+    // (frontend vẫn gửi kèm status không đổi khi sửa nội dung bản nháp).
+    if (current && dto?.status && dto.status !== current.status) {
+      throw new BadRequestException(
+        `Không thể đổi trạng thái báo cáo qua chức năng sửa nội dung (${current.status} → ${dto.status}). Vui lòng dùng chức năng Chuyển trạng thái / Trình phê duyệt.`,
+      );
+    }
+
     await this.auditReportRepository.update(id, dto);
     return this.findOne(id);
   }
-
   async remove(id: number) {
     await this.auditReportRepository.delete(id);
     return { success: true };
@@ -191,9 +229,37 @@ export class AuditReportsService {
       order: { riskLevel: 'ASC' },
     });
 
-    const recs = await this.recRepo.find();
-    const relatedRecs = recs.filter((r) =>
-      findings.some((f) => f.findingTitle === r.finding),
+    // TC-REP-01: trước đây nạp TOÀN BỘ kiến nghị trong CSDL rồi so khớp tiêu đề
+    // bằng so sánh chuỗi CHÍNH XÁC (phân biệt hoa/thường, khoảng trắng, dấu) ⇒ chỉ
+    // cần lệch một ký tự là kiến nghị bị bỏ khỏi báo cáo, và truy vấn không scale.
+    // Nay: (1) chỉ lấy kiến nghị thuộc các phát hiện của cuộc kiểm toán (theo
+    // findingId) cùng các bản ghi cũ chưa gắn findingId; (2) so khớp tiêu đề đã
+    // CHUẨN HOÁ để không phụ thuộc hoa/thường, khoảng trắng hay dấu tiếng Việt.
+    const normalizeTitle = (value?: string | null): string =>
+      (value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const findingIds = findings.map((f) => f.id).filter(Boolean) as number[];
+    const recs = findingIds.length
+      ? await this.recRepo.find({
+          where: [{ findingId: In(findingIds) }, { findingId: IsNull() }],
+        })
+      : [];
+
+    const findingIdSet = new Set(findingIds);
+    const findingTitleSet = new Set(
+      findings.map((f) => normalizeTitle(f.findingTitle)).filter(Boolean),
+    );
+    const relatedRecs = recs.filter(
+      (r) =>
+        (r.findingId != null && findingIdSet.has(r.findingId)) ||
+        findingTitleSet.has(normalizeTitle(r.finding)),
     );
 
     const critical = findings.filter((f) => f.riskLevel === 'Critical').length;

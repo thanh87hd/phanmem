@@ -41,6 +41,15 @@ export class AuditLog {
   @Column({ nullable: true })
   userAgent: string;
 
+  /**
+   * SHA-256 (hex, 64 ký tự) trên dạng chuẩn tắc của các trường bất biến do phía gọi
+   * cung cấp — UAT TC-SYS-05 yêu cầu mọi bản ghi nhật ký phải có mã băm để chống sửa.
+   * Nullable vì các bản ghi cũ (trước migration) không có mã băm; xem
+   * `audit-log-integrity.util.ts` để biết dạng chuẩn tắc và phạm vi bảo vệ.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  hash: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

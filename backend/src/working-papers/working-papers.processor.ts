@@ -2,8 +2,16 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { WorkingPapersService } from './working-papers.service';
+import type { AuthUserContext } from './dto/working-paper-types';
 import * as fs from 'fs';
 import * as path from 'path';
+
+export interface WorkingPaperJobData {
+  action: 'exportExcel' | 'exportWord' | 'importSyncOffline' | string;
+  id: number;
+  fileData?: string | Buffer;
+  user?: AuthUserContext;
+}
 
 @Injectable()
 @Processor('working-papers', {
@@ -16,7 +24,9 @@ export class WorkingPapersProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(
+    job: Job<WorkingPaperJobData, Record<string, unknown>, string>,
+  ): Promise<Record<string, unknown>> {
     const { action, id, fileData, user } = job.data;
     this.logger.debug(
       `Bắt đầu xử lý job ${job.id} - Action: ${action} cho WP ID: ${id}`,
@@ -49,12 +59,18 @@ export class WorkingPapersProcessor extends WorkerHost {
         // We can just return the fileUrl as the job result so the client can query job status to get it.
         return { success: true, fileUrl };
       } else if (action === 'importSyncOffline') {
+        if (!fileData || !user) {
+          throw new Error('Thiếu fileData hoặc user trong job importSyncOffline');
+        }
         const result = await this.workingPapersService.importSyncOffline(
           id,
           fileData,
           user,
         );
-        return { success: true, data: result };
+        return {
+          success: true,
+          data: result as unknown as Record<string, unknown>,
+        };
       }
       return { success: true };
     } catch (error) {

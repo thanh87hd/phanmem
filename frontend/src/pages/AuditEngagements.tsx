@@ -187,6 +187,9 @@ const AuditEngagements: React.FC = () => {
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [editingWorkstream, setEditingWorkstream] = useState<any | null>(null);
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
+  // Engagement waiting for the user to confirm deletion — the DELETE request is only sent
+  // from the confirmation modal's OK button (FIX 3).
+  const [engagementToDelete, setEngagementToDelete] = useState<{ id: number; name: string } | null>(null);
   const [engagementForm] = Form.useForm();
   const [actualsForm] = Form.useForm();
   const [uploadingField, setUploadingField] = useState<string | null>(null);
@@ -220,7 +223,7 @@ const AuditEngagements: React.FC = () => {
   const [workstreamForm] = Form.useForm();
   const [safetyWarnings, setSafetyWarnings] = useState<Record<string, string>>({});
 
-  const checkAuditorSafety = async (userId: number, fieldKey: string, auditorName: string, departmentName: string) => {
+  const checkAuditorSafety = async (userId: string | number, fieldKey: string, auditorName: string, departmentName: string) => {
     if (!userId || !departmentName) return;
     try {
       const res = await api.post('/independence/check-safety', {
@@ -734,6 +737,13 @@ const AuditEngagements: React.FC = () => {
     }
   };
 
+  // Step 1 of the delete flow: the row delete icon only opens the confirmation dialog.
+  // No API call happens here (FIX 3).
+  const requestDeleteEngagement = (id: number) => {
+    const target = engagements.find((e: any) => e.id === id);
+    setEngagementToDelete({ id, name: target?.name || '' });
+  };
+
   const deleteEngagement = async (id: number) => {
     try {
       await api.delete(`/audit-engagements/${id}`);
@@ -745,6 +755,15 @@ const AuditEngagements: React.FC = () => {
       fetchEngagements();
     } catch (error) {
       message.error(t('auditEngagements.errorWhileDeleting', 'Lỗi khi xóa'));
+    }
+  };
+
+  // Step 2 of the delete flow: only runs from the confirmation dialog's OK button (FIX 3).
+  const confirmDeleteEngagement = () => {
+    const target = engagementToDelete;
+    setEngagementToDelete(null);
+    if (target) {
+      deleteEngagement(target.id);
     }
   };
 
@@ -1006,7 +1025,7 @@ const AuditEngagements: React.FC = () => {
                   users={users}
                   onSelectEngagement={handleEngagementSelect}
                   onEditEngagement={handleEditEngagement}
-                  onDeleteEngagement={deleteEngagement}
+                  onDeleteEngagement={requestDeleteEngagement}
                   onOfficializeClick={(record) => {
                     setSelectedEngagement(record);
                     setIsOfficializeModalVisible(true);
@@ -1217,6 +1236,23 @@ const AuditEngagements: React.FC = () => {
         }}
         users={users}
       />
+
+      {/* Delete confirmation — the destructive DELETE only runs from here (FIX 3) */}
+      <Modal
+        open={engagementToDelete !== null}
+        title="Xóa cuộc kiểm toán"
+        okText="Xóa"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+        onOk={confirmDeleteEngagement}
+        onCancel={() => setEngagementToDelete(null)}
+      >
+        <p>
+          {`Bạn có chắc chắn muốn xóa cuộc kiểm toán${
+            engagementToDelete?.name ? ` "${engagementToDelete.name}"` : ''
+          }? Hành động này không thể hoàn tác.`}
+        </p>
+      </Modal>
     </div>
   );
 };

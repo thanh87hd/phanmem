@@ -25,6 +25,9 @@ import { useDashboardConfig } from '../utils/useDashboardConfig';
 import DashboardCustomizer from '../components/DashboardCustomizer';
 import { SmartWidgetRenderer } from '../components/dashboard-widgets/WidgetRenderer';
 import type { AuditUniverse, Department } from '../types';
+// Kiểu hàm dịch thật của i18next (không dùng chữ ký rút gọn vì `t` có overload).
+import type { TFunction } from 'i18next';
+import type { TableColumnsType } from 'antd';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -33,7 +36,7 @@ const SEV_COLOR: Record<string, string> = {
   Critical: 'red', High: 'orange', Medium: 'gold', Low: 'green',
 };
 
-const getSevLabel = (t: unknown): Record<string, string> => ({
+const getSevLabel = (t: TFunction): Record<string, string> => ({
   Critical: t('riskAssessment.kriDashboard.stats.critical', 'Nguy hiểm'), High: 'Cao', Medium: t('auditPlan.tabs2.filterRisk.medium', 'Trung bình'), Low: t('auditPlan.tabs2.filterRisk.low', 'Thấp'),
 });
 
@@ -43,6 +46,9 @@ const getSevLabel = (t: unknown): Record<string, string> => ({
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` }));
 const DEFAULT_YEARS = [2024, 2025, 2026, 2027].map(y => ({ value: y, label: String(y) }));
+
+// Một lựa chọn năm trong bộ lọc kỳ báo cáo (shape do API /options trả về).
+type YearOption = { value: number; label: string };
 
 // ──────────────────────────────────────────────────────────────────────
 // Sub-component: Upload mỗi file gắn metadata riêng
@@ -72,7 +78,7 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       const updated = { ...r, [field]: value };
       // Auto-fill segment when universe selected
       if (field === 'auditUniverseId') {
-        const au = auditUniverses.find((u: unknown) => u.id === value);
+        const au = auditUniverses.find((u: any) => u.id === value);
         if (au?.departmentCode) updated.departmentCode = au.departmentCode;
       }
 
@@ -110,12 +116,14 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       const result = resp.data;
       // Mark each row with result
       setFileRows(prev => prev.map(r => {
-        const found = result.files?.find((f: unknown) => f.fileName === r.file.name);
+        const found = result.files?.find((f: any) => f.fileName === r.file.name);
         return { ...r, status: found?.status || 'success', alertsCreated: found?.alertsCreated, errorMessage: found?.errorMessage };
       }));
       message.success(`Tải lên thành công ${result.totalFiles} file — tổng ${result.totalAlertsCreated} chỉ số KRI`);
-      onUploaded();
-    } catch (err: unknown) {
+      // `onUploaded` is optional: call it only when the caller actually supplied it.
+      onUploaded?.();
+      // axios error shape -> chỉ định `any` là bắt buộc với catch clause; runtime giữ nguyên.
+    } catch (err: any) {
       message.error(err.response?.data?.message || 'Lỗi khi tải lên');
     } finally {
       setUploading(false);
@@ -127,7 +135,7 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       title: 'File',
       key: 'file',
       width: 200,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <Space>
           <FileExcelOutlined style={{ color: '#52c41a' }} />
           <div>
@@ -141,7 +149,7 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       title: 'Tháng báo cáo',
       key: 'month',
       width: 130,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <Select size="small" value={r.reportMonth} onChange={v => updateRow(r.uid, 'reportMonth', v)} style={{ width: '100%' }}>
           {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}
         </Select>
@@ -151,7 +159,7 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       title: 'Năm',
       key: 'year',
       width: 90,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <InputNumber size="small" min={2020} max={2030} value={r.reportYear}
           onChange={v => updateRow(r.uid, 'reportYear', v)} style={{ width: '100%' }} />
       ),
@@ -160,11 +168,11 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       title: 'Đơn vị Audit Universe',
       key: 'universe',
       width: 220,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <Select size="small" showSearch optionFilterProp="label" optionLabelProp="label" allowClear
           value={r.auditUniverseId} onChange={v => updateRow(r.uid, 'auditUniverseId', v)}
           style={{ width: '100%' }} placeholder="Chọn đơn vị...">
-          {auditUniverses.map((u: unknown) => (
+          {auditUniverses.map((u: any) => (
             <Option key={u.id} value={u.id} label={u.name}>
               <div style={{ fontSize: 11 }}>{u.name}</div>
             </Option>
@@ -177,7 +185,7 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       title: 'Kết quả',
       key: 'result',
       width: 110,
-      render: (_: unknown, r: unknown) => {
+      render: (_: unknown, r: any) => {
         if (r.status === 'pending') return <Tag color="default">Chờ upload</Tag>;
         if (r.status === 'success') return <Tag color="green" icon={<CheckCircleOutlined />}>{r.alertsCreated} chỉ số</Tag>;
         if (r.status === 'error') return <Tooltip title={r.errorMessage}><Tag color="red" icon={<CloseCircleOutlined />}>Lỗi</Tag></Tooltip>;
@@ -187,7 +195,7 @@ export function MultiMetadataUpload({ auditUniverses, departments, onUploaded }:
       title: '',
       key: 'del',
       width: 40,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => removeRow(r.uid)} />
       ),
     },
@@ -248,7 +256,7 @@ export function KriReportPeriod({
   years,
 }: {
   auditUniverses: AuditUniverse[];
-  years: unknown[];
+  years: YearOption[];
 }) {
   const { t } = useTranslation();
   const SEV_LABEL = getSevLabel(t);
@@ -281,7 +289,8 @@ export function KriReportPeriod({
   const months: string[] = report?.months || [];
 
   // Build table columns dynamically from months
-  const dynamicCols: unknown[] = [
+  // Cột dựng động theo số kỳ báo cáo -> dùng đúng kiểu cột của antd Table.
+  const dynamicCols: TableColumnsType<any> = [
     {
       title: t('riskAssessment.kriDashboard.manual.cols.kriCode', 'Mã KRI'),
       dataIndex: 'kriCode',
@@ -324,7 +333,7 @@ export function KriReportPeriod({
       title: m,
       key: m,
       width: 120,
-      render: (_: unknown, row: unknown) => {
+      render: (_: unknown, row: any) => {
         const cell = row.months?.[m];
         if (!cell) return <Text type="secondary" style={{ fontSize: 11 }}>—</Text>;
         return (
@@ -343,7 +352,7 @@ export function KriReportPeriod({
       key: 'total',
       width: 90,
       fixed: 'right',
-      render: (_: unknown, row: unknown) => {
+      render: (_: unknown, row: any) => {
         const bad = (row.criticalCount || 0) + (row.highCount || 0);
         return <Badge count={bad} showZero color={bad > 0 ? '#ff4d4f' : '#52c41a'} />;
       },
@@ -358,7 +367,7 @@ export function KriReportPeriod({
           <Col>
             <Text style={{ fontSize: 12, fontWeight: 600 }}>Năm:</Text>
             <Select value={year} onChange={setYear} style={{ width: 80, marginLeft: 6 }}>
-              {years.map((y: unknown) => <Option key={y.value} value={y.value}>{y.label}</Option>)}
+              {years.map((y) => <Option key={y.value} value={y.value}>{y.label}</Option>)}
             </Select>
           </Col>
           <Col>
@@ -376,7 +385,7 @@ export function KriReportPeriod({
           <Col>
             <Select allowClear showSearch optionFilterProp="label" value={universeId}
               onChange={setUniverseId} style={{ width: 220 }} placeholder="Lọc đơn vị AU...">
-              {auditUniverses.map((u: unknown) => (
+              {auditUniverses.map((u) => (
                 <Option key={u.id} value={u.id} label={u.name}>{u.name}</Option>
               ))}
             </Select>
@@ -450,7 +459,7 @@ export function KriReportPeriod({
                   size="small"
                   scroll={{ x: 'max-content' }}
                   pagination={{ pageSize: 20, showTotal: t => `${t} chỉ số KRI` }}
-                  rowClassName={(row: unknown) =>
+                  rowClassName={(row: any) =>
                     (row.criticalCount > 0 || row.highCount > 0) ? 'ant-table-row-error' : ''
                   }
                 />
@@ -466,7 +475,7 @@ export function KriReportPeriod({
 // ──────────────────────────────────────────────────────────────────────
 // Sub-component: So sánh KRI giữa 2 kỳ
 // ──────────────────────────────────────────────────────────────────────
-function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]; years: unknown[] }) {
+function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]; years: YearOption[] }) {
   const { t } = useTranslation();
   const SEV_LABEL = getSevLabel(t);
   const curYear = new Date().getFullYear();
@@ -483,7 +492,7 @@ function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]
   const doCompare = async () => {
     setLoading(true);
     try {
-      const params: unknown = { p1Year, p1Month, p2Year, p2Month };
+      const params: Record<string, any> = { p1Year, p1Month, p2Year, p2Month };
       if (universeId) params.auditUniverseId = universeId;
       const resp = await api.get('/continuous-monitoring/kri/compare', { params });
       setResult(resp.data);
@@ -508,7 +517,7 @@ function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]
       title: `Kỳ 1 (T${p1Month}/${p1Year})`,
       key: 'p1',
       width: 150,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <div>
           <div style={{ fontWeight: 600 }}>{r.period1Value}</div>
           <Tag color={SEV_COLOR[r.period1Severity] || 'default'} style={{ fontSize: 10 }}>{SEV_LABEL[r.period1Severity] || r.period1Severity}</Tag>
@@ -520,13 +529,13 @@ function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]
       key: 'trend',
       width: 80,
       align: 'center' as const,
-      render: (_: unknown, r: unknown) => trendIcon(r.trend),
+      render: (_: unknown, r: any) => trendIcon(r.trend),
     },
     {
       title: `Kỳ 2 (T${p2Month}/${p2Year})`,
       key: 'p2',
       width: 150,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <div>
           <div style={{ fontWeight: 600 }}>{r.period2Value}</div>
           <Tag color={SEV_COLOR[r.period2Severity] || 'default'} style={{ fontSize: 10 }}>{SEV_LABEL[r.period2Severity] || r.period2Severity}</Tag>
@@ -537,7 +546,7 @@ function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]
       title: 'Thay đổi',
       key: 'changes',
       width: 120,
-      render: (_: unknown, r: unknown) => (
+      render: (_: unknown, r: any) => (
         <Space orientation="vertical" size={2}>
           {r.valueChanged && <Tag color="orange" style={{ fontSize: 10 }}>Giá trị thay đổi</Tag>}
           {r.severityChanged && <Tag color="red" style={{ fontSize: 10 }}>Mức độ thay đổi</Tag>}
@@ -557,7 +566,7 @@ function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]
               {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}
             </Select>
             <Select value={p1Year} onChange={setP1Year} style={{ width: 75, marginLeft: 4 }}>
-              {years.map((y: unknown) => <Option key={y.value} value={y.value}>{y.label}</Option>)}
+              {years.map((y) => <Option key={y.value} value={y.value}>{y.label}</Option>)}
             </Select>
           </Col>
           <Col><SwapOutlined style={{ fontSize: 18, color: '#8c8c8c' }} /></Col>
@@ -567,13 +576,13 @@ function CompareTab({ auditUniverses, years }: { auditUniverses: AuditUniverse[]
               {MONTHS.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}
             </Select>
             <Select value={p2Year} onChange={setP2Year} style={{ width: 75, marginLeft: 4 }}>
-              {years.map((y: unknown) => <Option key={y.value} value={y.value}>{y.label}</Option>)}
+              {years.map((y) => <Option key={y.value} value={y.value}>{y.label}</Option>)}
             </Select>
           </Col>
           <Col>
             <Select allowClear showSearch optionFilterProp="label" value={universeId}
               onChange={setUniverseId} style={{ width: 200 }} placeholder="Lọc đơn vị...">
-              {auditUniverses.map((u: unknown) => (
+              {auditUniverses.map((u) => (
                 <Option key={u.id} value={u.id} label={u.name}>{u.name}</Option>
               ))}
             </Select>
@@ -700,13 +709,19 @@ function ManualAnalysisTab({ auditUniverses, onSaved }: { auditUniverses: AuditU
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       // The backend returns an array of parsed objects. Let's make sure they have a `key` property
-      const dataWithKeys = resp.data.map((item: unknown, index: number) => ({
-        ...item,
-        key: index,
-        // Map backend extracted fields to frontend expected fields if necessary
-        thresholdValue: item.threshold || item.thresholdValue,
-        currentValue: item.figure || item.currentValue,
-      }));
+      const dataWithKeys = resp.data.map((raw: unknown, index: number) => {
+        // Only spread when the entry really is a non-null object, otherwise fall back to an
+        // empty record so the row still renders with its mapped/default fields (TS2698).
+        const item: Record<string, any> =
+          typeof raw === 'object' && raw !== null ? (raw as Record<string, any>) : {};
+        return {
+          ...item,
+          key: index,
+          // Map backend extracted fields to frontend expected fields if necessary
+          thresholdValue: item.threshold || item.thresholdValue,
+          currentValue: item.figure || item.currentValue,
+        };
+      });
       setFileRows(dataWithKeys);
       setFileInfo(`${file.name} — ${dataWithKeys.length} chỉ số`);
       message.success({ content: 'Đọc file thành công!', key: 'kri-parse' });
@@ -766,7 +781,7 @@ function ManualAnalysisTab({ auditUniverses, onSaved }: { auditUniverses: AuditU
       title: 'Xếp hạng hiện tại',
       dataIndex: 'currentRating',
       width: 120,
-      render: (r: string, row: unknown) => {
+      render: (r: string, row: any) => {
         const sev = row.severity || 'Medium';
         return <Tag color={SEV_COLOR[sev] || 'default'}>{r || SEV_LABEL[sev] || 'Chưa xếp hạng'}</Tag>;
       }
@@ -790,7 +805,7 @@ function ManualAnalysisTab({ auditUniverses, onSaved }: { auditUniverses: AuditU
           <div style={{ fontWeight: 600, marginBottom: 6 }}>Đối tượng Audit Universe:</div>
           <Select showSearch optionFilterProp="label" optionLabelProp="label" value={selectedUniverseId}
             onChange={setSelectedUniverseId} style={{ width: '100%' }} placeholder="Chọn đơn vị cần phân tích KRI...">
-            {auditUniverses.map((u: unknown) => (
+            {auditUniverses.map((u) => (
               <Option key={u.id} value={u.id} label={u.name}>
                 <div>{u.name}</div>
               </Option>
@@ -835,7 +850,7 @@ function ManualAnalysisTab({ auditUniverses, onSaved }: { auditUniverses: AuditU
             rowKey="key"
             size="small"
             pagination={{ pageSize: 20 }}
-            rowClassName={(r) => r.severity === 'Critical' ? 'ant-table-row-error' : r.severity === 'High' ? '' : ''}
+            rowClassName={(r: any) => r.severity === 'Critical' ? 'ant-table-row-error' : r.severity === 'High' ? '' : ''}
             scroll={{ x: 'max-content' }}
           />
         </>

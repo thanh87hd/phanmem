@@ -20,6 +20,7 @@ import {
   message,
   Badge,
 } from 'antd';
+import type { ModalProps } from 'antd';
 import {
   FullscreenOutlined,
   FullscreenExitOutlined,
@@ -41,6 +42,13 @@ import api from '../../services/api';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
+
+/**
+ * ĐÃ SỬA: antd v6 bỏ slot `content` khỏi `Modal.styles` (panel nay là `container`).
+ * Trước đây khai báo `content` nên style chiều cao 90vh/100vh + flex-column bị bỏ
+ * qua lúc chạy (modal không có layout full-height như thiết kế).
+ */
+type ModalPanelStyles = NonNullable<ModalProps['styles']>;
 
 export interface CreditSampleItem {
   id: number;
@@ -255,6 +263,26 @@ export const CreditCustomerDetailModal: React.FC<CreditCustomerDetailModalProps>
   const currentLoanAmount = currentLoanAmountWatch ?? currentSample.loanAmount ?? 0;
   const currentDebtGroup = currentDebtGroupWatch || currentSample.debtGroup || '1';
 
+  // Xem ghi chú tại `ModalPanelStyles` (slot panel của antd v6 là `container`).
+  const modalStyles: ModalPanelStyles = {
+    container: {
+      height: pager.isFullscreen ? '100vh' : '90vh',
+      display: 'flex',
+      flexDirection: 'column',
+      padding: 0,
+      borderRadius: pager.isFullscreen ? 0 : 16,
+      overflow: 'hidden',
+      backgroundColor: '#f8fafc',
+    },
+    body: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      padding: 0,
+      overflow: 'hidden',
+    },
+  };
+
   return (
     <Modal
       open={isOpen}
@@ -267,24 +295,7 @@ export const CreditCustomerDetailModal: React.FC<CreditCustomerDetailModalProps>
           ? { top: 0, padding: 0, maxWidth: '100vw', margin: 0 }
           : { top: 20, paddingBottom: 20 }
       }
-      styles={{
-        content: {
-          height: pager.isFullscreen ? '100vh' : '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-          borderRadius: pager.isFullscreen ? 0 : 16,
-          overflow: 'hidden',
-          backgroundColor: '#f8fafc',
-        },
-        body: {
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-          overflow: 'hidden',
-        },
-      }}
+      styles={modalStyles}
       closeIcon={null}
       destroyOnClose
     >

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getPermissionKey, hasPermission, UserProfile } from '../permission';
+import { getPermissionKey, hasPermission } from '../permission';
+import type { UserProfile } from '../permission';
 
 describe('permission utils', () => {
   describe('getPermissionKey', () => {

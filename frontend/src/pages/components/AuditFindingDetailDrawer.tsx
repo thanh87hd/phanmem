@@ -143,11 +143,11 @@ export const AuditFindingDetailDrawer: React.FC<AuditFindingDetailDrawerProps> =
     } else {
       setAppendices([]);
       let engagementIdToSet: number | undefined = undefined;
-      if (engagements.length === 1) {
+      const lastPlanId = localStorage.getItem('lastSelectedEngagementId');
+      if (lastPlanId && engagements.some(e => e.id === parseInt(lastPlanId))) {
+        engagementIdToSet = parseInt(lastPlanId);
+      } else if (engagements.length > 0) {
         engagementIdToSet = engagements[0].id;
-      } else {
-        const lastPlanId = localStorage.getItem('lastSelectedEngagementId');
-        if (lastPlanId) engagementIdToSet = parseInt(lastPlanId);
       }
       
       const lastWorkstreamId = localStorage.getItem('lastSelectedWorkstreamId');
@@ -161,13 +161,15 @@ export const AuditFindingDetailDrawer: React.FC<AuditFindingDetailDrawerProps> =
         managingBranchName: selectedEng?.branchName || selectedEng?.legacyAuditedDepartment || 'Hội Sở Chính',
         managingBranchCode: selectedEng?.branchCode || 'HO',
         managingBranchId: selectedEng?.auditedDepartmentId,
+        riskLevel: 'Medium',
+        status: 'Open',
       });
 
       if (engagementIdToSet) {
         fetchWorkstreams(engagementIdToSet);
       }
     }
-  }, [visible, editingRecord, initialValues]);
+  }, [visible, editingRecord, initialValues, engagements]);
 
   // AI Auto-Categorization (Auto-suggest background timer)
   useEffect(() => {
@@ -340,6 +342,8 @@ export const AuditFindingDetailDrawer: React.FC<AuditFindingDetailDrawerProps> =
       }
     }).catch(errorInfo => {
       console.log('Validation Failed:', errorInfo);
+      const firstError = errorInfo.errorFields?.[0]?.errors?.[0];
+      message.error(firstError || 'Vui lòng kiểm tra và điền đầy đủ các thông tin bắt buộc (*)');
     });
   };
 
@@ -394,13 +398,12 @@ export const AuditFindingDetailDrawer: React.FC<AuditFindingDetailDrawerProps> =
               <Form form={form} layout="vertical">
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item name="engagementId" label="Đoàn kiểm toán (Engagement)" rules={[{ required: true, message: 'Vui lòng chọn Đoàn kiểm toán' }]} hidden={engagements.length === 1}>
+                    <Form.Item name="engagementId" label="Đoàn kiểm toán (Engagement)" rules={[{ required: true, message: 'Vui lòng chọn Đoàn kiểm toán' }]}>
                       <Select 
                         placeholder="Chọn Đoàn kiểm toán..." 
                         style={{ borderRadius: 8 }}
                         showSearch
                         optionFilterProp="children"
-                        disabled={engagements.length === 1}
                         onChange={async (engagementId) => {
                           form.setFieldsValue({ workstreamId: undefined });
                           try {
@@ -421,7 +424,9 @@ export const AuditFindingDetailDrawer: React.FC<AuditFindingDetailDrawerProps> =
                         }}
                       >
                         {engagements.map((e: any) => (
-                          <Option key={e.id} value={e.id}>{e.name || `Đoàn KT #${e.id}`}</Option>
+                          <Option key={e.id} value={e.id}>
+                            {e.code ? `[${e.code}] ` : ''}{e.name || `Đoàn KT #${e.id}`}
+                          </Option>
                         ))}
                       </Select>
                     </Form.Item>

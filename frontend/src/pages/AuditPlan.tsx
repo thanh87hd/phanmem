@@ -385,7 +385,7 @@ const AuditPlan: React.FC = () => {
   };
 
   // Mark a unit for removal in the revision workspace
-  const handleRemoveUnitFromRevision = (universeId: number, name: string) => {
+  const handleRemoveUnitFromRevision = (universeId: string | number, name: string) => {
     // Save to removed list log
     setRemovedUnitsLog(prev => ({
       ...prev,
@@ -400,7 +400,7 @@ const AuditPlan: React.FC = () => {
   };
 
   // Update a field in the review selected list
-  const handleUpdateReviewUnitField = (universeId: number, field: string, value: any) => {
+  const handleUpdateReviewUnitField = (universeId: string | number, field: string, value: any) => {
     setReviewSelectedUnits(prev => prev.map(item => {
       if (item.universeId === universeId) {
         return { ...item, [field]: value };
@@ -409,7 +409,9 @@ const AuditPlan: React.FC = () => {
     }));
 
     // Mark as updated and ask for reason if not already recorded
-    if (!updateReasons[universeId]) {
+    // (PlanRevisionModal khai báo `universeId: string`, nhưng id đơn vị lúc chạy
+    // luôn là số — khoá của `updateReasons`/`removedUnitsLog` đều là Record<number, …>).
+    if (!updateReasons[universeId as number]) {
       setUpdateReasons(prev => ({
         ...prev,
         [universeId]: t('auditPlan.adjustingManpowerResourcesfieldTechnicians', 'Điều chỉnh định biên nguồn lực ngày công / KTV thực địa')
@@ -1135,7 +1137,7 @@ const AuditPlan: React.FC = () => {
       {/* Continuous Monitoring Recommendations Modal */}
       <PlanAiSuggestionsModal
         open={cmPlanModalVisible}
-        onCancel={() => setCmPlanModalVisible(false)}
+        onClose={() => setCmPlanModalVisible(false)}
         cmRecommendations={cmRecommendations}
         selectedUnits={selectedUnits}
         applyCmRecommendationToPlan={applyCmRecommendationToPlan}

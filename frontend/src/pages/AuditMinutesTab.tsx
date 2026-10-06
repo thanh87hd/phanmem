@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Table, Button, Space, Modal, Form, Input, DatePicker, message, Tag, Select, Card, Row, Col, Typography, Tooltip, Alert } from 'antd';
+import { Table, Button, Space, Modal, Form, Input, DatePicker, message, Tag, Select, Card, Row, Col, Typography, Tooltip, Alert, Dropdown } from 'antd';
 import { EditOutlined, DeleteOutlined, DownloadOutlined, PlusOutlined, ThunderboltOutlined, FileTextOutlined, CheckCircleOutlined, UserOutlined, TeamOutlined, FileExcelOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../services/api';
@@ -344,7 +344,10 @@ const AuditMinutesTab: React.FC<{ engagementId: number }> = ({ engagementId }) =
     <div className="space-y-4">
       {/* Overview & Quick Actions Banner */}
       <Card variant="borderless" className="shadow-sm rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border border-orange-200">
-        <Row gutter={[16, 16]} align="middle" justify="between">
+        {/* ĐÃ SỬA: 'between' không phải giá trị hợp lệ của `justify` trong antd
+            (giá trị đúng là 'space-between'); trước đây antd sinh class
+            `ant-row-between` không có CSS nên việc căn đều 2 đầu không có tác dụng. */}
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
           <Col xs={24} md={16}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#ea9105] text-white flex items-center justify-center text-xl shadow-md">

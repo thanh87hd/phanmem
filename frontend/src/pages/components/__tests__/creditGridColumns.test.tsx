@@ -1,7 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { getCreditCompactColumns, getCreditFullColumns, CreditGridColumnParams } from '../creditGridColumns';
+import { getCreditCompactColumns, getCreditFullColumns } from '../creditGridColumns';
+import type { CreditGridColumnParams } from '../creditGridColumns';
 import type { CreditSampleItem } from '../CreditCustomerDetailModal';
 
 describe('creditGridColumns', () => {

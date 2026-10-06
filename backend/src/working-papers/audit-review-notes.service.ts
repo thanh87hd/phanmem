@@ -109,6 +109,18 @@ export class AuditReviewNotesService {
 
   async close(id: number, user?: AuthUserContext): Promise<AuditReviewNote> {
     const note = await this.findOne(id);
+
+    // Cổng chất lượng IIA 1311: KHÔNG được đóng một điểm soát xét còn ở trạng thái
+    // OPEN mà KTV chưa ghi nhận giải trình — nếu không, cổng assertCanSignOff bị vô hiệu
+    // hoá trước khi KTV có cơ hội phản hồi.
+    const hasAuditorResponse =
+      !!note.auditorResponse && String(note.auditorResponse).trim().length > 0;
+    if (note.status === ReviewNoteStatus.OPEN && !hasAuditorResponse) {
+      throw new BadRequestException(
+        'Không thể đóng điểm soát xét đang ở trạng thái MỞ (OPEN) khi KTV chưa ghi nhận giải trình. Vui lòng yêu cầu KTV trả lời/giải trình (respond) điểm soát xét trước khi Người soát xét xác nhận ĐÓNG theo Chuẩn mực IIA 1311.',
+      );
+    }
+
     const closedById = user?.id || user?.userId;
 
     note.status = ReviewNoteStatus.CLOSED;

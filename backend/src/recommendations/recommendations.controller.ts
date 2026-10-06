@@ -141,11 +141,23 @@ export class RecommendationsController {
     @Body() dto: UpdateProgressDto,
     @Request() req?: any,
   ) {
+    // LỖI ĐÃ SỬA (TC-AUD-04): trước đây chỉ truyền 4 tham số nên tham số
+    // `extra` của service LUÔN undefined ⇒ kế hoạch khắc phục (khả năng khắc
+    // phục, đề xuất, kỳ theo dõi, đầu mối, bằng chứng) không bao giờ được lưu.
     const result = await this.service.updateProgress(
       +id,
       dto.progressPercent,
       dto.response,
       dto.notes,
+      {
+        remediationFeasibility: dto.remediationFeasibility,
+        remediationUnfeasibleReason: dto.remediationUnfeasibleReason,
+        auditeeProposal: dto.auditeeProposal,
+        monitoringCycle: dto.monitoringCycle,
+        legacyAuditeeUnitHead: dto.auditeeUnitHead,
+        legacyAuditeePoc: dto.auditeePoc,
+        evidenceLink: dto.evidenceLink,
+      },
     );
     await this.auditTrailService.log({
       action: 'UPDATE',

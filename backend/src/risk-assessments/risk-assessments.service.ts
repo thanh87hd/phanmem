@@ -25,7 +25,11 @@ import {
   classifyByAdjustedResidual,
   recommendAuditFrequency,
 } from './helpers/risk-classification.helper';
-import type { AuthUserContext } from './dto/risk-types';
+import type {
+  AuthUserContext,
+  RiskAssessmentComparison,
+  DynamicAuditUniverse,
+} from './dto/risk-types';
 
 @Injectable()
 export class RiskAssessmentsService {
@@ -61,9 +65,10 @@ export class RiskAssessmentsService {
     > = {};
 
     findings.forEach((f) => {
+      const legacyFinding = f as unknown as { auditUniverseId?: number };
       const uId =
         f.businessProcessId ||
-        (f as any).auditUniverseId ||
+        legacyFinding.auditUniverseId ||
         f.engagement?.planId;
       if (uId) {
         if (!universeFindingStats[uId]) {
@@ -83,20 +88,24 @@ export class RiskAssessmentsService {
       }
     });
 
-    return universes.map((u) => {
+    return universes.map((u): DynamicAuditUniverse => {
       const stats = universeFindingStats[u.id] || {
         count: 0,
         highRiskCount: 0,
         fineTotal: 0,
       };
+      const uWithMetrics = u as AuditUniverse & {
+        riskScore?: number;
+        dynamicRiskRating?: string;
+      };
       return {
         auditUniverseId: u.id,
         universeName: u.name,
-        riskScore: (u as any).riskScore || 2.5,
+        riskScore: uWithMetrics.riskScore ?? 2.5,
         defectScore: stats.count > 5 ? 4.0 : stats.count > 0 ? 3.0 : 1.5,
         defectCount: stats.count,
         highRiskDefectCount: stats.highRiskCount,
-        dynamicRiskRating: (u as any).dynamicRiskRating || 'Medium',
+        dynamicRiskRating: uWithMetrics.dynamicRiskRating ?? 'Medium',
       };
     });
   }
@@ -126,24 +135,29 @@ export class RiskAssessmentsService {
     }
 
     // Flatten modifiers object → entity booleans (khi frontend gửi dạng { isRecurring, isOverdueCritical, isEmergingRisk })
-    const dto = createRiskAssessmentDto as any;
-    const modifiers = dto.modifiers || {};
-    const isRecurring = dto.isRecurring ?? modifiers.isRecurring ?? false;
-    const isOverdueCritical = dto.isOverdueCritical ?? modifiers.isOverdueCritical ?? false;
-    const isEmergingRisk = dto.isEmergingRisk ?? modifiers.isEmergingRisk ?? false;
+    const modifiers = createRiskAssessmentDto.modifiers || {};
+    const isRecurring =
+      createRiskAssessmentDto.isRecurring ?? modifiers.isRecurring ?? false;
+    const isOverdueCritical =
+      createRiskAssessmentDto.isOverdueCritical ??
+      modifiers.isOverdueCritical ??
+      false;
+    const isEmergingRisk =
+      createRiskAssessmentDto.isEmergingRisk ?? modifiers.isEmergingRisk ?? false;
 
     // Use Unified Risk Engine (THUCTE) for scoring
     const engineInput = {
       inherentRiskScore:
-        dto.inherentRiskScore ?? dto.totalScore,
+        createRiskAssessmentDto.inherentRiskScore ??
+        createRiskAssessmentDto.totalScore,
       controlEffectiveness:
-        dto.controlEffectiveness || 'Adequate',
-      riskVelocity: dto.riskVelocity || 'Stable',
-      criteriaScores: dto.criteriaScores,
-      impactScores: dto.impactScores,
-      likelihoodScores: dto.likelihoodScores,
-      designEffectiveness: dto.designEffectiveness,
-      operatingEffectiveness: dto.operatingEffectiveness,
+        createRiskAssessmentDto.controlEffectiveness || 'Adequate',
+      riskVelocity: createRiskAssessmentDto.riskVelocity || 'Stable',
+      criteriaScores: createRiskAssessmentDto.criteriaScores,
+      impactScores: createRiskAssessmentDto.impactScores,
+      likelihoodScores: createRiskAssessmentDto.likelihoodScores,
+      designEffectiveness: createRiskAssessmentDto.designEffectiveness,
+      operatingEffectiveness: createRiskAssessmentDto.operatingEffectiveness,
       isRecurring,
       isOverdueCritical,
       isEmergingRisk,
@@ -163,7 +177,7 @@ export class RiskAssessmentsService {
       highRiskFactors: _highRiskFactors,
       status: _status,
       ...dtoWithoutRelations
-    } = dto;
+    } = createRiskAssessmentDto;
 
     const assessment = this.riskAssessmentRepository.create({
       ...dtoWithoutRelations,
@@ -252,44 +266,57 @@ export class RiskAssessmentsService {
       );
     }
 
-    const dto = updateRiskAssessmentDto as any;
-
     // Flatten modifiers object → entity booleans
-    const modifiers = dto.modifiers || {};
-    const isRecurring = dto.isRecurring ?? modifiers.isRecurring ?? undefined;
-    const isOverdueCritical = dto.isOverdueCritical ?? modifiers.isOverdueCritical ?? undefined;
-    const isEmergingRisk = dto.isEmergingRisk ?? modifiers.isEmergingRisk ?? undefined;
+    const modifiers = updateRiskAssessmentDto.modifiers || {};
+    const isRecurring =
+      updateRiskAssessmentDto.isRecurring ?? modifiers.isRecurring ?? undefined;
+    const isOverdueCritical =
+      updateRiskAssessmentDto.isOverdueCritical ??
+      modifiers.isOverdueCritical ??
+      undefined;
+    const isEmergingRisk =
+      updateRiskAssessmentDto.isEmergingRisk ??
+      modifiers.isEmergingRisk ??
+      undefined;
 
     if (
-      dto.inherentRiskScore !== undefined ||
-      dto.controlEffectiveness !== undefined ||
-      dto.totalScore !== undefined ||
-      dto.impactScores !== undefined ||
-      dto.likelihoodScores !== undefined
+      updateRiskAssessmentDto.inherentRiskScore !== undefined ||
+      updateRiskAssessmentDto.controlEffectiveness !== undefined ||
+      updateRiskAssessmentDto.totalScore !== undefined ||
+      updateRiskAssessmentDto.impactScores !== undefined ||
+      updateRiskAssessmentDto.likelihoodScores !== undefined
     ) {
       // Re-calculate via Unified Risk Engine
       const engineResult = this.unifiedRiskEngine.calculate({
         inherentRiskScore:
-          dto.inherentRiskScore ?? dto.totalScore ?? existing.inherentRiskScore,
+          updateRiskAssessmentDto.inherentRiskScore ??
+          updateRiskAssessmentDto.totalScore ??
+          existing.inherentRiskScore,
         controlEffectiveness:
-          dto.controlEffectiveness ?? existing.controlEffectiveness,
-        riskVelocity: dto.riskVelocity ?? existing.riskVelocity,
-        criteriaScores: dto.criteriaScores,
-        impactScores: dto.impactScores,
-        likelihoodScores: dto.likelihoodScores,
+          updateRiskAssessmentDto.controlEffectiveness ??
+          existing.controlEffectiveness,
+        riskVelocity:
+          updateRiskAssessmentDto.riskVelocity ?? existing.riskVelocity,
+        criteriaScores: updateRiskAssessmentDto.criteriaScores,
+        impactScores: updateRiskAssessmentDto.impactScores,
+        likelihoodScores: updateRiskAssessmentDto.likelihoodScores,
         designEffectiveness:
-          dto.designEffectiveness ?? existing.designEffectiveness,
+          updateRiskAssessmentDto.designEffectiveness ??
+          existing.designEffectiveness,
         operatingEffectiveness:
-          dto.operatingEffectiveness ?? existing.operatingEffectiveness,
+          updateRiskAssessmentDto.operatingEffectiveness ??
+          existing.operatingEffectiveness,
         isRecurring: isRecurring ?? existing.isRecurring,
         isOverdueCritical: isOverdueCritical ?? existing.isOverdueCritical,
         isEmergingRisk: isEmergingRisk ?? existing.isEmergingRisk,
       });
-      dto.inherentRiskScore = engineResult.inherentRiskScore;
-      dto.residualRiskScore = engineResult.residualRiskScore;
-      dto.adjustedResidualScore = engineResult.adjustedResidualScore;
-      dto.controlEffectiveness = engineResult.controlEffectiveness;
-      dto.auditFrequency = engineResult.auditFrequency;
+      updateRiskAssessmentDto.inherentRiskScore = engineResult.inherentRiskScore;
+      updateRiskAssessmentDto.residualRiskScore = engineResult.residualRiskScore;
+      updateRiskAssessmentDto.adjustedResidualScore =
+        engineResult.adjustedResidualScore;
+      updateRiskAssessmentDto.controlEffectiveness =
+        engineResult.controlEffectiveness;
+      updateRiskAssessmentDto.auditFrequency = engineResult.auditFrequency;
     }
 
     const {
@@ -305,7 +332,7 @@ export class RiskAssessmentsService {
       highRiskFactors: _highRiskFactors,
       status: _status,
       ...dtoWithoutRelations
-    } = dto;
+    } = updateRiskAssessmentDto;
 
     await this.riskAssessmentRepository.update(id, {
       ...dtoWithoutRelations,
@@ -427,10 +454,11 @@ export class RiskAssessmentsService {
     try {
       const l2Approvers = await this.entityManager.getRepository(User).find({
         where: [
-          { role: { name: 'trưởng ban ktnb' } as any },
-          { role: { name: 'lãnh đạo ktnb' } as any },
-          { role: { name: 'admin' } as any },
+          { role: { name: 'trưởng ban ktnb' } },
+          { role: { name: 'lãnh đạo ktnb' } },
+          { role: { name: 'admin' } },
         ],
+        relations: ['role'],
       });
       const l2Ids = l2Approvers
         .map((u) => u.id)
@@ -643,7 +671,7 @@ export class RiskAssessmentsService {
     entityId: number,
     action: string,
     performedById?: number,
-    metadata?: any,
+    metadata?: Record<string, unknown>,
   ) {
     try {
       const log = this.auditLogRepo.create({
@@ -684,7 +712,7 @@ export class RiskAssessmentsService {
     for (const a of assessments2) map2[a.legacyUniverseName] = a;
 
     const allNames = new Set([...Object.keys(map1), ...Object.keys(map2)]);
-    const comparisons: any[] = [];
+    const comparisons: RiskAssessmentComparison[] = [];
 
     for (const name of allNames) {
       const a1 = map1[name];
@@ -821,7 +849,41 @@ export class RiskAssessmentsService {
       },
     };
 
-    const groups: Record<string, any> = {};
+    interface CategoryGroup {
+      category: string;
+      label: string;
+      icon: string;
+      description: string;
+      total: number;
+      approved: number;
+      submitted: number;
+      draft: number;
+      rejected: number;
+      avgTotalScore: number;
+      avgResidualRiskScore: number;
+      riskDistribution: {
+        hang1: number;
+        hang2: number;
+        hang3: number;
+        hang4: number;
+        hang5: number;
+      };
+      highRiskCount: number;
+      auditFrequencyBreakdown: {
+        Annual: number;
+        Biennial: number;
+        Triennial: number;
+        AdHoc: number;
+      };
+      /**
+       * Mọi nhánh khởi tạo CategoryGroup đều gán mảng này, nên khai báo BẮT BUỘC
+       * (`RiskAssessment[]`) thay vì tuỳ chọn — tránh phải kiểm tra `undefined`
+       * ở mỗi chỗ dùng và phản ánh đúng bất biến của dữ liệu.
+       */
+      assessments: RiskAssessment[];
+    }
+
+    const groups: Record<string, CategoryGroup> = {};
     for (const cat of Object.keys(CATEGORY_META)) {
       groups[cat] = {
         category: cat,
@@ -841,7 +903,7 @@ export class RiskAssessmentsService {
           Triennial: 0,
           AdHoc: 0,
         },
-        assessments: [] as any[],
+        assessments: [] as RiskAssessment[],
       };
     }
 
@@ -874,7 +936,7 @@ export class RiskAssessmentsService {
             Triennial: 0,
             AdHoc: 0,
           },
-          assessments: [],
+          assessments: [] as RiskAssessment[],
         };
       }
 
@@ -905,11 +967,11 @@ export class RiskAssessmentsService {
 
     for (const cat of Object.keys(groups)) {
       const g = groups[cat];
-      if (g.total > 0) {
+      if (g.total > 0 && g.assessments.length > 0) {
         g.avgTotalScore = parseFloat(
           (
             g.assessments.reduce(
-              (s: number, a: any) => s + (a.totalScore || 0),
+              (s: number, a: RiskAssessment) => s + (Number(a.totalScore) || 0),
               0,
             ) / g.total
           ).toFixed(2),
@@ -917,19 +979,24 @@ export class RiskAssessmentsService {
         g.avgResidualRiskScore = parseFloat(
           (
             g.assessments.reduce(
-              (s: number, a: any) => s + (a.residualRiskScore || 0),
+              (s: number, a: RiskAssessment) =>
+                s + (Number(a.residualRiskScore) || 0),
               0,
             ) / g.total
           ).toFixed(2),
         );
       }
-      delete g.assessments;
     }
 
     return {
       year: targetYear,
       totalAssessments: assessments.length,
-      groups: Object.values(groups),
+      // Bỏ mảng `assessments` (nặng, chỉ dùng nội bộ để tính điểm trung bình)
+      // khỏi payload trả về — thay cho `delete` cũ, nay không hợp lệ vì trường
+      // này là bắt buộc trong `CategoryGroup`.
+      groups: Object.values(groups).map(
+        ({ assessments: _assessments, ...summary }) => summary,
+      ),
     };
   }
 

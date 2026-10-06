@@ -2,7 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditFinding } from './entities/audit-finding.entity';
+import { Recommendation } from '../recommendations/entities/recommendation.entity';
 import { ScopeFilterService } from '../utils/scope-filter.service';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import {
+  teamMembersContainsClause,
+  teamMembersJsonParam,
+} from '../common/utils/team-members-filter.util';
+
+interface DefectCodeRecord {
+  code: string;
+  dimension?: string;
+  description?: string;
+  maxFine?: number;
+  riskLevel?: number;
+}
 
 @Injectable()
 export class AuditFindingsStatisticsService {
@@ -12,7 +26,7 @@ export class AuditFindingsStatisticsService {
   ) {}
 
   async getMultiDimensionalStats(
-    user?: any,
+    user?: JwtPayload | { role?: string; userId?: number },
     departmentId?: string,
     year?: string,
     auditUniverse?: string,
@@ -63,13 +77,13 @@ export class AuditFindingsStatisticsService {
 
     if (user && !isAdmin) {
       query.andWhere(
-        '(engagement.leadAuditorId = :userId OR engagement.teamMembers LIKE :likeUserId)',
-        { userId: user.userId, likeUserId: `%"userId":${user.userId}%` },
+        `(engagement.leadAuditorId = :userId OR ${teamMembersContainsClause('engagement')})`,
+        { userId: user.userId, jsonUser: teamMembersJsonParam(user.userId) },
       );
     }
 
     const findings = await query.getMany();
-    let defectCodes: any[] = [];
+    let defectCodes: DefectCodeRecord[] = [];
     try {
       defectCodes = await this.auditFindingRepository.manager.query(
         `SELECT * FROM "defect_codes"`,
@@ -278,7 +292,9 @@ export class AuditFindingsStatisticsService {
 
       // Region stats
       const reg =
-        (f as any).region || (f.engagement as any)?.region || 'Khác';
+        (f as { region?: string }).region ||
+        (f.engagement as { region?: string } | undefined)?.region ||
+        'Khác';
       if (!regionStats[reg]) {
         regionStats[reg] = {
           region: reg,
@@ -356,13 +372,15 @@ export class AuditFindingsStatisticsService {
       if (nd340Code) {
         if (!nd340Stats[nd340Code]) {
           const dc = defectCodes.find(
-            (c: any) => c.code === nd340Code && c.dimension === 'ND340',
+            (c: DefectCodeRecord) =>
+              c.code === nd340Code && c.dimension === 'ND340',
           );
           nd340Stats[nd340Code] = {
             code: nd340Code,
             description:
               f.nd340DefectCodeEntity?.description ||
-              (dc ? dc.description : 'Unknown'),
+              dc?.description ||
+              'Unknown',
             count: 0,
             totalFine: 0,
           };
@@ -372,7 +390,8 @@ export class AuditFindingsStatisticsService {
         let fine = f.actualFineAmount;
         if (fine === null || fine === undefined) {
           const dc = defectCodes.find(
-            (c: any) => c.code === nd340Code && c.dimension === 'ND340',
+            (c: DefectCodeRecord) =>
+              c.code === nd340Code && c.dimension === 'ND340',
           );
           fine = f.nd340DefectCodeEntity?.maxFine ?? (dc ? dc.maxFine : 0);
         }
@@ -384,13 +403,15 @@ export class AuditFindingsStatisticsService {
       if (nhanSuCode) {
         if (!nhanSuStats[nhanSuCode]) {
           const dc = defectCodes.find(
-            (c: any) => c.code === nhanSuCode && c.dimension === 'NHANSU',
+            (c: DefectCodeRecord) =>
+              c.code === nhanSuCode && c.dimension === 'NHANSU',
           );
           nhanSuStats[nhanSuCode] = {
             code: nhanSuCode,
             description:
               f.nhanSuDefectCodeEntity?.description ||
-              (dc ? dc.description : 'Unknown'),
+              dc?.description ||
+              'Unknown',
             count: 0,
             riskLevel:
               f.nhanSuDefectCodeEntity?.riskLevel ?? (dc ? dc.riskLevel : 0),
@@ -421,7 +442,7 @@ export class AuditFindingsStatisticsService {
     });
 
     const recQuery = this.auditFindingRepository.manager
-      .getRepository('Recommendation')
+      .getRepository(Recommendation)
       .createQueryBuilder('rec')
       .leftJoinAndSelect('rec.departmentEntity', 'departmentEntity')
       .leftJoinAndSelect('rec.auditFinding', 'finding')
@@ -445,11 +466,11 @@ export class AuditFindingsStatisticsService {
 
     if (user && !isAdmin) {
       recQuery.andWhere(
-        '(engagement.leadAuditorId = :userId OR engagement.teamMembers LIKE :likeUserId OR rec.assignedToId = :userId)',
-        { userId: user.userId, likeUserId: `%"userId":${user.userId}%` },
+        `(engagement.leadAuditorId = :userId OR ${teamMembersContainsClause('engagement')} OR rec.assignedToId = :userId)`,
+        { userId: user.userId, jsonUser: teamMembersJsonParam(user.userId) },
       );
     }
-    const recommendations = (await recQuery.getMany()) as any[];
+    const recommendations = await recQuery.getMany();
 
     const correctiveStats: Record<
       string,

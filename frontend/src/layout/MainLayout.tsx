@@ -459,7 +459,7 @@ const MainLayout: React.FC = () => {
     if (location.pathname === '/' && !hasPermission(currentUser, 'view:dashboard')) {
       let firstAllowedRoute = '';
       for (const item of filteredMenuItems) {
-        if (item.key && item.key !== '/' && !item.type) {
+        if (item.key && item.key !== '/' && !(item as { type?: string }).type) {
           firstAllowedRoute = item.key;
           break;
         }

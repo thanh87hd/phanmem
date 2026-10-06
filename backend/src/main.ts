@@ -1,3 +1,6 @@
+// PHẢI là import ĐẦU TIÊN: file này đặt process.env.TZ trước khi bất kỳ module nào
+// khác chạy code ở cấp module (cron, hằng số ngày tháng...).
+import './common/timezone';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';

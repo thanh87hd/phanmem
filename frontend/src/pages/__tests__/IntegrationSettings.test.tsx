@@ -119,5 +119,13 @@ describe('IntegrationSettings Page (IS-01 -> IS-04)', { timeout: 15000 }, () => 
         expect.anything(),
       );
     });
+
+    // The handler continues after `api.post` resolves: it sets the connection
+    // status/message, raises an antd `message.success` toast and clears the
+    // button's loading flag. Waiting for that settled state keeps those updates
+    // inside the test instead of letting them run outside `act` after it ends.
+    await waitFor(() => {
+      expect(screen.getByText(/Test OK/)).toBeDefined();
+    });
   });
 });

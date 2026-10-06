@@ -6,6 +6,7 @@ export const RoleKeywords = {
     'trưởng ban kiểm soát',
     'phó trưởng ban kiểm soát',
     'thành viên ban kiểm soát',
+    'bks',
   ],
   AUDITEE: ['đơn vị', 'auditee'],
   TEAM_LEAD: ['trưởng đoàn', 'trưởng nhóm', 'phòng', 'lead'],

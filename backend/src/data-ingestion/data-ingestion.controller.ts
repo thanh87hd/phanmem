@@ -18,7 +18,9 @@ import {
   IngestionStatus,
 } from './entities/data-ingestion-batch.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { FastifyReply } from 'fastify';
 import { FileInterceptor } from '../common/interceptors/fastify-file-interceptor';
+import type { FastifyUploadedFile } from '../common/interceptors/fastify-file-interceptor';
 import {
   CurrentUser,
   JwtPayload,
@@ -54,7 +56,7 @@ export class DataIngestionController {
   @Post('push')
   @UseInterceptors(FileInterceptor('file'))
   async pushData(
-    @UploadedFile() file: any,
+    @UploadedFile() file: FastifyUploadedFile,
     @Body('dataSource') dataSource?: IngestionSource,
     @Body('periodDate') periodDate?: string,
     @CurrentUser() user?: JwtPayload,
@@ -89,7 +91,7 @@ export class DataIngestionController {
   @Get('templates/:type')
   async downloadTemplate(
     @Param('type') type: 'transactions' | 'metrics',
-    @Res() res: any,
+    @Res() res: FastifyReply,
   ) {
     const buffer = await this.ingestionService.generateTemplate(type);
     const filename =

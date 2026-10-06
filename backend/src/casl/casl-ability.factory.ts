@@ -4,6 +4,7 @@ import {
   ExtractSubjectType,
   InferSubjects,
   MongoAbility,
+  MongoQuery,
   createMongoAbility,
 } from '@casl/ability';
 import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
@@ -60,9 +61,20 @@ export type Subjects =
   | 'all';
 export type AppAbility = MongoAbility<[Action, Subjects]>;
 
+export interface CaslUserContext {
+  userId?: number;
+  id?: number;
+  username?: string;
+  role?: unknown;
+  permissions?: string[];
+  department?: string;
+  legacyDepartment?: string;
+  departmentId?: number;
+}
+
 @Injectable()
 export class CaslAbilityFactory {
-  createForUser(user: any) {
+  createForUser(user?: CaslUserContext | null) {
     const { can, cannot, build } = new AbilityBuilder<AppAbility>(
       createMongoAbility,
     );
@@ -75,7 +87,12 @@ export class CaslAbilityFactory {
       });
     }
 
-    const roleStr = (user.role || '').toString();
+    const roleStr =
+      typeof user.role === 'string'
+        ? user.role
+        : typeof user.role === 'object' && user.role && 'name' in user.role
+          ? String((user.role as { name?: string }).name || '')
+          : '';
     const isAdmin = isAdminRole(roleStr);
     const isLanhDaoKTNB = isLanhDaoRole(roleStr);
     const isBKS = isBKSRole(roleStr);
@@ -135,12 +152,10 @@ export class CaslAbilityFactory {
         can(Action.Manage, 'SystemManagement');
       if (perms.includes('audit_committee'))
         can(Action.Manage, 'AuditCommittee');
-      if (perms.includes('audit_charter'))
-        can(Action.Manage, 'AuditCharter');
+      if (perms.includes('audit_charter')) can(Action.Manage, 'AuditCharter');
       if (perms.includes('ia_strategic_plan'))
         can(Action.Manage, 'IaStrategicPlan');
-      if (perms.includes('qaip'))
-        can(Action.Manage, 'QAIP');
+      if (perms.includes('qaip')) can(Action.Manage, 'QAIP');
       if (perms.includes('regulatory_exams'))
         can(Action.Manage, 'RegulatoryExam');
       if (perms.includes('general_tasks')) can(Action.Manage, 'Workflow');
@@ -154,7 +169,9 @@ export class CaslAbilityFactory {
       ) {
         can(Action.Manage, 'Document');
       } else {
-        can(Action.Delete, 'Document', { uploadedBy: user.userId } as any);
+        can(Action.Delete, 'Document', {
+          uploadedBy: user.userId,
+        } as MongoQuery);
       }
 
       // ==========================================
@@ -167,8 +184,7 @@ export class CaslAbilityFactory {
         can(Action.Manage, 'IaStrategicPlan');
         can(Action.Update, 'AuditCommittee');
         cannot(Action.Create, 'AuditCommittee');
-        can(Action.Update, 'RegulatoryExam');
-        cannot(Action.Create, 'RegulatoryExam');
+        can(Action.Manage, 'RegulatoryExam');
       } else if (isAuditee || perms.includes('auditee_portal')) {
         can(Action.Read, 'AuditCharter');
         cannot(Action.Manage, 'IaStrategicPlan');
@@ -177,7 +193,7 @@ export class CaslAbilityFactory {
         can(Action.Read, AuditFinding, {
           'engagement.legacyAuditedDepartment':
             user.legacyDepartment || user.department,
-        } as any);
+        } as MongoQuery<AuditFinding>);
         can(Action.Read, AuditSample);
         can(Action.Read, AuditMinute);
         cannot(Action.Create, AuditFinding);
@@ -188,10 +204,10 @@ export class CaslAbilityFactory {
         // Regular Auditors Granular Fallback (if they don't have full Manage perms)
         can(Action.Read, AuditFinding, {
           'engagement.teamMembers': { $regex: `"userId":${user.userId}` },
-        } as any);
+        } as MongoQuery<AuditFinding>);
         can(Action.Read, AuditFinding, {
           'engagement.leadAuditorId': user.userId,
-        } as any);
+        } as MongoQuery<AuditFinding>);
         can(Action.Read, AuditSample);
         can(Action.Read, AuditMinute);
         can(Action.Read, WorkingPaper);
@@ -200,12 +216,14 @@ export class CaslAbilityFactory {
         // Granular updates for their own records
         can(Action.Update, AuditFinding, {
           'engagement.leadAuditorId': user.userId,
-        } as any);
-        can(Action.Update, AuditFinding, { creatorId: user.userId } as any);
-        can(Action.Update, WorkingPaper, { creatorId: user.userId } as any);
+        } as MongoQuery<AuditFinding>);
+        can(Action.Update, AuditFinding, {
+          creatorId: user.userId,
+        } as MongoQuery<AuditFinding>);
+        can(Action.Update, WorkingPaper, { creatorId: user.userId });
         can(Action.Update, WorkingPaper, {
           'engagement.leadAuditorId': user.userId,
-        } as any);
+        } as MongoQuery<WorkingPaper>);
         can(Action.Update, AuditSample);
         can(Action.Update, AuditMinute);
 
@@ -229,7 +247,7 @@ export class CaslAbilityFactory {
           can(Action.Create, 'Recommendation');
           can(Action.Update, Recommendation, {
             assignedToId: user.userId,
-          } as any);
+          });
           can(Action.Update, 'Recommendation');
         }
 

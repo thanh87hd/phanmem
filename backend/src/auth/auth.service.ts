@@ -444,6 +444,17 @@ export class AuthService {
     if (!isValid)
       throw new UnauthorizedException('Mật khẩu hiện tại không đúng');
 
+    // PCI DSS 8.3.7: Mật khẩu mới không được trùng với mật khẩu hiện tại
+    const isSameAsCurrent = await bcrypt.compare(
+      newPassword,
+      user.passwordHash,
+    );
+    if (isSameAsCurrent) {
+      throw new ForbiddenException(
+        'Mật khẩu mới không được trùng với mật khẩu hiện tại. Vui lòng chọn mật khẩu khác.',
+      );
+    }
+
     // Validate complexity (PCI DSS 8.3.6)
     const complexity = this.validatePasswordComplexity(newPassword);
     if (!complexity.valid) {

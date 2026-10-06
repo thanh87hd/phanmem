@@ -121,6 +121,13 @@ describe('RecommendationTimeline Component (RTL-01 -> RTL-06)', () => {
       );
       expect(onRefresh).toHaveBeenCalled();
     });
+
+    // The handler continues after the POST resolves: success toast, modal close
+    // and `setSubmitting(false)`. Awaiting the toast keeps that tail inside the
+    // test instead of leaving Scheduler work queued past the end of the test.
+    await waitFor(() => {
+      expect(screen.getByText(/KTV đã xác nhận thẩm định đạt yêu cầu!/)).toBeDefined();
+    });
   });
 
   it('RTL-03: Step 4 - KTV can open explanation modal and request additional evidence', async () => {
@@ -161,6 +168,12 @@ describe('RecommendationTimeline Component (RTL-01 -> RTL-06)', () => {
         })
       );
       expect(onRefresh).toHaveBeenCalled();
+    });
+
+    // Same async tail: the warning toast, modal close and `setSubmitting(false)`
+    // all run after the POST resolves.
+    await waitFor(() => {
+      expect(screen.getByText(/Đã gửi yêu cầu giải trình và bổ sung minh chứng cho ĐVĐKT!/)).toBeDefined();
     });
   });
 
@@ -206,6 +219,11 @@ describe('RecommendationTimeline Component (RTL-01 -> RTL-06)', () => {
         })
       );
       expect(onRefresh).toHaveBeenCalled();
+    });
+
+    // Same async tail: success toast, modal close and `setSubmitting(false)`.
+    await waitFor(() => {
+      expect(screen.getByText(/Đã lưu ý kiến kết luận của Trưởng đoàn!/)).toBeDefined();
     });
   });
 
@@ -253,6 +271,11 @@ describe('RecommendationTimeline Component (RTL-01 -> RTL-06)', () => {
       );
       expect(onRefresh).toHaveBeenCalled();
     });
+
+    // Same async tail: success toast, modal close and `setSubmitting(false)`.
+    await waitFor(() => {
+      expect(screen.getByText(/Kiến nghị kiểm toán đã được phê duyệt đóng chính thức/)).toBeDefined();
+    });
   });
 
   it('RTL-06: Auditee action buttons trigger callbacks for Step 2 and Step 3', () => {
@@ -264,7 +287,7 @@ describe('RecommendationTimeline Component (RTL-01 -> RTL-06)', () => {
       status: 'NotStarted',
       closureStatus: 'Open',
       progressPercent: 0,
-      remediationPlan: null,
+      remediationPlan: undefined,
     };
 
     const { rerender } = render(

@@ -548,7 +548,10 @@ const RegulatoryKnowledgeBase: React.FC = () => {
                           type="primary"
                           icon={<EditOutlined />} 
                           onClick={() => {
-                            setIsViewModalOpen(false);
+                            // Modal "Đọc văn bản chi tiết" được điều khiển bởi state viewRecord
+                            // (open={!!viewRecord}); trước đây gọi setIsViewModalOpen (không tồn tại)
+                            // nên nút "Chỉnh sửa Markdown" ném ReferenceError và không hoạt động.
+                            setViewRecord(null);
                             openModal(viewRecord);
                           }}
                           style={{ backgroundColor: '#ea9105', borderColor: '#ea9105' }}

@@ -75,3 +75,26 @@ export interface UploadedFileContext {
   mimetype?: string;
   size?: number;
 }
+
+export interface RiskAssessmentComparison {
+  legacyUniverseName: string;
+  legacyDepartmentName: string;
+  year1Score: number | null;
+  year1Level: string | null;
+  year2Score: number | null;
+  year2Level: string | null;
+  year1ResidualRiskScore: number | null;
+  year2ResidualRiskScore: number | null;
+  scoreDelta: number | null;
+  trend: 'increased' | 'decreased' | 'stable' | 'new';
+}
+
+export interface DynamicAuditUniverse {
+  auditUniverseId: number;
+  universeName: string;
+  riskScore: number;
+  defectScore: number;
+  defectCount: number;
+  highRiskDefectCount: number;
+  dynamicRiskRating: string;
+}

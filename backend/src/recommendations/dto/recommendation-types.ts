@@ -10,6 +10,7 @@ export interface RecommendationFilters {
 export interface AuthenticatedUserContext {
   userId: number;
   username?: string;
+  fullName?: string;
   role?: string;
   legacyDepartment?: string;
   department?: string;
@@ -37,5 +38,7 @@ export interface ProgressUpdateDto {
   monitoringCycle?: string;
   auditeeUnitHead?: string;
   auditeePoc?: string;
+  legacyAuditeeUnitHead?: string;
+  legacyAuditeePoc?: string;
   evidenceLink?: string;
 }

@@ -251,7 +251,11 @@ export const ReviewNotesTab: React.FC<ReviewNotesTabProps> = ({
               Giải trình
             </Button>
           )}
-          {r.status !== 'CLOSED' && (
+          {/* Chỉ cho KÝ ĐÓNG khi KTV đã giải trình (RESOLVED hoặc đã có nội dung giải trình).
+              Backend chặn đóng note OPEN chưa có giải trình (chuẩn IIA 1311) — nếu vẫn
+              hiện nút thì người soát xét chỉ nhận được thông báo lỗi. */}
+          {r.status !== 'CLOSED' &&
+            (r.status === 'RESOLVED' || !!(r.auditorResponse || '').trim()) && (
             <Button
               type="primary"
               size="small"

@@ -111,6 +111,10 @@ export const Phase2FieldworkTab: React.FC<Phase2FieldworkTabProps> = ({
   const [viewFilter, setViewFilter] = useState<'my' | 'all'>('my');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [wsViewFilter, setWsViewFilter] = useState<'my' | 'all'>('all');
+  // Bộ lọc trạng thái Workstream. Trước đây state này bị thiếu trong khi phần lọc
+  // (dòng ~288) và Select (dòng ~920) đều dùng `wsStatusFilter`/`setWsStatusFilter`
+  // → ReferenceError khi render tab Thực địa.
+  const [wsStatusFilter, setWsStatusFilter] = useState<string>('ALL');
   const [activeSubTab, setActiveSubTab] = useState<string>('entry-meeting');
   const [guideOpen, setGuideOpen] = useState<boolean>(true);
 

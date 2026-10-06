@@ -5,19 +5,18 @@ import { DashboardConfig } from './entities/dashboard-config.entity';
 import { User } from '../users/entities/user.entity';
 import { ScopeFilterService } from '../utils/scope-filter.service';
 
+export interface DashboardWidgetItem {
+  widgetId: string;
+  visible: boolean;
+  order: number;
+  size: 'full' | 'half' | 'quarter';
+}
+
 /**
  * Default widget definitions per dashboard.
  * These are returned when a user has no saved config.
  */
-const DEFAULT_WIDGETS: Record<
-  string,
-  Array<{
-    widgetId: string;
-    visible: boolean;
-    order: number;
-    size: 'full' | 'half' | 'quarter';
-  }>
-> = {
+const DEFAULT_WIDGETS: Record<string, DashboardWidgetItem[]> = {
   home: [
     { widgetId: 'kpi-cards', visible: true, order: 1, size: 'full' },
     { widgetId: 'airisk-map', visible: true, order: 2, size: 'full' },
@@ -96,7 +95,11 @@ export class DashboardConfigService {
     userId: number,
     dashboardKey: string,
     tabKey: string = 'default',
-  ): Promise<{ widgets: any[]; isDefault: boolean; canCustomize: boolean }> {
+  ): Promise<{
+    widgets: DashboardWidgetItem[];
+    isDefault: boolean;
+    canCustomize: boolean;
+  }> {
     const canEdit = await this.canCustomize(userId);
 
     const saved = await this.configRepo.findOne({
@@ -127,12 +130,7 @@ export class DashboardConfigService {
     userId: number,
     dashboardKey: string,
     tabKey: string = 'default',
-    widgets: Array<{
-      widgetId: string;
-      visible: boolean;
-      order: number;
-      size: 'full' | 'half' | 'quarter';
-    }>,
+    widgets: DashboardWidgetItem[],
   ): Promise<DashboardConfig> {
     const canEdit = await this.canCustomize(userId);
     if (!canEdit) {
@@ -172,7 +170,7 @@ export class DashboardConfigService {
     userId: number,
     dashboardKey: string,
     tabKey: string = 'default',
-  ): Promise<{ widgets: any[] }> {
+  ): Promise<{ widgets: DashboardWidgetItem[] }> {
     const canEdit = await this.canCustomize(userId);
     if (!canEdit) {
       throw new Error('Bạn không có quyền tùy chỉnh Dashboard.');

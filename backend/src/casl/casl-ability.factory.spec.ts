@@ -41,13 +41,65 @@ describe('CaslAbilityFactory (TDD)', () => {
     });
   });
 
-  describe('BKS (Ban Kiểm Soát)', () => {
-    it('should allow BKS to read everything but not manage', () => {
-      const user = { role: 'BKS' }; // Assume isBKSRole returns true for 'BKS'
+  describe('BKS (Ban Kiểm Soát) - TC-BKS-02', () => {
+    it('should allow BKS to read all and manage RegulatoryExam, AuditCharter, IaStrategicPlan', () => {
+      const user = { role: 'BKS' };
       const ability = factory.createForUser(user);
 
-      // Wait, isBKS allows Read all? Let's check implementation behavior
-      // (The test will act as a specification)
+      // TC-BKS-02 Fix Verification: BKS must have full manage and create rights on RegulatoryExam
+      expect(ability.can(Action.Manage, 'RegulatoryExam')).toBe(true);
+      expect(ability.can(Action.Create, 'RegulatoryExam')).toBe(true);
+      expect(ability.can(Action.Read, 'RegulatoryExam')).toBe(true);
+      expect(ability.can(Action.Update, 'RegulatoryExam')).toBe(true);
+
+      // Other BKS specific rules
+      expect(ability.can(Action.Read, 'all')).toBe(true);
+      expect(ability.can(Action.Manage, 'AuditCharter')).toBe(true);
+      expect(ability.can(Action.Manage, 'IaStrategicPlan')).toBe(true);
+      expect(ability.can(Action.Update, 'AuditCommittee')).toBe(true);
+      expect(ability.can(Action.Create, 'AuditCommittee')).toBe(false);
+    });
+
+    /**
+     * TC-BKS-02b (regression production): tài khoản UAT thật đăng nhập bằng mã
+     * vai trò `bks.chair` và `bks.member`, KHÔNG phải chuỗi 'BKS'.
+     *
+     * Lỗi đã xảy ra: `RoleKeywords.BKS` thiếu từ khoá 'bks' và nhánh BKS trong
+     * casl-ability.factory có `cannot(Action.Create, 'RegulatoryExam')` → cả hai
+     * tài khoản nhận HTTP 403 "Bạn không có quyền thực hiện thao tác này theo
+     * luật ABAC mới." khi tạo Đợt Thanh tra, trái ma trận RBAC (BKS = Full).
+     */
+    it.each(['bks.chair', 'bks.member', 'BKS', 'Trưởng ban kiểm soát'])(
+      'TC-BKS-02b: vai trò "%s" phải tạo được RegulatoryExam',
+      (role) => {
+        const ability = factory.createForUser({ role });
+        expect(ability.can(Action.Create, 'RegulatoryExam')).toBe(true);
+        expect(ability.can(Action.Update, 'RegulatoryExam')).toBe(true);
+        expect(ability.can(Action.Delete, 'RegulatoryExam')).toBe(true);
+        expect(ability.can(Action.Manage, 'RegulatoryExam')).toBe(true);
+      },
+    );
+
+    it('TC-BKS-02b: BKS vẫn bị chặn tạo AuditCommittee (giữ nguyên ràng buộc cũ)', () => {
+      const ability = factory.createForUser({ role: 'bks.chair' });
+      expect(ability.can(Action.Create, 'AuditCommittee')).toBe(false);
+      expect(ability.can(Action.Update, 'AuditCommittee')).toBe(true);
+    });
+
+    it('TC-BKS-02b: Kiểm toán viên thường KHÔNG được tạo RegulatoryExam', () => {
+      const ability = factory.createForUser({
+        role: 'Kiểm toán viên',
+        permissions: [],
+      });
+      expect(ability.can(Action.Create, 'RegulatoryExam')).toBe(false);
+    });
+
+    it('should verify that non-privileged Auditee cannot create or manage RegulatoryExam', () => {
+      const auditeeUser = { role: 'Đơn vị', permissions: ['auditee_portal'] };
+      const ability = factory.createForUser(auditeeUser);
+
+      expect(ability.can(Action.Manage, 'RegulatoryExam')).toBe(false);
+      expect(ability.can(Action.Create, 'RegulatoryExam')).toBe(false);
     });
   });
 

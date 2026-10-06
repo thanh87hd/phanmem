@@ -14,6 +14,32 @@ import { KriAlert } from '../risk-indicators/entities/kri-alert.entity';
 import { KriRuleConfig } from '../continuous-monitoring/entities/kri-rule-config.entity';
 import { ContinuousMonitoringService } from '../continuous-monitoring/continuous-monitoring.service';
 
+export type RawDataRecord = Record<string, unknown>;
+
+function getField(raw: RawDataRecord, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const val = raw[k];
+    if (val !== undefined && val !== null && val !== '') {
+      return String(val);
+    }
+  }
+  return undefined;
+}
+
+function getNumberField(
+  raw: RawDataRecord,
+  ...keys: string[]
+): number | undefined {
+  for (const k of keys) {
+    const val = raw[k];
+    if (val !== undefined && val !== null && val !== '') {
+      const num = parseFloat(String(val));
+      if (!isNaN(num)) return num;
+    }
+  }
+  return undefined;
+}
+
 @Injectable()
 export class DataPipelineService {
   private readonly logger = new Logger(DataPipelineService.name);
@@ -64,7 +90,7 @@ export class DataPipelineService {
       }
 
       const fileExt = batch.fileName.split('.').pop()?.toLowerCase();
-      let records: any[] = [];
+      let records: RawDataRecord[] = [];
 
       if (fileExt === 'xlsx' || fileExt === 'xls') {
         records = await this.parseExcel(batch.rawFilePath);
@@ -92,12 +118,12 @@ export class DataPipelineService {
       // Check dataset type (Fact Daily Metrics vs General Transactions)
       const firstRow = records[0] || {};
       const isMetricData =
-        firstRow.branchcode !== undefined ||
-        firstRow.branch_code !== undefined ||
-        firstRow.nplratio !== undefined ||
-        firstRow.npl_ratio !== undefined ||
-        firstRow.carratio !== undefined ||
-        firstRow.car_ratio !== undefined;
+        firstRow['branchcode'] !== undefined ||
+        firstRow['branch_code'] !== undefined ||
+        firstRow['nplratio'] !== undefined ||
+        firstRow['npl_ratio'] !== undefined ||
+        firstRow['carratio'] !== undefined ||
+        firstRow['car_ratio'] !== undefined;
 
       if (isMetricData) {
         this.logger.log(
@@ -136,27 +162,32 @@ export class DataPipelineService {
           `Triggering Continuous Monitoring scan after batch ${batch.batchCode}...`,
         );
         await this.continuousMonitoringService.runScan();
-      } catch (scanErr: any) {
+      } catch (scanErr: unknown) {
+        const error = scanErr as Error;
         this.logger.error(
-          `Continuous Monitoring auto-scan failed: ${scanErr.message}`,
+          `Continuous Monitoring auto-scan failed: ${error?.message}`,
         );
       }
 
       return batch;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       batch.status = IngestionStatus.FAILED;
-      batch.errorLog = err.message;
+      batch.errorLog = error?.message || 'Unknown ingestion error';
       batch.completedAt = new Date();
       await this.batchRepo.save(batch);
       this.logger.error(
-        `Failed to process batch ${batch.batchCode}: ${err.message}`,
-        err.stack,
+        `Failed to process batch ${batch.batchCode}: ${error?.message}`,
+        error?.stack,
       );
       throw err;
     }
   }
 
-  private async processTransactions(records: any[], batchCode: string) {
+  private async processTransactions(
+    records: RawDataRecord[],
+    batchCode: string,
+  ) {
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
@@ -164,44 +195,57 @@ export class DataPipelineService {
     for (const [index, raw] of records.entries()) {
       try {
         const txCode =
-          raw.transactioncode ||
-          raw.transaction_code ||
-          raw.ma_giao_dich ||
-          raw.code ||
-          `TX-${batchCode}-${index + 1}`;
-        const amount = parseFloat(raw.amount || raw.so_tien || raw.value || 0);
+          getField(
+            raw,
+            'transactioncode',
+            'transaction_code',
+            'ma_giao_dich',
+            'code',
+          ) || `TX-${batchCode}-${index + 1}`;
+        const amount = getNumberField(raw, 'amount', 'so_tien', 'value') ?? 0;
         const accountId =
-          raw.accountid ||
-          raw.account_id ||
-          raw.so_tai_khoan ||
-          raw.account ||
-          raw.ma_tk ||
-          'ACC-UNKNOWN';
+          getField(
+            raw,
+            'accountid',
+            'account_id',
+            'so_tai_khoan',
+            'account',
+            'ma_tk',
+          ) || 'ACC-UNKNOWN';
         const customerName =
-          raw.customername ||
-          raw.customer_name ||
-          raw.ten_khach_hang ||
-          raw.khach_hang ||
-          raw.customer ||
-          null;
+          getField(
+            raw,
+            'customername',
+            'customer_name',
+            'ten_khach_hang',
+            'khach_hang',
+            'customer',
+          ) || null;
         const vendorName =
-          raw.vendorname ||
-          raw.vendor_name ||
-          raw.nha_cung_cap ||
-          raw.vendor ||
-          raw.doi_tac ||
-          null;
+          getField(
+            raw,
+            'vendorname',
+            'vendor_name',
+            'nha_cung_cap',
+            'vendor',
+            'doi_tac',
+          ) || null;
         const description =
-          raw.description || raw.noi_dung || raw.dien_giai || raw.ghi_chu || '';
-        const txDate =
-          raw.transactiondate || raw.transaction_date || raw.ngay_gd || raw.date
-            ? new Date(
-                raw.transactiondate ||
-                  raw.transaction_date ||
-                  raw.ngay_gd ||
-                  raw.date,
-              )
-            : new Date();
+          getField(
+            raw,
+            'description',
+            'noi_dung',
+            'dien_giai',
+            'ghi_chu',
+          ) || '';
+        const rawDate = getField(
+          raw,
+          'transactiondate',
+          'transaction_date',
+          'ngay_gd',
+          'date',
+        );
+        const txDate = rawDate ? new Date(rawDate) : new Date();
 
         let transaction = await this.transactionRepo.findOne({
           where: { transactionCode: String(txCode) },
@@ -228,10 +272,11 @@ export class DataPipelineService {
 
         await this.transactionRepo.save(transaction);
         successCount++;
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const error = err as Error;
         errorCount++;
         if (errors.length < 50) {
-          errors.push(`Row ${index + 1}: ${err.message}`);
+          errors.push(`Row ${index + 1}: ${error?.message || 'Error'}`);
         }
       }
     }
@@ -240,7 +285,7 @@ export class DataPipelineService {
   }
 
   private async processFactMetrics(
-    records: any[],
+    records: RawDataRecord[],
     fallbackPeriodDate?: string,
   ) {
     let successCount = 0;
@@ -255,16 +300,15 @@ export class DataPipelineService {
     for (const [index, raw] of records.entries()) {
       try {
         const branchCode =
-          raw.branchcode ||
-          raw.branch_code ||
-          raw.ma_don_vi ||
-          raw.ma_chi_nhanh ||
-          'HO';
+          getField(
+            raw,
+            'branchcode',
+            'branch_code',
+            'ma_don_vi',
+            'ma_chi_nhanh',
+          ) || 'HO';
         const metricDateStr =
-          raw.metricdate ||
-          raw.metric_date ||
-          raw.date ||
-          raw.ngay ||
+          getField(raw, 'metricdate', 'metric_date', 'date', 'ngay') ||
           fallbackPeriodDate ||
           new Date().toISOString().split('T')[0];
         const metricDate = new Date(metricDateStr);
@@ -280,33 +324,37 @@ export class DataPipelineService {
           });
         }
 
-        // Map standard metrics
-        if (raw.carratio || raw.car_ratio)
-          fact.carRatio = parseFloat(raw.carratio || raw.car_ratio);
-        if (raw.nplratio || raw.npl_ratio)
-          fact.nplRatio = parseFloat(raw.nplratio || raw.npl_ratio);
-        if (raw.group2ratio || raw.group2_ratio)
-          fact.group2Ratio = parseFloat(raw.group2ratio || raw.group2_ratio);
-        if (raw.llrratio || raw.llr_ratio)
-          fact.llrRatio = parseFloat(raw.llrratio || raw.llr_ratio);
-        if (raw.cirratio || raw.cir_ratio)
-          fact.cirRatio = parseFloat(raw.cirratio || raw.cir_ratio);
-        if (raw.nimratio || raw.nim_ratio)
-          fact.nimRatio = parseFloat(raw.nimratio || raw.nim_ratio);
-        if (raw.roaratio || raw.roa_ratio)
-          fact.roaRatio = parseFloat(raw.roaratio || raw.roa_ratio);
-        if (raw.roeratio || raw.roe_ratio)
-          fact.roeRatio = parseFloat(raw.roeratio || raw.roe_ratio);
-        if (raw.ldrratio || raw.ldr_ratio)
-          fact.ldrRatio = parseFloat(raw.ldrratio || raw.ldr_ratio);
-        if (raw.liquidity30daysratio || raw.liquidity_30days_ratio)
-          fact.liquidity30DaysRatio = parseFloat(
-            raw.liquidity30daysratio || raw.liquidity_30days_ratio,
-          );
-        if (raw.liquidityreserveratio || raw.liquidity_reserve_ratio)
-          fact.liquidityReserveRatio = parseFloat(
-            raw.liquidityreserveratio || raw.liquidity_reserve_ratio,
-          );
+        // Map standard metrics safely
+        const car = getNumberField(raw, 'carratio', 'car_ratio');
+        if (car !== undefined) fact.carRatio = car;
+        const npl = getNumberField(raw, 'nplratio', 'npl_ratio');
+        if (npl !== undefined) fact.nplRatio = npl;
+        const g2 = getNumberField(raw, 'group2ratio', 'group2_ratio');
+        if (g2 !== undefined) fact.group2Ratio = g2;
+        const llr = getNumberField(raw, 'llrratio', 'llr_ratio');
+        if (llr !== undefined) fact.llrRatio = llr;
+        const cir = getNumberField(raw, 'cirratio', 'cir_ratio');
+        if (cir !== undefined) fact.cirRatio = cir;
+        const nim = getNumberField(raw, 'nimratio', 'nim_ratio');
+        if (nim !== undefined) fact.nimRatio = nim;
+        const roa = getNumberField(raw, 'roaratio', 'roa_ratio');
+        if (roa !== undefined) fact.roaRatio = roa;
+        const roe = getNumberField(raw, 'roeratio', 'roe_ratio');
+        if (roe !== undefined) fact.roeRatio = roe;
+        const ldr = getNumberField(raw, 'ldrratio', 'ldr_ratio');
+        if (ldr !== undefined) fact.ldrRatio = ldr;
+        const liq30 = getNumberField(
+          raw,
+          'liquidity30daysratio',
+          'liquidity_30days_ratio',
+        );
+        if (liq30 !== undefined) fact.liquidity30DaysRatio = liq30;
+        const liqRes = getNumberField(
+          raw,
+          'liquidityreserveratio',
+          'liquidity_reserve_ratio',
+        );
+        if (liqRes !== undefined) fact.liquidityReserveRatio = liqRes;
 
         await this.factMetricRepo.save(fact);
 
@@ -378,10 +426,11 @@ export class DataPipelineService {
         }
 
         successCount++;
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const error = err as Error;
         errorCount++;
         if (errors.length < 50) {
-          errors.push(`Row ${index + 1}: ${err.message}`);
+          errors.push(`Row ${index + 1}: ${error?.message || 'Error'}`);
         }
       }
     }
@@ -389,14 +438,14 @@ export class DataPipelineService {
     return { successCount, errorCount, errors };
   }
 
-  private async parseExcel(filePath: string): Promise<any[]> {
+  private async parseExcel(filePath: string): Promise<RawDataRecord[]> {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.worksheets[0];
     if (!worksheet) return [];
 
     const headers: string[] = [];
-    const rows: any[] = [];
+    const rows: RawDataRecord[] = [];
 
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) {
@@ -405,14 +454,14 @@ export class DataPipelineService {
           headers[colNumber] = this.normalizeHeader(header);
         });
       } else {
-        const rowData: Record<string, any> = {};
+        const rowData: RawDataRecord = {};
         let hasData = false;
         row.eachCell((cell, colNumber) => {
           const header = headers[colNumber];
           if (header) {
-            let val = cell.value;
+            let val: unknown = cell.value;
             if (val && typeof val === 'object' && 'result' in val) {
-              val = (val as any).result;
+              val = (val as { result: unknown }).result;
             }
             rowData[header] = val;
             hasData = true;
@@ -427,7 +476,7 @@ export class DataPipelineService {
     return rows;
   }
 
-  private async parseCsv(filePath: string): Promise<any[]> {
+  private async parseCsv(filePath: string): Promise<RawDataRecord[]> {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
     if (lines.length < 2) return [];
@@ -436,12 +485,12 @@ export class DataPipelineService {
       .split(',')
       .map((h) => h.trim().replace(/^"|"$/g, ''));
     const headers = rawHeaders.map((h) => this.normalizeHeader(h));
-    const records: any[] = [];
+    const records: RawDataRecord[] = [];
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
-      const row: Record<string, any> = {};
+      const row: RawDataRecord = {};
       let hasData = false;
       headers.forEach((header, index) => {
         if (header && values[index] !== undefined) {
@@ -457,16 +506,28 @@ export class DataPipelineService {
     return records;
   }
 
-  private async parseJson(filePath: string): Promise<any[]> {
+  private async parseJson(filePath: string): Promise<RawDataRecord[]> {
     const content = fs.readFileSync(filePath, 'utf-8');
     const data = JSON.parse(content);
     if (Array.isArray(data)) {
-      return data;
+      return data as RawDataRecord[];
     }
-    if (data && Array.isArray(data.records || data.data || data.items)) {
-      return data.records || data.data || data.items;
+    if (
+      data &&
+      typeof data === 'object' &&
+      Array.isArray(
+        (data as Record<string, unknown>).records ||
+          (data as Record<string, unknown>).data ||
+          (data as Record<string, unknown>).items,
+      )
+    ) {
+      return (
+        ((data as Record<string, unknown>).records ||
+          (data as Record<string, unknown>).data ||
+          (data as Record<string, unknown>).items) as RawDataRecord[]
+      );
     }
-    return [data];
+    return [data as RawDataRecord];
   }
 
   private normalizeHeader(header: string): string {

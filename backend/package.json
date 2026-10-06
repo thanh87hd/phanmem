@@ -72,7 +72,7 @@
     "mammoth": "^1.12.0",
     "mssql": "^12.5.5",
     "mysql2": "^3.22.4",
-    "nodemailer": "^9.0.1",
+    "nodemailer": "^10.0.14",
     "otplib": "^13.4.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -85,8 +85,7 @@
     "systeminformation": "^5.33.1",
     "typeorm": "^0.3.29",
     "uuid": "^14.0.0",
-    "ws": "^8.22.0",
-    "xlsx": "^0.18.5"
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
@@ -116,7 +115,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "xlsx": "^0.18.5"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -126,6 +126,9 @@
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "setupFiles": [
+      "<rootDir>/common/timezone.ts"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": [
         "ts-jest",
@@ -148,6 +151,7 @@
     "testEnvironment": "node"
   },
   "overrides": {
-    "js-yaml": "^4.1.2"
+    "js-yaml": "^4.1.2",
+    "fastify": "^5.12.5"
   }
 }

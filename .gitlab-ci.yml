@@ -1,0 +1,195 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# LPBANK SMART AUDIT 4.0 — GITLAB CI/CD PIPELINE
+# Chuẩn hóa quy trình Kiểm thử & Triển khai Tự động cho Ngân hàng LPBank
+# Mục tiêu VPS: https://chinhta.io.vn (/var/www/phanmem)
+# ═══════════════════════════════════════════════════════════════════════════
+
+image: node:20-bullseye
+
+variables:
+  APP_DIR: "/var/www/phanmem"
+  NODE_ENV: "production"
+
+stages:
+  - lint-and-check
+  - build
+  - test
+  - deploy
+  - post-verify
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - backend/node_modules/
+    - frontend/node_modules/
+    - .npm/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 1: LINT & TYPECHECK
+# ─────────────────────────────────────────────────────────────────────────────
+lint:backend:
+  stage: lint-and-check
+  script:
+    - cd backend
+    - npm ci --legacy-peer-deps --cache ../.npm --prefer-offline || npm install --legacy-peer-deps
+    - npx tsc -p tsconfig.build.json --noEmit
+    - npm run lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+lint:frontend:
+  stage: lint-and-check
+  script:
+    - cd frontend
+    - npm ci --legacy-peer-deps --cache ../.npm --prefer-offline || npm install --legacy-peer-deps
+    - npx tsc -b --noEmit
+    - npm run lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 2: BUILD
+# ─────────────────────────────────────────────────────────────────────────────
+build:backend:
+  stage: build
+  script:
+    - cd backend
+    - npm ci --legacy-peer-deps --cache ../.npm --prefer-offline || npm install --legacy-peer-deps
+    - npm run build:tsc
+    - mkdir -p ../release-bundle
+    - tar -czf ../release-bundle/backend-dist.tar.gz dist package.json package-lock.json templates
+    - tar -czf ../release-bundle/migrations.tar.gz -C src/database migrations
+  artifacts:
+    paths:
+      - release-bundle/backend-dist.tar.gz
+      - release-bundle/migrations.tar.gz
+    expire_in: 3 days
+
+build:frontend:
+  stage: build
+  script:
+    - cd frontend
+    - npm ci --legacy-peer-deps --cache ../.npm --prefer-offline || npm install --legacy-peer-deps
+    - npm run build
+    - mkdir -p ../release-bundle
+    - tar -czf ../release-bundle/frontend-dist.tar.gz -C dist .
+  artifacts:
+    paths:
+      - release-bundle/frontend-dist.tar.gz
+    expire_in: 3 days
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 3: TEST (ARCHITECTURAL & INTEGRATION VERIFICATION)
+# ─────────────────────────────────────────────────────────────────────────────
+test:architectural-integrity:
+  stage: test
+  script:
+    - npm install
+    - echo "Executing Phase A-F architecture verifiers..."
+    - node scripts/verify-all-phases.cjs
+    - echo "Executing ADR-0012 Git hygiene verifier..."
+    - node scripts/verify-phase5.cjs
+    - echo "Executing 70/70 routing and menu integrity verifier..."
+    - node scripts/verify-all-routed-and-menu.cjs
+    - echo "Executing engagement fieldwork refactor verifier..."
+    - node scripts/verify-engagement-fieldwork-refactor.cjs
+    - echo "Executing RBIA planning hub verifier..."
+    - node scripts/verify-rbia-planning-hub.cjs
+    - echo "Executing tasks, KPI and BKS verifiers..."
+    - node scripts/verify-tasks-kpi-bks.cjs
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+test:backend-jest:
+  stage: test
+  script:
+    - cd backend
+    - npm test -- --ci --runInBand --reporters=default
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+test:frontend-vitest:
+  stage: test
+  script:
+    - cd frontend
+    - npm test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 4: CONTINUOUS DEPLOYMENT (VPS CHINHTA.IO.VN)
+# ─────────────────────────────────────────────────────────────────────────────
+deploy:production:
+  stage: deploy
+  dependencies:
+    - build:backend
+    - build:frontend
+  before_script:
+    - apt-get update -y && apt-get install -y openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$VPS_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+  script:
+    - echo "Transferring release packages to $VPS_HOST..."
+    - scp -P ${VPS_PORT:-22} release-bundle/*.tar.gz ${VPS_USER}@${VPS_HOST}:/tmp/
+    - ssh -p ${VPS_PORT:-22} ${VPS_USER}@${VPS_HOST} "bash -se" << 'EOF'
+        set -e
+        APP_DIR="/var/www/phanmem"
+        BACKUP_DIR="/var/www/phanmem_backups/$(date +%Y%m%d_%H%M%S)"
+        
+        echo ">>> Creating rolling backup at $BACKUP_DIR..."
+        mkdir -p "$BACKUP_DIR"
+        [ -d "$APP_DIR/backend/dist" ] && cp -r "$APP_DIR/backend/dist" "$BACKUP_DIR/backend_dist"
+        [ -d "$APP_DIR/frontend/dist" ] && cp -r "$APP_DIR/frontend/dist" "$BACKUP_DIR/frontend_dist"
+        
+        echo ">>> Deploying backend..."
+        mkdir -p "$APP_DIR/backend"
+        tar -xzf /tmp/backend-dist.tar.gz -C "$APP_DIR/backend"
+        cd "$APP_DIR/backend"
+        npm ci --legacy-peer-deps --omit=dev --ignore-scripts || npm install --legacy-peer-deps --omit=dev --ignore-scripts
+        
+        echo ">>> Deploying migrations & applying schema changes..."
+        mkdir -p "$APP_DIR/backend/src/database"
+        tar -xzf /tmp/migrations.tar.gz -C "$APP_DIR/backend/src/database"
+        npm run migration:run
+        
+        echo ">>> Deploying frontend..."
+        mkdir -p "$APP_DIR/frontend/dist"
+        rm -rf "$APP_DIR/frontend/dist"/*
+        tar -xzf /tmp/frontend-dist.tar.gz -C "$APP_DIR/frontend/dist"
+        
+        echo ">>> Setting www-data ownership..."
+        chown -R www-data:www-data "$APP_DIR/backend" "$APP_DIR/frontend"
+        rm -f /tmp/backend-dist.tar.gz /tmp/frontend-dist.tar.gz /tmp/migrations.tar.gz
+        
+        echo ">>> Reloading PM2 services..."
+        pm2 reload nestjs-backend --update-env || pm2 restart nestjs-backend
+        pm2 reload ktnb-collab --update-env || pm2 restart ktnb-collab
+        pm2 status
+        
+        echo ">>> Reloading Nginx..."
+        nginx -t
+        systemctl reload nginx
+        
+        echo ">>> Deployment successfully applied!"
+      EOF
+  environment:
+    name: production
+    url: https://chinhta.io.vn
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE 5: POST-DEPLOYMENT 16-MODULE VERIFICATION
+# ─────────────────────────────────────────────────────────────────────────────
+verify:production-regression:
+  stage: post-verify
+  script:
+    - echo "Waiting 5 seconds for services to fully warm up..."
+    - sleep 5
+    - echo "Executing comprehensive 16-module API verification against https://chinhta.io.vn..."
+    - node scripts/test-api-comprehensive.cjs --target=vps
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

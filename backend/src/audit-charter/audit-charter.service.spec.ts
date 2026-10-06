@@ -19,7 +19,7 @@ describe('AuditCharterService', () => {
   const mockCharter: Partial<AuditCharter> = {
     id: 1,
     title: 'Điều lệ KTNB LPBank 2026',
-    version: 1,
+    version: '1', // entity: @Column({ default: '1' }) version: string (VD: '1', '2', 'v2026.1')
     purpose: 'Mục đích hoạt động KTNB',
     authority: 'Thẩm quyền truy cập hồ sơ',
     responsibility: 'Trách nhiệm kiểm toán',
@@ -56,13 +56,32 @@ describe('AuditCharterService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all charters ordered by version DESC', async () => {
+    it('should return all charters ordered by createdAt DESC', async () => {
       repo.find.mockResolvedValue([mockCharter as AuditCharter]);
       const result = await service.findAll();
       expect(result).toHaveLength(1);
       expect(repo.find).toHaveBeenCalledWith({
-        order: { version: 'DESC', createdAt: 'DESC' },
+        order: { createdAt: 'DESC' },
       });
+    });
+
+    it('should seed a default approved charter when no charter exists', async () => {
+      repo.find.mockResolvedValue([]);
+      repo.create.mockImplementation((entity: any) => entity);
+      repo.save.mockImplementation(async (entity: any) => entity);
+
+      const result = await service.findAll();
+
+      expect(result).toHaveLength(1);
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          version: 'v2026.1',
+          status: 'Approved',
+          approvalBody: 'BKS',
+        }),
+      );
+      expect(repo.save).toHaveBeenCalledTimes(1);
+      expect(result[0].status).toBe('Approved');
     });
   });
 
@@ -172,20 +191,75 @@ describe('AuditCharterService', () => {
   });
 
   describe('createNewVersion', () => {
-    it('should create v2 from v1', async () => {
-      const source = { ...mockCharter, version: 1 };
+    it('should create version 2 from version 1', async () => {
+      // version is stored as a string (entity: version: string, default '1')
+      const source = { ...mockCharter, version: '1' };
       repo.findOne.mockResolvedValue(source as AuditCharter);
-      repo.create.mockReturnValue({ ...source, version: 2 } as any);
+      repo.create.mockReturnValue({ ...source, version: '2' } as any);
       repo.save.mockResolvedValue({
         id: 3,
         ...source,
-        version: 2,
+        version: '2',
         status: 'Draft',
       } as AuditCharter);
 
       const result = await service.createNewVersion(1, mockUser);
-      expect(result.version).toBe(2);
+      expect(result.version).toBe('2');
       expect(result.status).toBe('Draft');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          version: '2',
+          status: 'Draft',
+          title: source.title,
+        }),
+      );
+    });
+
+    it('should keep the version prefix when the charter uses a vYYYY.N version', async () => {
+      // Bản Điều lệ mặc định do getCharters() seed có version 'v2026.1'.
+      // Trước đây phiên bản mới bị tính thành '20262' (strip hết ký tự không phải số).
+      const source = { ...mockCharter, version: 'v2026.1' };
+      repo.findOne.mockResolvedValue(source as AuditCharter);
+      repo.create.mockImplementation((dto: any) => ({ id: 4, ...dto }));
+      repo.save.mockImplementation((entity: any) =>
+        Promise.resolve({ id: 4, ...entity }),
+      );
+
+      await service.createNewVersion(1, mockUser);
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ version: 'v2026.2', status: 'Draft' }),
+      );
+    });
+
+    it('should increment only the last number of a multi-part version', async () => {
+      const source = { ...mockCharter, version: 'v1.9' };
+      repo.findOne.mockResolvedValue(source as AuditCharter);
+      repo.create.mockImplementation((dto: any) => ({ id: 5, ...dto }));
+      repo.save.mockImplementation((entity: any) =>
+        Promise.resolve({ id: 5, ...entity }),
+      );
+
+      await service.createNewVersion(1, mockUser);
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ version: 'v1.10' }),
+      );
+    });
+
+    it('should fall back to 1 when the source version is empty', async () => {
+      const source = { ...mockCharter, version: '' };
+      repo.findOne.mockResolvedValue(source as AuditCharter);
+      repo.create.mockImplementation((dto: any) => ({ id: 6, ...dto }));
+      repo.save.mockImplementation((entity: any) =>
+        Promise.resolve({ id: 6, ...entity }),
+      );
+
+      await service.createNewVersion(1, mockUser);
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ version: '1' }),
+      );
     });
   });
 

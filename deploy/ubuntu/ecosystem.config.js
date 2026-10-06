@@ -14,7 +14,10 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
-        BIND_HOST: '127.0.0.1'
+        BIND_HOST: '127.0.0.1',
+        // Máy chủ Ubuntu thường chạy UTC → lệch 7 giờ so với nghiệp vụ VN
+        // (giao dịch ngoài giờ, gộp trùng theo ngày, SLA quá hạn, ngày phát hành báo cáo).
+        TZ: 'Asia/Saigon'
       },
       error_file: '/var/log/pm2/ktnb-backend-err.log',
       out_file: '/var/log/pm2/ktnb-backend-out.log',

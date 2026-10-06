@@ -44,11 +44,15 @@ Invoke-SCP $frontendArchive "$AppDir/$frontendArchive"
 Invoke-SSH "mkdir -p $AppDir/frontend/dist && rm -rf $AppDir/frontend/dist/* && tar -xzf $AppDir/$frontendArchive -C $AppDir/frontend/dist && rm -f $AppDir/$frontendArchive && chown -R www-data:www-data $AppDir/frontend/dist"
 Remove-Item $frontendArchive -Force -ErrorAction SilentlyContinue
 
-# 3. Restart PM2 & Reload Nginx
-Write-Host "`n[3/3] Restarting PM2 Backend & Reloading Nginx..." -ForegroundColor Cyan
-Invoke-SSH "pm2 restart nestjs-backend ktnb-collab && pm2 status && nginx -t && systemctl reload nginx"
+# 3. Run Migrations, Restart PM2 & Reload Nginx
+Write-Host "`n[3/4] Running Migrations, Restarting PM2 Backend & Reloading Nginx..." -ForegroundColor Cyan
+Invoke-SSH "cd $AppDir/backend && node ./node_modules/typeorm/cli.js migration:run -d dist/data-source.js && pm2 restart nestjs-backend ktnb-collab && pm2 status && nginx -t && systemctl reload nginx"
+
+# 4. Verify 16 Business Modules on VPS
+Write-Host "`n[4/4] Running Comprehensive 16-Module API Regression Test..." -ForegroundColor Cyan
+node scripts/test-api-comprehensive.cjs --target=vps
 
 Write-Host "`n==========================================" -ForegroundColor Green
-Write-Host "   UPDATE COMPLETED!" -ForegroundColor Green
+Write-Host "   UPDATE & VERIFICATION COMPLETED!" -ForegroundColor Green
 Write-Host "   Website: https://chinhta.io.vn" -ForegroundColor White
 Write-Host "==========================================" -ForegroundColor Green

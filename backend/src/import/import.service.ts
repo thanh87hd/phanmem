@@ -507,7 +507,10 @@ export class ImportService {
         const cleanAuto = String(item.controlAutomation || '')
           .toLowerCase()
           .trim();
-        if (cleanAuto.includes('tự động') || cleanAuto.includes('automated')) {
+        if (
+          cleanAuto.includes('automated') ||
+          (cleanAuto.includes('tự động') && !cleanAuto.includes('bán tự động'))
+        ) {
           controlAutomation = 'Automated';
         } else if (
           cleanAuto.includes('bán tự động') ||
@@ -682,19 +685,23 @@ export class ImportService {
           ownerTeam = 'TongHop';
         }
 
-        // Chuẩn hóa trạng thái
+        // Chuẩn hóa trạng thái.
+        // LƯU Ý THỨ TỰ KIỂM TRA: phải xét "chờ"/pending TRƯỚC "phê duyệt"/approved, vì
+        // 'Chờ phê duyệt' (giá trị thật của template/UI) chứa cả hai từ khoá; nếu xét
+        // 'phê duyệt' trước thì nhánh PendingApproval không bao giờ chạy và dữ liệu bị
+        // phân loại sai thành Approved.
         let status = 'Draft';
         const cleanStatus = String(firstRow.status || '').toLowerCase();
         if (
-          cleanStatus.includes('phê duyệt') ||
-          cleanStatus.includes('approved')
-        ) {
-          status = 'Approved';
-        } else if (
           cleanStatus.includes('chờ') ||
           cleanStatus.includes('pending')
         ) {
           status = 'PendingApproval';
+        } else if (
+          cleanStatus.includes('phê duyệt') ||
+          cleanStatus.includes('approved')
+        ) {
+          status = 'Approved';
         } else if (
           cleanStatus.includes('từ chối') ||
           cleanStatus.includes('reject')
@@ -883,10 +890,14 @@ export class ImportService {
                 universeId: u.universeId,
                 universeName: u.name,
                 riskLevel: u.riskLevel,
+                justification: u.justification || '',
                 estDays: u.estDays || 10,
                 ktvCount: u.ktvCount || 3,
                 scheduledMonth: u.scheduledMonth || 1,
                 targetQuarter: u.targetQuarter || 'Q1',
+                leadAuditorId: u.leadAuditorId,
+                leadAuditorName: u.leadAuditorName || '',
+                auditCategory: u.auditCategory || 'ChiNhanh',
               }),
             ),
           );
@@ -921,10 +932,14 @@ export class ImportService {
                   universeId: u.universeId,
                   universeName: u.name,
                   riskLevel: u.riskLevel,
+                  justification: u.justification || '',
                   estDays: u.estDays || 10,
                   ktvCount: u.ktvCount || 3,
                   scheduledMonth: u.scheduledMonth || 1,
                   targetQuarter: u.targetQuarter || 'Q1',
+                  leadAuditorId: u.leadAuditorId,
+                  leadAuditorName: u.leadAuditorName || '',
+                  auditCategory: u.auditCategory || 'ChiNhanh',
                 }),
               ),
             );

@@ -7,6 +7,22 @@ import { User } from '../users/entities/user.entity';
 import { Transaction } from '../transactions/entities/transaction.entity';
 import { ScopeFilterService } from '../utils/scope-filter.service';
 
+export interface BenfordDeviationItem {
+  digit: number;
+  actualCount: number;
+  actualPercentage: number;
+  expectedPercentage: number;
+  variance: number;
+}
+
+export interface DuplicatePaymentItem {
+  vendor: string | null;
+  amount: number;
+  date: Date;
+  occurrences: number;
+  invoices: string;
+}
+
 @Injectable()
 export class ContinuousMonitoringService {
   constructor(
@@ -37,7 +53,7 @@ export class ContinuousMonitoringService {
     const expectedPercentages = [
       0, 30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6,
     ];
-    const deviations: any[] = [];
+    const deviations: BenfordDeviationItem[] = [];
     let isAnomalous = false;
 
     if (totalValid > 0) {
@@ -69,13 +85,24 @@ export class ContinuousMonitoringService {
     const map = new Map<string, Transaction[]>();
     for (const inv of transactions) {
       if (!inv.transactionDate) continue;
-      const dateStr = new Date(inv.transactionDate).toISOString().split('T')[0];
-      const key = `${inv.customerName || inv.vendorName}_${inv.amount}_${dateStr}`;
+      const transactionDate = new Date(inv.transactionDate);
+      // Quyết định: khoá "cùng ngày" phải theo LỊCH ĐỊA PHƯƠNG (giờ ngân hàng, Asia/Saigon),
+      // KHÔNG dùng toISOString() (ngày UTC) như trước.
+      //  - Nếu dùng ngày UTC: 23:30 ngày 15 và 00:30 ngày 16 giờ VN (UTC+7) cùng rơi vào ngày UTC 15
+      //    → báo trùng lặp SAI; còn 00:30 và 23:30 trong CÙNG ngày địa phương lại rơi vào 2 ngày UTC
+      //    khác nhau → BỎ SÓT trùng lặp thật.
+      //  - detectOffHoursTransactions() trong cùng file đã dùng giờ địa phương (getHours()),
+      //    nên hai bộ phát hiện phải nhất quán cùng một múi giờ địa phương.
+      if (isNaN(transactionDate.getTime())) continue; // ngày không hợp lệ: bỏ qua thay vì gộp nhầm
+      const localDay = `${transactionDate.getFullYear()}-${String(
+        transactionDate.getMonth() + 1,
+      ).padStart(2, '0')}-${String(transactionDate.getDate()).padStart(2, '0')}`;
+      const key = `${inv.customerName || inv.vendorName}_${inv.amount}_${localDay}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(inv);
     }
 
-    const duplicates: any[] = [];
+    const duplicates: DuplicatePaymentItem[] = [];
     for (const [key, group] of map.entries()) {
       if (group.length > 1) {
         duplicates.push({
@@ -105,7 +132,7 @@ export class ContinuousMonitoringService {
    * Quét dữ liệu giao dịch thật (Database-Driven)
    */
   async runScan() {
-    const newAlerts: any[] = [];
+    const newAlerts: MonitoringAlert[] = [];
 
     // --- BENFORD'S LAW ---
     const benfordResult = await this.analyzeBenfordsLaw();

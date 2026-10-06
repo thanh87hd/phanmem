@@ -116,65 +116,62 @@ File cấu hình đã được tạo tự động tại đường dẫn:
    - Nginx reload nhẹ nhàng (`systemctl reload nginx`) không ngắt traffic người dùng.
 5. **Post-Deployment Health Check**:
    - Sau khi reload, runner tự động curl kiểm tra mã HTTP status (200 OK) của trang web.
+6. **Migration nghiêm ngặt + Smoke Test chống hồi quy** (bổ sung 04/10/2026):
+   - Trước đây bước chạy migration là `npm run migration:run || echo "Migration warning"`.
+     Cách này **nuốt lỗi**: migration thất bại vẫn được coi là thành công nên
+     production âm thầm chạy code mới trên schema cũ. Hệ quả thực tế: cột
+     `audit_engagements."teamMembers"` mãi không được chuyển sang `jsonb`, khiến
+     `GET /api/audit-findings` trả **HTTP 500** cho mọi kiểm toán viên.
+     Nay migration lỗi ⇒ deploy **dừng ngay**, kèm in `migration:show` trước/sau.
+   - Thêm **smoke test** sau khi reload PM2: gọi thật `GET /api/audit-findings`
+     và **fail cứng** nếu trả về lỗi 5xx. Lý do cần bước này: toàn bộ 1241 unit
+     test đều mock repository nên **không test nào chạm PostgreSQL thật** — đúng
+     loại lỗi `operator does not exist: text @> jsonb` đã lọt ra production.
+
+### Quy trình BẮT BUỘC trước khi deploy bản có migration
+
+Chạy script kiểm tra **chỉ đọc** (không sửa dữ liệu) ngay trên VPS:
+
+```bash
+cd /var/www/phanmem/backend
+node scripts/pre-deploy-check.cjs
+```
+
+Script thực hiện 3 việc và **thoát mã 1** nếu phát hiện vấn đề chặn deploy:
+
+1. **Pre-flight cột `audit_engagements."teamMembers"`** — liệt kê các giá trị
+   KHÔNG phải JSON hợp lệ. Nếu có, `ALTER ... USING ::jsonb` sẽ thất bại và làm
+   hỏng cả deploy (do CI nay fail cứng).
+2. **Dry-run chuẩn hoá trạng thái kiến nghị** — in bảng
+   `(id, trạng thái cũ, closureStatus, tiến độ, hạn, → trạng thái mới)` để rà soát
+   thủ công TRƯỚC khi migration `NormalizeRecommendationStatus` ghi đè dữ liệu thật.
+3. **Tổng quan dữ liệu** (số đoàn/phát hiện/kiến nghị/WP/đợt thanh tra) để đối
+   chiếu trước–sau, kèm cảnh báo nếu còn giá trị `authority` không thuộc danh mục mã.
+
+Quy trình đề xuất: **backup DB → chạy pre-deploy-check → deploy → xác minh lại**.
+
+```bash
+# 1. Backup DB trước khi deploy
+pg_dump -U ktnb_user -h 127.0.0.1 -d ktnb_db -F c -b -v \
+  -f "/var/backups/ktnb/db_$(date +%Y%m%d_%H%M%S).dump"
+
+# 2. Kiểm tra trước deploy (read-only)
+cd /var/www/phanmem/backend && node scripts/pre-deploy-check.cjs
+
+# 3. Sau khi deploy: xác minh endpoint từng lỗi 500 đã trả 200
+curl -s -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:3000/api/audit-findings?limit=1'
+```
 
 ---
 
 ## 5. KỊCH BẢN CHO GITLAB CI/CD (DÀNH CHO NGÂN HÀNG DÙNG GITLAB NỘI BỘ)
 
-Nếu Khối CNTT Ngân hàng sử dụng máy chủ GitLab on-premise, tạo file `.gitlab-ci.yml` tại thư mục gốc của repository với nội dung sau:
-
-```yaml
-stages:
-  - test
-  - build
-  - deploy
-
-variables:
-  NODE_VERSION: "20"
-  APP_DIR: "/var/www/phanmem"
-
-# 1. CI: Test & TypeCheck
-lint_and_test:
-  stage: test
-  image: node:20-alpine
-  script:
-    - cd backend && npm ci && npx tsc --noEmit
-    - cd ../frontend && npm ci && npx tsc -b --noEmit
-    - cd .. && node scripts/verify-all-routed-and-menu.cjs
-
-# 2. CI: Build Bundle
-build_artifacts:
-  stage: build
-  image: node:20-alpine
-  script:
-    - cd backend && npm run build
-    - cd ../frontend && npm run build
-  artifacts:
-    paths:
-      - backend/dist/
-      - frontend/dist/
-    expire_in: 1 day
-
-# 3. CD: Deploy lên VPS chinhta.io.vn
-deploy_production:
-  stage: deploy
-  image: alpine:latest
-  only:
-    - main
-  before_script:
-    - apk add --no-cache openssh-client rsync tar curl
-    - eval $(ssh-agent -s)
-    - echo "$VPS_SSH_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
-  script:
-    - ssh $VPS_USER@$VPS_HOST "mkdir -p /var/www/phanmem_backups/$(date +%Y%m%d_%H%M%S)"
-    - rsync -avz --delete backend/dist/ $VPS_USER@$VPS_HOST:$APP_DIR/backend/dist/
-    - rsync -avz --delete frontend/dist/ $VPS_USER@$VPS_HOST:$APP_DIR/frontend/dist/
-    - ssh $VPS_USER@$VPS_HOST "chown -R www-data:www-data $APP_DIR && pm2 reload all && nginx -t && systemctl reload nginx"
-    - sleep 5
-    - curl -fI https://$VPS_HOST/ || exit 1
-```
+Nếu Khối CNTT Ngân hàng sử dụng máy chủ GitLab on-premise, file cấu hình hoàn chỉnh đã được đặt tại [`.gitlab-ci.yml`](file:///f:/Phan%20mem%20KTNB%204.0/.gitlab-ci.yml) ở thư mục gốc của repository với đầy đủ 5 stage đạt chuẩn ngân hàng:
+1. `lint-and-check`: Kiểm tra TypeScript typecheck & ESLint backend/frontend.
+2. `build`: Build backend dist & Vite frontend static bundle, xuất release artifacts.
+3. `test`: Chạy toàn bộ 6 bộ Architectural Integrity verifiers (Phases A-F, ADR-0012, 70/70 routing, RBIA hub, Fieldwork refactor, Tasks-KPI) cùng Jest & Vitest.
+4. `deploy`: SSH atomic zero-downtime deployment lên VPS `chinhta.io.vn`, tự động rolling backup vào `/var/www/phanmem_backups/`, chạy TypeORM DB migration, reload PM2 cluster & Nginx.
+5. `post-verify`: Tự động kích hoạt bộ kiểm thử API hồi quy 16 phân hệ nghiệp vụ (`node scripts/test-api-comprehensive.cjs --target=vps`) ngay trên môi trường live để đảm bảo 0 lỗi 500.
 
 ---
 

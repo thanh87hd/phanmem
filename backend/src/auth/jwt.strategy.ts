@@ -58,6 +58,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const permissions = user.role?.permissions
       ? user.role.permissions.split(',')
       : [];
+    // teamCode/fullName PHẢI được trả về: TasksService, AuditEngagementsService và
+    // RiskControlMatrixService lọc dữ liệu theo `user.teamCode`, còn AuditTrail
+    // ghi `user.fullName` làm tên người thao tác. Thiếu 2 trường này thì
+    // `... = :team` so với NULL (không bao giờ khớp) → người dùng mất quyền xem
+    // dữ liệu của chính nhóm mình.
     return {
       userId: payload.sub,
       username: payload.username,
@@ -65,6 +70,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       permissions: permissions,
       department: user.department,
       legacyDepartment: user.department,
+      teamCode: user.teamCode,
+      fullName: user.fullName,
       iat: payload.iat,
     };
   }

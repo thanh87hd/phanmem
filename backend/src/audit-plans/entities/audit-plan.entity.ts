@@ -69,6 +69,10 @@ export class AuditPlan {
       targetQuarter: u.targetQuarter,
       leadAuditorId: u.leadAuditorId,
       leadAuditorName: u.leadAuditorName,
+      // `auditCategory` là cột thật của AuditPlanUnit (và import Excel ghi vào cột này);
+      // trước đây getter bỏ sót nên kiểu của selectedUnits không khớp dữ liệu thực
+      // (lỗi TS2339 ở import.service.ts) và client không nhận được phân loại kế hoạch.
+      auditCategory: u.auditCategory,
       assignedTeamMembers: u.assignedTeamMembers,
     }));
   }

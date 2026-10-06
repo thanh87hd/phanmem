@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { AuditEngagement } from './entities/audit-engagement.entity';
 import { AuditWorkstream } from './entities/audit-workstream.entity';
 import { AuditSchedule } from '../audit-schedules/entities/audit-schedule.entity';
@@ -13,12 +13,17 @@ import { WorkingPaper } from '../working-papers/entities/working-paper.entity';
 import { EngagementChangeRequest } from './entities/engagement-change-request.entity';
 import { ScopeFilterService } from '../utils/scope-filter.service';
 import { CreateAuditEngagementDto } from './dto/create-audit-engagement.dto';
+import type { Paragraph as DocxParagraph, Table as DocxTable } from 'docx';
 import {
   AuditEngagementFilters,
   RiskAssessmentSource,
   AuthenticatedUserContext,
 } from './dto/engagement-types';
 import { IndependenceService } from '../independence/independence.service';
+import {
+  teamMembersContainsClause,
+  teamMembersJsonParam,
+} from '../common/utils/team-members-filter.util';
 
 @Injectable()
 export class AuditEngagementsService {
@@ -43,14 +48,13 @@ export class AuditEngagementsService {
       leadAuditor,
       isExpectedInfo,
       ...rest
-    } = createDto as any;
+    } = createDto;
     const entity = this.repo.create({
       ...rest,
       isExpectedInfo: isExpectedInfo ?? false,
-      legacyAuditedDepartment:
-        auditedDepartment || rest.legacyAuditedDepartment,
-      legacyPlanName: planName || rest.legacyPlanName,
-      legacyLeadAuditor: leadAuditor || rest.legacyLeadAuditor,
+      legacyAuditedDepartment: auditedDepartment,
+      legacyPlanName: planName,
+      legacyLeadAuditor: leadAuditor,
       status: rest.status || (isExpectedInfo ? 'Draft' : 'Planning'),
     } as unknown as AuditEngagement);
     return this.repo.save(entity);
@@ -103,10 +107,10 @@ export class AuditEngagementsService {
       } else {
         // KTV/Trưởng đoàn/Chuyên gia... chỉ thấy các cuộc KT được phân công hoặc cùng TeamCode
         query.andWhere(
-          '(eng.leadAuditorId = :userId OR eng.teamMembers LIKE :likeUserId OR eng.ownerTeam = :team OR EXISTS (SELECT 1 FROM audit_workstreams aws WHERE aws."engagementId" = eng.id AND (aws."assignedAuditorId" = :userId OR aws."reviewerId" = :userId)))',
+          `(eng.leadAuditorId = :userId OR ${teamMembersContainsClause('eng')} OR eng.ownerTeam = :team OR EXISTS (SELECT 1 FROM audit_workstreams aws WHERE aws."engagementId" = eng.id AND (aws."assignedAuditorId" = :userId OR aws."reviewerId" = :userId)))`,
           {
             userId: user.userId,
-            likeUserId: `%"userId":${user.userId}%`,
+            jsonUser: teamMembersJsonParam(user.userId),
             team: user.teamCode,
           },
         );
@@ -114,26 +118,48 @@ export class AuditEngagementsService {
     }
 
     const list = await query.getMany();
-    return list.map((eng) => ({
-      ...eng,
-      leadAuditor:
-        eng.legacyLeadAuditor ||
-        eng.leadAuditorUser?.fullName ||
-        (eng as any).leadAuditor ||
-        '',
-      planName:
-        eng.legacyPlanName || eng.plan?.name || (eng as any).planName || '',
-      auditedDepartment:
-        (eng.auditedDepartment as any)?.name ||
-        eng.legacyAuditedDepartment ||
-        eng.branchName ||
-        (eng as any).auditedDepartment ||
-        '',
-    }));
+    return list.map((eng) => {
+      const legacy = eng as unknown as {
+        leadAuditor?: string;
+        planName?: string;
+        auditedDepartment?: { name?: string } | string;
+      };
+      return {
+        ...eng,
+        leadAuditor:
+          eng.legacyLeadAuditor ||
+          eng.leadAuditorUser?.fullName ||
+          legacy.leadAuditor ||
+          '',
+        planName:
+          eng.legacyPlanName || eng.plan?.name || legacy.planName || '',
+        auditedDepartment:
+          (typeof eng.auditedDepartment === 'object' && eng.auditedDepartment !== null
+            ? (eng.auditedDepartment as { name?: string }).name
+            : undefined) ||
+          eng.legacyAuditedDepartment ||
+          eng.branchName ||
+          (typeof legacy.auditedDepartment === 'string'
+            ? legacy.auditedDepartment
+            : '') ||
+          '',
+      };
+    });
   }
 
-  async findOne(id: number) {
-    const eng = await this.repo.findOne({
+  /**
+   * @param manager (tuỳ chọn) EntityManager đang mở transaction. Khi có (nội bộ
+   *   từ `update()` trong luồng `approveChangeRequest`), phải đọc trên CHÍNH
+   *   transaction đó — nếu đọc bằng repo gốc sẽ không thấy bản ghi vừa ghi
+   *   nhưng chưa commit (dữ liệu cũ → dựng lịch công tác sai).
+   *   Không truyền manager → hành vi giữ nguyên cho mọi caller khác.
+   */
+  async findOne(id: number, manager?: EntityManager) {
+    const readRepo =
+      manager && typeof manager.getRepository === 'function'
+        ? manager.getRepository(AuditEngagement)
+        : this.repo;
+    const eng = await readRepo.findOne({
       where: { id },
       relations: [
         'workstreams',
@@ -143,20 +169,29 @@ export class AuditEngagementsService {
       ],
     });
     if (!eng) return null;
+    const legacy = eng as unknown as {
+      leadAuditor?: string;
+      planName?: string;
+      auditedDepartment?: { name?: string } | string;
+    };
     return {
       ...eng,
       leadAuditor:
         eng.legacyLeadAuditor ||
         eng.leadAuditorUser?.fullName ||
-        (eng as any).leadAuditor ||
+        legacy.leadAuditor ||
         '',
       planName:
-        eng.legacyPlanName || eng.plan?.name || (eng as any).planName || '',
+        eng.legacyPlanName || eng.plan?.name || legacy.planName || '',
       auditedDepartment:
-        (eng.auditedDepartment as any)?.name ||
+        (typeof eng.auditedDepartment === 'object' && eng.auditedDepartment !== null
+          ? (eng.auditedDepartment as { name?: string }).name
+          : undefined) ||
         eng.legacyAuditedDepartment ||
         eng.branchName ||
-        (eng as any).auditedDepartment ||
+        (typeof legacy.auditedDepartment === 'string'
+          ? legacy.auditedDepartment
+          : '') ||
         '',
     };
   }
@@ -204,11 +239,14 @@ export class AuditEngagementsService {
     return this.repo.save(engagement);
   }
 
-  private isPrivileged(user?: any) {
+  private isPrivileged(user?: AuthenticatedUserContext | { role?: string }) {
     return ScopeFilterService.isAdminRole(user?.role);
   }
 
-  private async assertCanManageEngagement(id: number, user?: any) {
+  private async assertCanManageEngagement(
+    id: number,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     if (this.isPrivileged(user)) return;
     const engagement = await this.repo.findOne({ where: { id } });
     if (!engagement) throw new NotFoundException('Không tìm thấy CTKT');
@@ -219,7 +257,10 @@ export class AuditEngagementsService {
     }
   }
 
-  async findWorkstreams(engagementId: number, user?: any) {
+  async findWorkstreams(
+    engagementId: number,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const query = this.workstreamRepo
       .createQueryBuilder('ws')
       .where('ws.engagementId = :engagementId', { engagementId })
@@ -240,7 +281,11 @@ export class AuditEngagementsService {
     return query.getMany();
   }
 
-  async createWorkstream(engagementId: number, dto: any, user?: any) {
+  async createWorkstream(
+    engagementId: number,
+    dto: Partial<AuditWorkstream>,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     await this.assertCanManageEngagement(engagementId, user);
     const entity = this.workstreamRepo.create({
       ...dto,
@@ -250,7 +295,11 @@ export class AuditEngagementsService {
     return this.workstreamRepo.save(entity);
   }
 
-  async updateWorkstream(id: number, dto: any, user?: any) {
+  async updateWorkstream(
+    id: number,
+    dto: Partial<AuditWorkstream>,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const existing = await this.workstreamRepo.findOne({ where: { id } });
     if (!existing) throw new NotFoundException('Không tìm thấy phần hành');
     await this.assertCanManageEngagement(existing.engagementId, user);
@@ -258,7 +307,10 @@ export class AuditEngagementsService {
     return this.workstreamRepo.findOne({ where: { id } });
   }
 
-  async deleteWorkstream(id: number, user?: any) {
+  async deleteWorkstream(
+    id: number,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const existing = await this.workstreamRepo.findOne({ where: { id } });
     if (!existing) throw new NotFoundException('Không tìm thấy phần hành');
     await this.assertCanManageEngagement(existing.engagementId, user);
@@ -266,7 +318,10 @@ export class AuditEngagementsService {
     return { success: true };
   }
 
-  async completeWorkstream(id: number, user?: any) {
+  async completeWorkstream(
+    id: number,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const ws = await this.workstreamRepo.findOne({ where: { id } });
     if (!ws) throw new NotFoundException('Không tìm thấy phần hành');
     if (!this.isPrivileged(user) && ws.assignedAuditorId !== user?.userId) {
@@ -284,7 +339,7 @@ export class AuditEngagementsService {
   async reviewWorkstream(
     id: number,
     dto: { status: string; reviewNotes?: string },
-    user?: any,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
   ) {
     const ws = await this.workstreamRepo.findOne({ where: { id } });
     if (!ws) throw new NotFoundException('Không tìm thấy phần hành');
@@ -302,7 +357,11 @@ export class AuditEngagementsService {
    * Trưởng đoàn trình duyệt Kế hoạch Đề cương, Nhân sự & Mẫu chọn (Bước 1 quy trình)
    * Có thể trình duyệt nhiều lần sau các đợt yêu cầu chỉnh sửa (Rework)
    */
-  async submitProposal(id: number, user?: any, notes?: string) {
+  async submitProposal(
+    id: number,
+    user?: AuthenticatedUserContext & { fullName?: string },
+    notes?: string,
+  ) {
     const engagement = await this.repo.findOne({ where: { id } });
     if (!engagement)
       throw new NotFoundException('Không tìm thấy cuộc kiểm toán');
@@ -337,7 +396,11 @@ export class AuditEngagementsService {
    * Trưởng ban KTNB / Người có thẩm quyền phê duyệt Kế hoạch Đề cương & Ký QĐ thành lập Đoàn
    * Chuyển trạng thái cuộc kiểm toán sang Fieldwork và tự động kích hoạt bàn giao mẫu cho KTV
    */
-  async approveProposal(id: number, user?: any, notes?: string) {
+  async approveProposal(
+    id: number,
+    user?: AuthenticatedUserContext & { fullName?: string },
+    notes?: string,
+  ) {
     const engagement = await this.repo.findOne({ where: { id } });
     if (!engagement)
       throw new NotFoundException('Không tìm thấy cuộc kiểm toán');
@@ -371,7 +434,11 @@ export class AuditEngagementsService {
    * Trưởng ban KTNB yêu cầu review lại/chỉnh sửa Kế hoạch Đề cương & Mẫu chọn
    * Tăng biến đếm proposalRevisionCount (để tính điểm KPI chất lượng lập KH của Trưởng đoàn)
    */
-  async rejectProposal(id: number, notes: string, user?: any) {
+  async rejectProposal(
+    id: number,
+    notes: string,
+    user?: AuthenticatedUserContext & { fullName?: string },
+  ) {
     if (!notes)
       throw new BadRequestException(
         'Vui lòng nhập lý do yêu cầu chỉnh sửa đề cương',
@@ -401,7 +468,11 @@ export class AuditEngagementsService {
     return this.repo.save(engagement);
   }
 
-  async requestClose(id: number, notes = '', user?: any) {
+  async requestClose(
+    id: number,
+    notes = '',
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     await this.assertCanManageEngagement(id, user);
     await this.validateCloseReadiness(id);
     await this.repo.update(id, {
@@ -411,7 +482,11 @@ export class AuditEngagementsService {
     return this.findOne(id);
   }
 
-  async closeWorkspace(id: number, notes = '', user?: any) {
+  async closeWorkspace(
+    id: number,
+    notes = '',
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     await this.assertCanManageEngagement(id, user);
     await this.validateCloseReadiness(id);
     await this.repo.update(id, {
@@ -455,9 +530,20 @@ export class AuditEngagementsService {
     }
   }
 
-  async update(id: number, updateDto: any) {
+  /**
+   * @param manager (tuỳ chọn) EntityManager của transaction đang mở. Khi được
+   *   truyền vào (ví dụ từ `approveChangeRequest`), bản ghi cuộc kiểm toán được
+   *   ghi trên CHÍNH transaction đó để đảm bảo tính nguyên tử: nếu ghi trạng
+   *   thái yêu cầu thay đổi thất bại và rollback thì thay đổi cuộc KT cũng phải
+   *   rollback theo. Mọi caller khác không truyền manager → hành vi giữ nguyên.
+   */
+  async update(
+    id: number,
+    updateDto: Partial<CreateAuditEngagementDto> & Record<string, unknown>,
+    manager?: EntityManager,
+  ) {
     const { auditedDepartment, planName, leadAuditor, ...rest } = updateDto;
-    const cleanDto: any = { ...rest };
+    const cleanDto: Record<string, unknown> = { ...rest };
     if (auditedDepartment !== undefined) {
       cleanDto.legacyAuditedDepartment = auditedDepartment;
     }
@@ -471,8 +557,10 @@ export class AuditEngagementsService {
     // ===== IIA Standard 1.2: Independence Auto-Block =====
     // Kiểm tra xung đột lợi ích khi phân công thành viên đoàn
     const departmentName =
-      auditedDepartment ||
-      cleanDto.legacyAuditedDepartment ||
+      (typeof auditedDepartment === 'string' ? auditedDepartment : undefined) ||
+      (typeof cleanDto.legacyAuditedDepartment === 'string'
+        ? cleanDto.legacyAuditedDepartment
+        : undefined) ||
       (await this.repo.findOne({ where: { id } }))?.legacyAuditedDepartment ||
       '';
 
@@ -480,8 +568,8 @@ export class AuditEngagementsService {
       // Check lead auditor
       if (cleanDto.leadAuditorId) {
         const check = await this.independenceService.checkAssignmentSafety(
-          cleanDto.leadAuditorId,
-          leadAuditor || '',
+          cleanDto.leadAuditorId as number,
+          (leadAuditor as string) || '',
           departmentName,
         );
         if (!check.safe) {
@@ -497,7 +585,7 @@ export class AuditEngagementsService {
 
       // Check team members
       if (cleanDto.teamMembers && Array.isArray(cleanDto.teamMembers)) {
-        for (const member of cleanDto.teamMembers) {
+        for (const member of cleanDto.teamMembers as Array<{ userId: number; fullName?: string; independenceWarning?: string }>) {
           const check = await this.independenceService.checkAssignmentSafety(
             member.userId,
             member.fullName || '',
@@ -520,15 +608,25 @@ export class AuditEngagementsService {
     delete cleanDto.allowWarning;
     delete cleanDto.bypassIndependenceCheck;
 
-    await this.repo.update(id, cleanDto);
-    const updated = await this.findOne(id);
+    // Ghi cuộc KT trên CÙNG manager/transaction nếu có (xem docstring ở trên).
+    // `manager` có thể là fallback repo (khi repo không có .manager.transaction)
+    // nên chỉ dùng getRepository khi thực sự tồn tại — mặc định vẫn là `this.repo`.
+    const targetRepo =
+      manager && typeof manager.getRepository === 'function'
+        ? manager.getRepository(AuditEngagement)
+        : this.repo;
+
+    await targetRepo.update(id, cleanDto);
+    // Đọc lại TRÊN CÙNG transaction để lấy dữ liệu vừa ghi (dùng cho việc dựng
+    // lịch công tác bên dưới); không truyền manager → this.repo như cũ.
+    const updated = await this.findOne(id, manager);
 
     if (updated && updated.startDate && updated.endDate) {
       // 1. Xóa các lịch công tác cũ liên quan đến cuộc kiểm toán này
       await this.scheduleRepo.delete({ engagementId: id });
 
       // 2. Tạo lịch mới cho Trưởng đoàn
-      const schedulesToCreate: any[] = [];
+      const schedulesToCreate: AuditSchedule[] = [];
       if (updated.leadAuditorId) {
         schedulesToCreate.push(
           this.scheduleRepo.create({
@@ -591,7 +689,7 @@ export class AuditEngagementsService {
     engagementId: number,
     userId: number,
     username: string,
-    payload: any,
+    payload: { reason?: string; [key: string]: unknown },
   ) {
     const engagement = await this.findOne(engagementId);
     if (!engagement) {
@@ -659,10 +757,12 @@ export class AuditEngagementsService {
       );
     }
 
-    const executeApprovalInTransaction = async (manager: any) => {
-      // Apply changes to engagement
+    const executeApprovalInTransaction = async (manager: EntityManager) => {
+      // Apply changes to engagement — PHẢI dùng cùng manager/transaction với
+      // lệnh ghi trạng thái yêu cầu bên dưới, nếu không thì khi rollback,
+      // cuộc KT vẫn đã bị sửa ("yêu cầu chưa duyệt nhưng cuộc KT đã đổi").
       const engagementId = request.engagementId;
-      await this.update(engagementId, request.requestedChanges);
+      await this.update(engagementId, request.requestedChanges, manager);
 
       // Update request status
       request.status = 'Approved';
@@ -777,7 +877,7 @@ export class AuditEngagementsService {
         ? `từ ngày ${engagement.fieldworkStartDate} đến ngày ${engagement.fieldworkEndDate}`
         : 'theo kế hoạch đã phê duyệt';
 
-    const children: any[] = [];
+    const children: Array<DocxParagraph | DocxTable> = [];
 
     // Header Quốc hiệu / Ngân hàng
     children.push(
@@ -1057,7 +1157,7 @@ export class AuditEngagementsService {
       outlineDocUrl?: string;
       samplingPlanDocUrl?: string;
     },
-    user?: any,
+    user?: AuthenticatedUserContext | { username?: string },
   ): Promise<AuditEngagement> {
     const engagement = await this.repo.findOne({ where: { id } });
     if (!engagement) {

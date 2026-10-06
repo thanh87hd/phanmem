@@ -726,7 +726,7 @@ export class UpdateSampleDto {
   sampleType?: any;
 
   @IsOptional()
-  testedAt?: any;
+  testedAt?: Date | string;
 
   @IsOptional()
   finding?: any;

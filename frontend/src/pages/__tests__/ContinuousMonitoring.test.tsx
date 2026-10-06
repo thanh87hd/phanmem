@@ -152,16 +152,37 @@ describe('ContinuousMonitoring Page (CM-01 -> CM-06)', { timeout: 15000 }, () =>
 
     render(<ContinuousMonitoring />);
 
-    await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/continuous-monitoring/alerts');
-    });
+    await waitFor(
+      () => {
+        expect(api.get).toHaveBeenCalledWith('/continuous-monitoring/alerts');
+      },
+      { timeout: 15000 },
+    );
+
+    // Nút quét có `loading={loading}`; antd BỎ QUA click khi nút đang loading.
+    // Chờ API mount hoàn tất (nút hết loading) rồi mới click, nếu không test sẽ
+    // flaky: khi máy bận, click xảy ra lúc `loading` còn true ⇒ api.post = 0 lần gọi.
+    await waitFor(
+      () => {
+        const btn = screen
+          .getByText('Quét dữ liệu ngay')
+          .closest('button') as HTMLButtonElement;
+        expect(btn).not.toBeNull();
+        expect(btn.className).not.toContain('ant-btn-loading');
+        expect(btn.disabled).toBe(false);
+      },
+      { timeout: 15000 },
+    );
 
     const scanBtn = screen.getByText('Quét dữ liệu ngay');
     fireEvent.click(scanBtn);
 
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/continuous-monitoring/run-scan');
-    });
+    await waitFor(
+      () => {
+        expect(api.post).toHaveBeenCalledWith('/continuous-monitoring/run-scan');
+      },
+      { timeout: 15000 },
+    );
   });
 
   it('CM-04: Switches to "Cấu hình Tham số (CAMELS)" tab and displays rules list', async () => {

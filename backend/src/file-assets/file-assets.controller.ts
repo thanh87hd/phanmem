@@ -111,15 +111,19 @@ export class FileAssetsController {
   async downloadByLink(
     @Param('linkId', ParseIntPipe) linkId: number,
     @Res() res: FastifyReply,
+    @Query('inline') inline?: string,
   ) {
     const { stream, asset } =
       await this.fileAssetsService.getFileStreamByLinkId(linkId);
+
+    const dispositionType =
+      inline === 'true' || inline === '1' ? 'inline' : 'attachment';
 
     return res
       .type(asset.mimeType || 'application/octet-stream')
       .header(
         'Content-Disposition',
-        `attachment; filename="${encodeURIComponent(asset.originalName)}"`,
+        `${dispositionType}; filename="${encodeURIComponent(asset.originalName)}"`,
       )
       .send(stream);
   }
@@ -132,15 +136,19 @@ export class FileAssetsController {
   async downloadByAsset(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: FastifyReply,
+    @Query('inline') inline?: string,
   ) {
     const { stream, asset } =
       await this.fileAssetsService.getFileStreamByAssetId(id);
+
+    const dispositionType =
+      inline === 'true' || inline === '1' ? 'inline' : 'attachment';
 
     return res
       .type(asset.mimeType || 'application/octet-stream')
       .header(
         'Content-Disposition',
-        `attachment; filename="${encodeURIComponent(asset.originalName)}"`,
+        `${dispositionType}; filename="${encodeURIComponent(asset.originalName)}"`,
       )
       .send(stream);
   }

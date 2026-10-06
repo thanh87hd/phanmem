@@ -9,6 +9,12 @@ import { FactDailyMetric } from './entities/fact-daily-metric.entity';
 import { DebtMigrationRecord } from './entities/debt-migration.entity';
 import { KriRuleConfig } from './entities/kri-rule-config.entity';
 
+export interface KriThresholdConfig {
+  yellowThreshold: number;
+  redThreshold: number;
+  comparisonOperator?: string;
+}
+
 @Injectable()
 export class KriBacktestingService {
   private readonly logger = new Logger(KriBacktestingService.name);
@@ -42,12 +48,8 @@ export class KriBacktestingService {
     startDate: string;
     endDate: string;
     strategy?: BacktestStrategy;
-    testedThresholds?: {
-      yellowThreshold: number;
-      redThreshold: number;
-      comparisonOperator?: string;
-    };
-    user?: any;
+    testedThresholds?: KriThresholdConfig;
+    user?: { userId?: number; username?: string; role?: string; fullName?: string };
   }): Promise<KriBacktestResult> {
     const { ruleCode, startDate, endDate, strategy, user } = payload;
 
@@ -181,7 +183,7 @@ export class KriBacktestingService {
     ruleCode: string,
     startDate: string,
     endDate: string,
-    thresholds: any,
+    thresholds: KriThresholdConfig,
   ) {
     const observations: Array<{
       date: string;
@@ -227,7 +229,7 @@ export class KriBacktestingService {
    * Thuật toán tối ưu hóa ngưỡng cảnh báo (Grid Search & Maximizing F1-Score)
    */
   private calculateOptimalThresholds(
-    currentThresholds: any,
+    currentThresholds: KriThresholdConfig,
     currentPrecision: number,
     currentRecall: number,
     currentFpr: number,

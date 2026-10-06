@@ -3969,6 +3969,7 @@
     "pleaseEnterYourCurrentPassword": "Vui lòng nhập mật khẩu hiện tại",
     "pleaseEnterANewPassword": "Vui lòng nhập mật khẩu mới",
     "newPasswordMustBeAtLeast": "Mật khẩu mới phải có ít nhất 12 ký tự (PCI DSS 8.3.6)",
+    "passwordComplexityRequirement": "Mật khẩu mới phải có tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt",
     "passwordStrength": "Độ mạnh mật khẩu:",
     "pleaseConfirmNewPassword": "Vui lòng xác nhận mật khẩu mới",
     "2factorSecurityForEveryLogin": "Bảo mật 2 yếu tố cho mỗi lần đăng nhập",

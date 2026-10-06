@@ -30,7 +30,8 @@ import {
   SafetyOutlined, 
   FileTextOutlined, 
   CloudUploadOutlined, 
-  DownloadOutlined, 
+  DownloadOutlined,
+  EyeOutlined, 
   UndoOutlined, 
   ExclamationCircleOutlined, 
   BugOutlined,
@@ -55,6 +56,7 @@ import { PTDRemediationGrid } from './PTDRemediationGrid';
 import DetailedSamplingGrid from '../DetailedSamplingGrid';
 import { WORKING_PAPER_TEMPLATES } from '../WorkingPapersTemplates';
 import { hasPermission } from '../../utils/permission';
+import { getAttachmentPreview } from '../../utils/filePreview';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -1027,6 +1029,27 @@ export const WorkingPaperDetailDrawer: React.FC<WorkingPaperDetailDrawerProps> =
                             width: '15%',
                             render: (_, r, idx) => (
                               <Space size="small">
+                                {/* TC-WP-04: xem trước bằng chứng ngay trong trình duyệt.
+                                    Backend trả Content-Disposition: inline khi có ?inline=true,
+                                    nên PDF/ảnh/text mở trực tiếp thay vì bị tải xuống.
+                                    Định dạng Office (.docx/.xlsx) không xem trước được trên
+                                    trình duyệt nên ẩn nút để tránh tab trắng. */}
+                                {getAttachmentPreview(r).canPreview && (
+                                  <Button
+                                    type="link"
+                                    size="small"
+                                    icon={<EyeOutlined />}
+                                    onClick={() =>
+                                      window.open(
+                                        getAttachmentPreview(r).url,
+                                        '_blank',
+                                        'noopener',
+                                      )
+                                    }
+                                  >
+                                    Xem trước
+                                  </Button>
+                                )}
                                 <Button type="link" size="small" icon={<DownloadOutlined />} onClick={() => window.open(r.fileUrl)}>Tải</Button>
                                 {canEdit && (
                                   <Button type="text" danger size="small" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}>Xóa</Button>

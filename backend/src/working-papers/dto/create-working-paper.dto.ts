@@ -1,4 +1,9 @@
 import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
+import {
+  WorkingPaperAttachmentItem,
+  WorkingPaperControlAssessmentItem,
+  WorkingPaperReviewHistoryItem,
+} from '../entities/working-paper.entity';
 
 export class CreateWorkingPaperDto {
   @IsNumber()
@@ -18,7 +23,7 @@ export class CreateWorkingPaperDto {
   reviewNotes?: string;
 
   @IsOptional()
-  reviewHistory?: any;
+  reviewHistory?: WorkingPaperReviewHistoryItem[];
 
   @IsString()
   @IsNotEmpty({ message: 'Tiêu đề WP không được để trống' })
@@ -45,7 +50,7 @@ export class CreateWorkingPaperDto {
   reviewedBy?: string;
 
   @IsOptional()
-  reviewedAt?: any;
+  reviewedAt?: Date | string;
 
   @IsString()
   @IsOptional()
@@ -80,13 +85,13 @@ export class CreateWorkingPaperDto {
   templateId?: number;
 
   @IsOptional()
-  attachments?: any;
+  attachments?: WorkingPaperAttachmentItem[];
 
   @IsOptional()
-  controlAssessments?: any;
+  controlAssessments?: WorkingPaperControlAssessmentItem[];
 
   @IsOptional()
-  templateData?: any;
+  templateData?: Record<string, unknown>;
 
   @IsOptional()
   @IsNumber()

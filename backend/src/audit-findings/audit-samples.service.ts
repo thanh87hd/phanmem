@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, FindOptionsWhere } from 'typeorm';
 import * as ExcelJS from 'exceljs';
 import { AuditSampleBatch } from './entities/audit-sample-batch.entity';
 import { AuditSample } from './entities/audit-sample.entity';
@@ -16,6 +16,17 @@ import { AuditFindingPersonnel } from './entities/audit-finding-personnel.entity
 import { AuditEngagement } from '../audit-engagements/entities/audit-engagement.entity';
 import { WorkingPaper } from '../working-papers/entities/working-paper.entity';
 import { Recommendation } from '../recommendations/entities/recommendation.entity';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+
+export interface AutoGenerateSamplesOptions {
+  domain?: string;
+  sampleSize?: number;
+  targetBranches?: string[];
+  minAmount?: number;
+  debtGroups?: number[];
+  samplingStrategy?: string;
+  [key: string]: unknown;
+}
 import {
   CreateSampleBatchDto,
   UpdateSampleBatchDto,
@@ -57,7 +68,7 @@ export class AuditSamplesService {
     engagementId?: number,
     workingPaperId?: number,
   ): Promise<AuditSampleBatch[]> {
-    const where: any = {};
+    const where: FindOptionsWhere<AuditSampleBatch> = {};
     if (engagementId) where.engagementId = engagementId;
     if (workingPaperId) where.workingPaperId = workingPaperId;
 
@@ -192,7 +203,7 @@ export class AuditSamplesService {
 
     // If updating test result, auto-set testedAt
     if (dto.testResult && dto.testResult !== TestResult.NOT_TESTED) {
-      (dto as any).testedAt = new Date();
+      dto.testedAt = new Date();
     }
 
     const EXCLUDED_FIELDS = new Set([
@@ -203,7 +214,7 @@ export class AuditSamplesService {
       'updatedAt',
       'batchId',
     ]);
-    const updatePayload: any = {};
+    const updatePayload: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(dto)) {
       if (val !== undefined && !EXCLUDED_FIELDS.has(key)) {
         updatePayload[key] = val;
@@ -239,7 +250,9 @@ export class AuditSamplesService {
   async addSampleByWorkingPaper(
     workingPaperId: number,
     dto: Partial<AuditSample>,
-    currentUser?: any,
+    currentUser?:
+      | JwtPayload
+      | { fullName?: string; id?: number; userId?: number },
   ): Promise<AuditSample> {
     const wp = await this.wpRepo.findOne({
       where: { id: workingPaperId },
@@ -674,17 +687,19 @@ export class AuditSamplesService {
               rec.auditeeNotes = sample.testNotes;
           }
           await this.recRepo.save(rec);
-        } catch (recErr: any) {
+        } catch (recErr: unknown) {
+          const msg = recErr instanceof Error ? recErr.message : String(recErr);
           this.logger.warn(
-            `Could not sync to Recommendation: ${recErr?.message}`,
+            `Could not sync to Recommendation: ${msg}`,
           );
         }
       }
 
       return savedFinding;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Error syncing sample #${sample.id} to finding: ${err?.message}`,
+        `Error syncing sample #${sample.id} to finding: ${msg}`,
       );
       return null;
     }
@@ -817,7 +832,7 @@ export class AuditSamplesService {
 
   async importSamplesFromParsedData(
     batchId: number,
-    rows: any[],
+    rows: Record<string, unknown>[],
   ): Promise<{ imported: number }> {
     const batch = await this.batchRepo.findOne({
       where: { id: batchId },
@@ -834,9 +849,17 @@ export class AuditSamplesService {
         ? Math.max(...batch.samples.map((s) => s.sequenceNo || 0)) + 1
         : 1;
 
-    const teamMembers: any[] =
+    interface EngagementTeamMember {
+      userId?: number;
+      id?: number;
+      fullName?: string;
+      username?: string;
+      role?: string;
+    }
+
+    const teamMembers: EngagementTeamMember[] =
       batch.engagement && Array.isArray(batch.engagement.teamMembers)
-        ? [...batch.engagement.teamMembers]
+        ? [...(batch.engagement.teamMembers as EngagementTeamMember[])]
         : [];
 
     if (batch.engagement?.leadAuditorUser) {
@@ -877,7 +900,7 @@ export class AuditSamplesService {
 
       if (trimmedAuditor && teamMembers.length > 0) {
         const found = teamMembers.find(
-          (m: any) =>
+          (m: EngagementTeamMember) =>
             (m.fullName || m.username || '').toLowerCase().trim() ===
             trimmedAuditor.toLowerCase(),
         );
@@ -959,10 +982,10 @@ export class AuditSamplesService {
         loanAmount: parsedAmount,
         debtGroup: rawDebtGroup ? String(rawDebtGroup).trim() : undefined,
         // Process control fields
-        controlPointId: row['Mã điểm KS'] || row['controlPointId'] || '',
-        controlDescription: row['Mô tả KS'] || row['controlDescription'] || '',
-        controlFrequency: row['Tần suất'] || row['controlFrequency'] || '',
-      });
+        controlPointId: (row['Mã điểm KS'] || row['controlPointId'] || '') as string,
+        controlDescription: (row['Mô tả KS'] || row['controlDescription'] || '') as string,
+        controlFrequency: (row['Tần suất'] || row['controlFrequency'] || '') as string,
+      } as AuditSample);
     });
 
     const saved = await this.sampleRepo.save(entities);
@@ -1064,7 +1087,7 @@ export class AuditSamplesService {
 
       // Style header row
       const headerRow = ws.getRow(1);
-      headerRow.eachCell((cell: any) => {
+      headerRow.eachCell((cell: ExcelJS.Cell) => {
         cell.fill = headerFill;
         cell.font = headerFont;
         cell.alignment = {
@@ -1105,7 +1128,7 @@ export class AuditSamplesService {
           reportDelayDays: s.reportDelayDays || 0,
         });
 
-        row.eachCell((cell: any, colNumber: number) => {
+        row.eachCell((cell: ExcelJS.Cell, colNumber: number) => {
           cell.font = { name: 'Times New Roman', size: 10 };
           cell.alignment = { vertical: 'middle', wrapText: true };
           cell.border = borderStyle;
@@ -1150,7 +1173,7 @@ export class AuditSamplesService {
         to: samples.length,
       });
       const sumHeaderRow = summaryWs.getRow(1);
-      sumHeaderRow.eachCell((cell: any) => {
+      sumHeaderRow.eachCell((cell: ExcelJS.Cell) => {
         cell.fill = headerFill;
         cell.font = headerFont;
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1362,7 +1385,7 @@ export class AuditSamplesService {
 
   async autoGenerateSamples(
     batchId: number,
-    options: any,
+    options?: AutoGenerateSamplesOptions,
   ): Promise<{ generated: number }> {
     const batch = await this.findOneBatch(batchId);
 
@@ -1557,18 +1580,18 @@ export class AuditSamplesService {
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Danh sách chọn mẫu');
 
-    const headerFill: any = {
+    const headerFill: ExcelJS.Fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFE67E22' },
     };
-    const headerFont: any = {
+    const headerFont: Partial<ExcelJS.Font> = {
       name: 'Times New Roman',
       size: 11,
       bold: true,
       color: { argb: 'FFFFFFFF' },
     };
-    const borderStyle: any = {
+    const borderStyle: Partial<ExcelJS.Borders> = {
       top: { style: 'thin' },
       left: { style: 'thin' },
       bottom: { style: 'thin' },
@@ -1598,7 +1621,7 @@ export class AuditSamplesService {
     ];
 
     const headerRow = ws.getRow(1);
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell((cell: ExcelJS.Cell) => {
       cell.fill = headerFill;
       cell.font = headerFont;
       cell.alignment = {
@@ -1611,7 +1634,11 @@ export class AuditSamplesService {
     headerRow.height = 32;
 
     let sampleKtv = 'Vũ Hải Ninh';
-    const teamList: any[] = [];
+    const teamList: Array<{
+      fullName: string;
+      role: string;
+      username?: string;
+    }> = [];
     if (engagementId) {
       const eng = await this.engagementRepo.findOne({
         where: { id: engagementId },

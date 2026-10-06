@@ -17,7 +17,8 @@ import {
   Spin, 
   Select,
   Segmented,
-  Alert
+  Alert,
+  Tabs
 } from 'antd';
 import { 
   ProjectOutlined, 
@@ -107,6 +108,8 @@ export const AuditWorkspaceHub: React.FC = () => {
   const [wpStatusTab, setWpStatusTab] = useState<'all' | 'rework' | 'draft' | 'submitted' | 'approved'>('all');
   const [pendingVerificationRecs, setPendingVerificationRecs] = useState<any[]>([]);
   const [allAssignedWorkstreams, setAllAssignedWorkstreams] = useState<any[]>([]);
+  const [findings, setFindings] = useState<any[]>([]);
+  const [actionTab, setActionTab] = useState<string>('wps');
 
   const userRole = ((typeof currentUser?.role === 'object' ? currentUser?.role?.name : currentUser?.role) || '').toLowerCase();
   const isAdmin = userRole.includes('admin') || currentUser?.username === 'admin';
@@ -118,22 +121,25 @@ export const AuditWorkspaceHub: React.FC = () => {
     const fetchWorkspaceData = async () => {
       setLoading(true);
       try {
-        const [engRes, wpRes, taskRes, recRes] = await Promise.all([
+        const [engRes, wpRes, taskRes, recRes, findingsRes] = await Promise.all([
           api.get('/audit-engagements').catch(() => ({ data: [] })),
           api.get('/working-papers').catch(() => ({ data: [] })),
           api.get('/audit-tasks').catch(() => ({ data: [] })),
           api.get('/recommendations?closureStatus=PendingKTNBReview').catch(() => ({ data: [] })),
+          api.get('/audit-findings').catch(() => ({ data: [] })),
         ]);
 
         const engData = Array.isArray(engRes.data) ? engRes.data : [];
         const wpData = Array.isArray(wpRes.data) ? wpRes.data : [];
         const taskData = Array.isArray(taskRes.data) ? taskRes.data : [];
         const recData = Array.isArray(recRes.data) ? recRes.data : [];
+        const fData = Array.isArray(findingsRes.data) ? findingsRes.data : [];
 
         setEngagements(engData);
         setWorkingPapers(wpData);
         setTasks(taskData);
         setPendingVerificationRecs(recData);
+        setFindings(fData);
 
         // Fetch dossier documents & workstreams for active engagements
         const activeEngs = engData.slice(0, 6);
@@ -410,58 +416,222 @@ export const AuditWorkspaceHub: React.FC = () => {
         </div>
       </div>
 
-      {/* Dynamic Alerts: Rework Notice & Step 4 Verification */}
-      {reworkWps.length > 0 && (
-        <Alert
-          type="error"
-          showIcon
-          icon={<UndoOutlined className="text-red-500 text-base" />}
-          message={
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <span>
-                <b>Cảnh báo yêu cầu sửa lại (Rework):</b> Bạn có <b>{reworkWps.length}</b> Giấy tờ làm việc bị Trưởng đoàn từ chối duyệt và yêu cầu hoàn thiện lại.
-              </span>
-              <Button 
-                size="small" 
-                danger 
-                type="primary" 
-                className="text-xs font-semibold rounded-lg"
-                onClick={() => {
-                  setHubMode('my');
-                  setWpStatusTab('rework');
-                }}
-              >
-                Xem W/P cần sửa ({reworkWps.length})
-              </Button>
-            </div>
-          }
-          className="rounded-xl border-red-200 bg-red-50/80"
-        />
-      )}
+      {/* ═══ 2.5 CENTRALIZED MY ACTION ITEMS (TC-WB-02) ═══ */}
+      {(() => {
+        const actionWps = [
+          ...reworkWps.map((w: any) => ({ ...w, _actionType: 'rework', _badgeText: 'Yêu cầu sửa (Rework)', _badgeColor: 'red' })),
+          ...(isLead ? workingPapers.filter((w: any) => ['Submitted', 'Review', 'PendingReview'].includes(w.status)).map((w: any) => ({ ...w, _actionType: 'review', _badgeText: 'Chờ thẩm định duyệt', _badgeColor: 'blue' })) : [])
+        ];
 
-      {myVerificationRecs.length > 0 && (
-        <Alert
-          type="info"
-          showIcon
-          icon={<SafetyOutlined className="text-blue-500 text-base" />}
-          message={
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <span>
-                <b>Thẩm tra khắc phục (Bước 4):</b> Có <b>{myVerificationRecs.length}</b> kiến nghị ĐVĐKT đã báo cáo hoàn thành 100% đang chờ KTV thẩm định bằng chứng.
-              </span>
-              <Button 
-                size="small" 
-                type="primary" 
-                className="bg-blue-600 text-xs font-semibold rounded-lg"
-                onClick={() => navigate('/recommendations', { state: { closureStatus: 'PendingKTNBReview' } })}
-              >
-                Mở Cổng Thẩm Tra Kiến Nghị →
-              </Button>
+        const actionFindings = findings.filter((f: any) => {
+          if (isLead) return ['Draft', 'PendingReview', 'PendingApproval', 'Rework'].includes(f.status);
+          return (
+            (f.auditorId === currentUserId || f.createdById === currentUserId || (f.auditorName && currentFullName && f.auditorName.toLowerCase().includes(currentFullName.toLowerCase()))) &&
+            ['Draft', 'PendingReview', 'PendingApproval', 'Rework'].includes(f.status)
+          );
+        });
+
+        const actionRecs = myVerificationRecs;
+        const actionWorkstreams = myWorkstreams.filter((ws: any) => ws.status !== 'Completed' && ws.status !== 'Reviewed');
+
+        const totalActions = actionWps.length + actionFindings.length + actionRecs.length;
+
+        return (
+          <Card
+            variant="borderless"
+            className="shadow-sm rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/40 via-white to-indigo-50/30 p-1"
+          >
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                  <ThunderboltOutlined />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-800 text-base">VIỆC CẦN XỬ LÝ (MY ACTION ITEMS)</span>
+                    <Badge count={totalActions} overflowCount={99} className="font-semibold" />
+                  </div>
+                  <Text className="text-xs text-slate-500">Tập trung các đầu việc cấp thiết: soát xét W/P, duyệt phát hiện, và nghiệm thu kiến nghị</Text>
+                </div>
+              </div>
             </div>
-          }
-          className="rounded-xl border-blue-200 bg-blue-50/80"
-        />
-      )}
+
+            <Tabs
+              activeKey={actionTab}
+              onChange={setActionTab}
+              size="small"
+              items={[
+                {
+                  key: 'wps',
+                  label: (
+                    <span className="flex items-center gap-1.5">
+                      <FileDoneOutlined />
+                      <span>Giấy tờ W/P</span>
+                      {actionWps.length > 0 && <Tag color="error" className="m-0 rounded-full text-[10px]">{actionWps.length}</Tag>}
+                    </span>
+                  ),
+                  children: (
+                    <div>
+                      {actionWps.length === 0 ? (
+                        <div className="py-4 text-center text-slate-400 text-xs">
+                          <CheckCircleOutlined className="text-emerald-500 mr-1" /> Bạn không có Giấy tờ làm việc nào cần sửa lại hoặc chờ phê duyệt.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {actionWps.slice(0, 5).map((wp: any) => (
+                            <div key={wp.id} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200/80 hover:border-blue-400 transition-all text-xs">
+                              <div className="flex items-center gap-3">
+                                <Tag color={wp._badgeColor}>{wp._badgeText}</Tag>
+                                <div>
+                                  <div className="font-semibold text-slate-800">{wp.refCode ? `[${wp.refCode}] ` : ''}{wp.title}</div>
+                                  <div className="text-[11px] text-slate-500">{wp.engagementName || `Đoàn #${wp.engagementId}`} • KTV: {wp.auditorName || wp.creator || '---'}</div>
+                                </div>
+                              </div>
+                              <Button
+                                size="small"
+                                type="primary"
+                                className="bg-blue-600 rounded-lg text-xs"
+                                onClick={() => navigate('/working-papers')}
+                              >
+                                Xử lý W/P ⚡
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                },
+                {
+                  key: 'findings',
+                  label: (
+                    <span className="flex items-center gap-1.5">
+                      <BugOutlined />
+                      <span>Phát hiện kiểm toán</span>
+                      {actionFindings.length > 0 && <Tag color="warning" className="m-0 rounded-full text-[10px]">{actionFindings.length}</Tag>}
+                    </span>
+                  ),
+                  children: (
+                    <div>
+                      {actionFindings.length === 0 ? (
+                        <div className="py-4 text-center text-slate-400 text-xs">
+                          <CheckCircleOutlined className="text-emerald-500 mr-1" /> Không có phát hiện kiểm toán nào đang ở trạng thái Nháp hoặc Chờ duyệt.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {actionFindings.slice(0, 5).map((f: any) => (
+                            <div key={f.id} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200/80 hover:border-blue-400 transition-all text-xs">
+                              <div className="flex items-center gap-3">
+                                <Tag color={f.status === 'Draft' ? 'default' : 'orange'}>
+                                  {f.status === 'Draft' ? 'Bản nháp' : f.status === 'Rework' ? 'Sửa lại' : 'Chờ duyệt'}
+                                </Tag>
+                                <div>
+                                  <div className="font-semibold text-slate-800">{f.code ? `[${f.code}] ` : ''}{f.findingTitle || f.title}</div>
+                                  <div className="text-[11px] text-slate-500">{f.engagement?.name || `Đoàn #${f.engagementId}`} • Mức độ: <b className="text-red-600">{f.riskLevel || 'Medium'}</b></div>
+                                </div>
+                              </div>
+                              <Button
+                                size="small"
+                                type="primary"
+                                className="bg-amber-600 border-amber-600 rounded-lg text-xs"
+                                onClick={() => navigate('/audit-findings')}
+                              >
+                                Xem & Duyệt ⚡
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                },
+                {
+                  key: 'recs',
+                  label: (
+                    <span className="flex items-center gap-1.5">
+                      <SafetyOutlined />
+                      <span>Kiến nghị chờ nghiệm thu</span>
+                      {actionRecs.length > 0 && <Tag color="purple" className="m-0 rounded-full text-[10px]">{actionRecs.length}</Tag>}
+                    </span>
+                  ),
+                  children: (
+                    <div>
+                      {actionRecs.length === 0 ? (
+                        <div className="py-4 text-center text-slate-400 text-xs">
+                          <CheckCircleOutlined className="text-emerald-500 mr-1" /> Hiện tại không có kiến nghị nào đang chờ KTV thẩm tra nghiệm thu đóng.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {actionRecs.slice(0, 5).map((rec: any) => (
+                            <div key={rec.id} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-purple-200 hover:border-purple-400 transition-all text-xs">
+                              <div className="flex items-center gap-3">
+                                <Tag color="purple">Báo cáo 100%</Tag>
+                                <div>
+                                  <div className="font-semibold text-slate-800">{rec.code ? `[${rec.code}] ` : ''}{rec.recommendation}</div>
+                                  <div className="text-[11px] text-slate-500">Đơn vị: <b>{rec.department?.name || rec.legacyDepartmentName || '---'}</b> • Hạn: {rec.dueDate ? dayjs(rec.dueDate).format('DD/MM/YYYY') : '---'}</div>
+                                </div>
+                              </div>
+                              <Button
+                                size="small"
+                                type="primary"
+                                className="bg-purple-600 border-purple-600 hover:bg-purple-700 rounded-lg text-xs font-semibold"
+                                onClick={() => navigate('/recommendations', { state: { closureStatus: 'PendingKTNBReview' } })}
+                              >
+                                Nghiệm thu đóng 📋
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                },
+                {
+                  key: 'workstreams',
+                  label: (
+                    <span className="flex items-center gap-1.5">
+                      <ClockCircleOutlined />
+                      <span>Phân hành đến hạn</span>
+                      {actionWorkstreams.length > 0 && <Tag color="cyan" className="m-0 rounded-full text-[10px]">{actionWorkstreams.length}</Tag>}
+                    </span>
+                  ),
+                  children: (
+                    <div>
+                      {actionWorkstreams.length === 0 ? (
+                        <div className="py-4 text-center text-slate-400 text-xs">
+                          <CheckCircleOutlined className="text-emerald-500 mr-1" /> Tất cả phân hành kiểm toán đã hoàn tất hoặc chưa có hạn mới.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {actionWorkstreams.slice(0, 5).map((ws: any) => (
+                            <div key={ws.id} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200/80 hover:border-blue-400 transition-all text-xs">
+                              <div className="flex items-center gap-3">
+                                <Tag color={ws.status === 'InProgress' ? 'blue' : 'default'}>{ws.status || 'Chưa xong'}</Tag>
+                                <div>
+                                  <div className="font-semibold text-slate-800">{ws.title}</div>
+                                  <div className="text-[11px] text-slate-500">{ws.engagementName || `Đoàn #${ws.engagementId}`} • Hạn: <b>{ws.dueDate ? dayjs(ws.dueDate).format('DD/MM/YYYY') : '---'}</b></div>
+                                </div>
+                              </div>
+                              <Button
+                                size="small"
+                                type="default"
+                                className="rounded-lg text-xs"
+                                onClick={() => navigate('/working-papers')}
+                              >
+                                Vào làm việc →
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+              ]}
+            />
+          </Card>
+        );
+      })()}
 
       {/* ═══ 3. KEY EXECUTION KPI CARDS ═══ */}
       <Row gutter={[16, 16]}>

@@ -1,12 +1,15 @@
-import { isValidElement, ReactNode } from 'react';
+import { isValidElement } from 'react';
+import type { Key, ReactNode } from 'react';
 import { message } from 'antd';
+import type { TableColumnType } from 'antd';
 import api from '../services/api';
 import { matchRecordSearch } from './tableFilterHelper';
 
 export interface ExcelColumn<T = any> {
   title?: ReactNode | ((...args: any[]) => ReactNode);
-  dataIndex?: keyof T | string;
-  key?: string;
+  /** Cùng dạng với `dataIndex` của antd Table: tên khoá, đường dẫn lồng nhau hoặc mảng khoá. */
+  dataIndex?: TableColumnType<T>['dataIndex'];
+  key?: Key;
   render?: (...args: any[]) => any;
   [key: string]: any;
 }
@@ -33,7 +36,7 @@ function getColumnTitleString(title: any, fallbackKey: string): string {
  */
 export const exportToExcel = async <T extends Record<string, any>>(
   data: T[],
-  columns: ExcelColumn<T>[],
+  columns: readonly ExcelColumn<T>[],
   fileName: string,
   sheetName: string = 'Sheet1',
 ): Promise<void> => {

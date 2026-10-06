@@ -126,7 +126,7 @@ export const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   const [previewName, setPreviewName] = useState<string>('');
 
   const handlePreview = (link: FileLinkItem) => {
-    const url = `/api/file-assets/links/${link.id}/download`;
+    const url = `/api/file-assets/links/${link.id}/download?inline=true`;
     setPreviewUrl(url);
     setPreviewMime(link.fileAsset?.mimeType || '');
     setPreviewName(link.fileAsset?.originalName || 'Tài liệu');

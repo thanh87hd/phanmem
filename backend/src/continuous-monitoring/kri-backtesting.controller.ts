@@ -5,11 +5,14 @@ import {
   Body,
   Param,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { KriBacktestingService } from './kri-backtesting.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BacktestStrategy } from './entities/kri-backtest-result.entity';
+import {
+  CurrentUser,
+  JwtPayload,
+} from '../auth/decorators/current-user.decorator';
 
 @Controller('continuous-monitoring/backtesting')
 @UseGuards(JwtAuthGuard)
@@ -40,11 +43,11 @@ export class KriBacktestingController {
         comparisonOperator?: string;
       };
     },
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.service.runBacktest({
       ...body,
-      user: req.user,
+      user,
     });
   }
 }

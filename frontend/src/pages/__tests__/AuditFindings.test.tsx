@@ -43,7 +43,9 @@ vi.mock('../components/AuditFindingDetailDrawer', () => ({
   ),
 }));
 
-describe('AuditFindings Page (AF-01 -> AF-09)', { timeout: 15000 }, () => {
+// timeout nâng lên 60s: trang render antd Table + Drawer rất nặng trong jsdom; để
+// 15s thì khi máy bận/CI 2 vCPU test bị timeout giả (đã quan sát thực tế).
+describe('AuditFindings Page (AF-01 -> AF-09)', { timeout: 60000 }, () => {
   const mockFindings = [
     {
       id: 401,

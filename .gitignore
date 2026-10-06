@@ -147,3 +147,19 @@ backend/run_backend.js
 backend/scripts/test_system_full_e2e.js
 frontend/run_browser_test.mjs
 frontend/tc_wp_test.mjs
+
+# ══════════════════════════════════════════════════════════════════
+# 14. PLAYWRIGHT / E2E RUNTIME ARTIFACTS
+# ══════════════════════════════════════════════════════════════════
+# Phiên đăng nhập (cookie + JWT trong localStorage) KHÔNG được commit.
+# File này sinh ra khi chạy `npm run test:e2e` và phải được tạo lại mỗi lần chạy.
+frontend/playwright/.auth/
+playwright/.auth/
+playwright-report/
+test-results/
+
+# ── Kiểm chứng PRODUCTION (project 'prod') ─────────────────────────────────
+# .prod-tokens.json chứa JWT THẬT của 15 tài khoản production ktnb.io.vn.
+# Rò rỉ file này = mất phiên đăng nhập của người dùng thật.
+frontend/e2e/prod/.prod-tokens.json
+frontend/e2e/prod/prod-rbac-results.json

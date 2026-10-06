@@ -25,27 +25,45 @@ export class TasksController {
   }
 
   @Get()
-  findAll(@Query() query: any) {
-    return this.tasksService.findAll(query);
+  findAll(@Request() req: any, @Query() query: any) {
+    // Phải truyền req.user: TasksService chỉ áp dụng chính sách phân tách dữ liệu
+    // (theo đoàn KT / phòng ban / teamCode) khi có user; thiếu user thì mọi vai
+    // trò đều đọc được toàn bộ công việc.
+    return this.tasksService.findAll(query, req.user);
   }
 
   @Get('my-tasks')
   findMyTasks(@Request() req: any, @Query() query: any) {
-    // req.user has user info injected by JwtAuthGuard
-    return this.tasksService.findAll({ ...query, assignedToId: req.user.id });
+    // req.user has user info injected by JwtAuthGuard.
+    // LƯU Ý: JWT trả về `userId` (không phải `id`) — dùng req.user.id sẽ khiến
+    // bộ lọc assignedToId = undefined và endpoint trả về TOÀN BỘ công việc.
+    return this.tasksService.findAll(
+      { ...query, assignedToId: req.user.userId },
+      req.user,
+    );
   }
 
   @Get('delegated')
   findDelegatedTasks(@Request() req: any, @Query() query: any) {
-    return this.tasksService.findAll({ ...query, assignedById: req.user.id });
+    return this.tasksService.findAll(
+      { ...query, assignedById: req.user.userId },
+      req.user,
+    );
   }
 
   @Get('department/:deptId')
-  findDepartmentTasks(@Param('deptId') deptId: string, @Query() query: any) {
-    return this.tasksService.findAll({
-      ...query,
-      assignedDepartmentId: +deptId,
-    });
+  findDepartmentTasks(
+    @Request() req: any,
+    @Param('deptId') deptId: string,
+    @Query() query: any,
+  ) {
+    return this.tasksService.findAll(
+      {
+        ...query,
+        assignedDepartmentId: +deptId,
+      },
+      req.user,
+    );
   }
 
   @Get(':id')

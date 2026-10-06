@@ -15,6 +15,41 @@ import { User } from '../../users/entities/user.entity';
 import { AuditWorkstream } from '../../audit-engagements/entities/audit-workstream.entity';
 import { AuditReviewNote } from './audit-review-note.entity';
 
+export interface WorkingPaperReviewHistoryItem {
+  iteration: number;
+  action: 'SUBMIT' | 'REWORK' | 'APPROVE';
+  actorId: number;
+  actorName: string;
+  role: string;
+  timestamp: string;
+  notes?: string;
+}
+
+export interface WorkingPaperAttachmentItem {
+  name: string;
+  fileUrl: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+export interface WorkingPaperControlAssessmentItem {
+  controlId: string;
+  controlDescription: string;
+  designEffectiveness: string;
+  operatingEffectiveness: string;
+  testConclusion: string;
+}
+
+export interface WorkingPaperSampleStats {
+  total: number;
+  tested: number;
+  untested: number;
+  passed: number;
+  failed: number;
+  completionRate: number;
+  isCompleted: boolean;
+}
+
 @Index(['engagementId', 'status'])
 @Index(['creatorId'])
 @Index(['reviewerId'])
@@ -107,15 +142,7 @@ export class WorkingPaper {
   reviewedAt: Date;
 
   @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
-  reviewHistory: {
-    iteration: number;
-    action: 'SUBMIT' | 'REWORK' | 'APPROVE';
-    actorId: number;
-    actorName: string;
-    role: string;
-    timestamp: string;
-    notes?: string;
-  }[];
+  reviewHistory: WorkingPaperReviewHistoryItem[];
 
   @Column({ nullable: true })
   preparerId: number;
@@ -139,24 +166,15 @@ export class WorkingPaper {
   templateId: number;
 
   @Column({ type: 'json', nullable: true })
-  attachments: {
-    name: string;
-    fileUrl: string;
-    uploadedBy: string;
-    uploadedAt: string;
-  }[];
+  attachments: WorkingPaperAttachmentItem[];
 
   @Column({ type: 'json', nullable: true })
-  controlAssessments: {
-    controlId: string;
-    controlDescription: string;
-    designEffectiveness: string;
-    operatingEffectiveness: string;
-    testConclusion: string;
-  }[];
+  controlAssessments: WorkingPaperControlAssessmentItem[];
 
   @Column({ type: 'json', nullable: true })
   templateData: any;
+
+  sampleStats?: WorkingPaperSampleStats;
 
   @VersionColumn({ default: 1 })
   version: number;

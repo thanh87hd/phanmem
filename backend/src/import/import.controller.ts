@@ -10,6 +10,7 @@ import {
   Body,
   Res,
   Req,
+  Logger,
 } from '@nestjs/common';
 
 import { FileInterceptor } from '../common/interceptors/fastify-file-interceptor';
@@ -25,6 +26,7 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('import')
 export class ImportController {
+  private readonly logger = new Logger(ImportController.name);
   constructor(
     private readonly importService: ImportService,
     private readonly auditTrailService: AuditTrailService,
@@ -65,7 +67,7 @@ export class ImportController {
           userAgent: req.headers?.['user-agent'],
         });
       } catch (logErr) {
-        console.warn('Failed to record bulk import audit trail:', logErr);
+        this.logger.warn('Failed to record bulk import audit trail:', logErr);
       }
 
       return result;

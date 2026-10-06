@@ -1,8 +1,40 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
+import { render, screen, waitFor, fireEvent, cleanup, act } from '@testing-library/react';
+import { message } from 'antd';
 import AuditeePortal from '../AuditeePortal';
 import api from '../../services/api';
+
+/**
+ * React 19 flushes passive effects through the Scheduler; under jsdom the Scheduler falls
+ * back to Node's `setImmediate`, and that callback reads the global `window` as its very
+ * first statement (react-dom-client: `performWorkOnRootViaSchedulerTask`). Vitest deletes
+ * `window` immediately after this file's tests finish, so any Scheduler callback still
+ * queued at that moment dies with "ReferenceError: window is not defined" and the run exits
+ * non-zero even though every assertion passed.
+ */
+const flushPendingReactWork = async () => {
+  for (let turn = 0; turn < 3; turn += 1) {
+    await act(async () => {
+      // Real time passes so in-flight jsdom rAF frames (rc-motion) can finish, then a
+      // macrotask turn lets the Scheduler queue drain while `window` still exists.
+      await new Promise<void>((resolve) => setTimeout(resolve, 25));
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    });
+  }
+};
+
+/**
+ * antd's global `message` root is a React root RTL does not own: it keeps committing
+ * (notice enter/exit motion, queue flushing) in macrotasks after a test has finished,
+ * which is exactly how Scheduler callbacks end up queued at environment teardown.
+ */
+const unmountAllReactRoots = async () => {
+  await act(async () => {
+    cleanup();
+    message.destroy();
+  });
+};
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -30,7 +62,7 @@ vi.mock('../../components/EvidenceManager', () => ({
   default: () => <div data-testid="evidence-manager-mock">EvidenceManager</div>,
 }));
 
-describe('AuditeePortal (AP-01 -> AP-06)', { timeout: 15000 }, () => {
+describe('AuditeePortal (AP-01 -> AP-06 + TC-AUD-01 branch scoping)', { timeout: 45000 }, () => {
   const mockRecommendations = [
     {
       id: 1,
@@ -84,6 +116,7 @@ describe('AuditeePortal (AP-01 -> AP-06)', { timeout: 15000 }, () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     (api.get as any).mockImplementation((url: string) => {
       if (url === '/recommendations') {
         return Promise.resolve({ data: mockRecommendations });
@@ -99,6 +132,27 @@ describe('AuditeePortal (AP-01 -> AP-06)', { timeout: 15000 }, () => {
       }
       return Promise.resolve({ data: [] });
     });
+  });
+
+  afterEach(async () => {
+    await unmountAllReactRoots();
+  });
+
+  afterAll(async () => {
+    /**
+     * antd's `message` auto-closes every toast after ~3s with real timers. If such a close
+     * lands after this file's last test, its React update is scheduled onto the Scheduler
+     * (setImmediate under jsdom) and rendered after Vitest has already deleted `window` —
+     * the "ReferenceError: window is not defined" some suites end with. Waiting the toast
+     * lifetime out here keeps that work inside jsdom, *before* teardown.
+     */
+    await act(async () => {
+      await new Promise<void>((resolve) => setTimeout(resolve, 3200));
+    });
+    await act(async () => {
+      message.destroy();
+    });
+    await flushPendingReactWork();
   });
 
   it('AP-01: Renders page title, stats, and primary tabs', async () => {
@@ -132,12 +186,13 @@ describe('AuditeePortal (AP-01 -> AP-06)', { timeout: 15000 }, () => {
     });
 
     const actionBtns = screen.getAllByRole('button').filter(b => b.textContent?.includes('Cập nhật') || b.textContent?.includes('Kế hoạch'));
-    if (actionBtns.length > 0) {
-      fireEvent.click(actionBtns[0]);
-      await waitFor(() => {
-        expect(screen.getByRole('dialog')).toBeDefined();
-      });
-    }
+    expect(actionBtns.length).toBeGreaterThan(0);
+    fireEvent.click(actionBtns[0]);
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeDefined();
+    });
+    // The modal really opens for the clicked recommendation row.
+    expect(screen.getByText(/Kiến nghị: REC-2026-01/)).toBeDefined();
   });
 
   it('AP-04: Switches to Findings tab and shows auditee opinion interface', async () => {
@@ -175,5 +230,56 @@ describe('AuditeePortal (AP-01 -> AP-06)', { timeout: 15000 }, () => {
     fireEvent.change(searchInput, { target: { value: 'VNeID' } });
 
     expect((searchInput as HTMLInputElement).value).toBe('VNeID');
+  });
+
+  it('TC-AUD-01: scopes every data request to the branch (department) of the signed-in auditee', async () => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: 7, username: 'cn-hn', fullName: 'Auditee Chi nhánh Hà Nội', department: 'Chi nhánh Hà Nội' }),
+    );
+
+    render(<AuditeePortal />);
+
+    // The recommendations request carries the auditee's own branch scope as a query param.
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/recommendations', { params: { dept: 'Chi nhánh Hà Nội' } });
+    });
+
+    // The findings request carries NO branch scope at all: `api.get('/audit-findings')` is
+    // called with a single argument, so the auditee receives whatever the server returns.
+    // UAT TC-AUD-01 requires findings to be limited to the auditee's own branch; this is a
+    // production gap, reported rather than invented as a passing expectation.
+    expect(api.get).toHaveBeenCalledWith('/audit-findings');
+
+    // Exact request set, in mount order, so that any new unscoped request fails this test.
+    expect((api.get as any).mock.calls).toEqual([
+      ['/recommendations', { params: { dept: 'Chi nhánh Hà Nội' } }],
+      ['/audit-findings'],
+      ['/risk-assessments/rcsa'],
+      ['/audit-universe'],
+    ]);
+
+    // The header shows the branch the data was requested for.
+    expect(screen.getByText('Chi nhánh Hà Nội', { selector: 'strong' })).toBeDefined();
+
+    // ...and the branch's own recommendations are rendered.
+    await waitFor(() => {
+      expect(screen.getByText('Tăng cường xác thực CCCD gắn chip qua VNeID')).toBeDefined();
+      expect(screen.getByText('Rà soát hạn mức tồn quỹ tiền mặt cuối ngày')).toBeDefined();
+    });
+  });
+
+  it('TC-AUD-01 (gap): an auditee without a department requests an empty dept scope while the header claims a branch', async () => {
+    // No `user` in localStorage at all -> `currentUser.department` is undefined.
+    render(<AuditeePortal />);
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/recommendations', { params: { dept: '' } });
+    });
+
+    // Empty scope == no branch filter is actually sent, even though the header displays a
+    // hard-coded fallback branch. Reported as a production gap.
+    expect(api.get).toHaveBeenCalledWith('/audit-findings');
+    expect(screen.getByText('Chi nhánh Hà Nội', { selector: 'strong' })).toBeDefined();
   });
 });

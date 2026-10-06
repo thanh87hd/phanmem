@@ -221,8 +221,7 @@ export class AuditCharterService {
     user: any,
   ): Promise<AuditCharter> {
     const source = await this.findOne(sourceId);
-    const numVersion = parseInt(source.version.replace(/[^0-9]/g, ''), 10);
-    const newVersion = !isNaN(numVersion) ? String(numVersion + 1) : `${source.version}.1`;
+    const newVersion = this.buildNextVersion(source.version);
 
     const newCharter = this.charterRepo.create({
       title: source.title,
@@ -251,6 +250,29 @@ export class AuditCharterService {
       ],
     });
     return this.charterRepo.save(newCharter);
+  }
+
+  /**
+   * Tăng số phiên bản Điều lệ, GIỮ NGUYÊN tiền tố.
+   *
+   * Trước đây hàm dùng `parseInt(version.replace(/[^0-9]/g, ''))` nên với phiên
+   * bản mặc định 'v2026.1' (bản seed sẵn trong getCharters) sẽ tạo ra '20262' —
+   * sai hoàn toàn về mặt nghiệp vụ và làm hỏng chuỗi so sánh phiên bản.
+   *
+   *   '1'       -> '2'
+   *   'v2026.1' -> 'v2026.2'
+   *   'v1.9'    -> 'v1.10'
+   *   ''        -> '1'
+   */
+  private buildNextVersion(version?: string): string {
+    const current = String(version ?? '').trim();
+    if (!current) return '1';
+
+    const match = /^(.*?)(\d+)$/.exec(current);
+    if (!match) return `${current}.1`;
+
+    const [, prefix, digits] = match;
+    return `${prefix}${Number(digits) + 1}`;
   }
 
   async remove(id: number): Promise<void> {

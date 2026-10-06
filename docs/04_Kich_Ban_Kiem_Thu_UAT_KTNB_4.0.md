@@ -434,16 +434,26 @@ Toàn bộ quá trình kiểm thử UAT hệ thống Phần mềm KTNB 4.0 do **
   + **Tester 2 (Đối chiếu):** **Ninh Xuân Điệp** (`diepnx`)
 
 ---
-#### `TC-WP-03`: Kiểm Thử Cộng Tác Trực Tiếp Thời Gian Thực (Yjs Collab)
+#### `TC-WP-03`: Đồng Bộ Dữ Liệu Đa Người Dùng Trên Giấy Tờ Làm Việc
+> **⚠️ ĐÃ ĐIỀU CHỈNH PHẠM VI (04/10/2026).** Kịch bản gốc yêu cầu "Cộng tác trực tiếp
+> thời gian thực (Yjs Collab)" — tính năng này **chưa từng tồn tại trong sản phẩm**:
+> component `CollaborativeEditor` chỉ được import bởi chính file test của nó (code chết),
+> trình soạn thảo Giấy tờ làm việc thực tế là dạng bảng + `TextArea` (không dùng Tiptap),
+> và gói JS đang triển khai **không chứa bất kỳ tham chiếu WebSocket/Yjs** nào.
+> Đưa tính năng này vào backlog phát triển riêng kèm đặc tả, KHÔNG nghiệm thu trong đợt UAT này.
+> Kịch bản dưới đây được viết lại để kiểm thử **tính đúng đắn dữ liệu khi nhiều người dùng
+> cùng thao tác** — đúng mục tiêu nghiệp vụ mà kịch bản gốc hướng tới.
+
 - **Màn hình / URL:** Soạn thảo WP (/working-papers/:id)
-- **Nút bấm / Thành phần tương tác:** `Yjs WebSocket Collaborative Editor`
-- **Điều kiện tiên quyết:** Bạn Đạt (datnc3) và Bạn Điệp (diepnx) cùng mở 1 WP trên 2 trình duyệt
+- **Nút bấm / Thành phần tương tác:** Nút "Lưu" và luồng gửi soát xét của Giấy tờ làm việc
+- **Điều kiện tiên quyết:** Bạn Đạt (datnc3) và Bạn Điệp (diepnx) cùng được phân công trong đoàn kiểm toán của WP
 - **Các bước thao tác chi tiết (Action Steps):**
-  1. Bạn Đạt mở WP-TD-01 và gõ văn bản
-  2. Bạn Điệp cùng mở WP-TD-01 trên trình duyệt khác
-  3. Quan sát con trỏ chuột và chữ xuất hiện tức thì
-- **Dữ liệu đầu vào mẫu (Test Input):** Gõ chữ đồng thời tại 2 vị trí khác nhau trong văn bản
-- **Kết quả mong đợi (Expected Result):** Nhìn thấy con trỏ màu đại diện cho bạn Điệp, văn bản đồng bộ realtime không bị ghi đè dữ liệu.
+  1. Bạn Đạt mở WP-TD-01, sửa nội dung rồi bấm "Lưu"
+  2. Bạn Điệp mở cùng WP-TD-01 trên trình duyệt khác, tải lại trang
+  3. Kiểm tra nội dung hiển thị là bản mới nhất vừa lưu; cả hai cùng sửa và lần lượt lưu
+  4. Kiểm tra không có bản ghi nào bị mất/ghi đè âm thầm (đối chiếu Lịch sử soát xét)
+- **Dữ liệu đầu vào mẫu (Test Input):** Sửa trường "Mục tiêu" và "Kết luận" của WP-TD-01 ở hai phiên khác nhau
+- **Kết quả mong đợi (Expected Result):** Nội dung lưu đúng theo lần lưu sau cùng; người dùng thứ hai tải lại thấy dữ liệu mới nhất; Lịch sử soát xét ghi nhận đầy đủ các lần sửa.
 - **Vai trò nghiệp vụ:** `2 KTV phối hợp`
 - **Tài khoản đăng nhập test:** `datnc3 & diepnx` (Mật khẩu: `@Lpbank2026!`)
 - **Nhân sự thực hiện test:**
@@ -460,8 +470,10 @@ Toàn bộ quá trình kiểm thử UAT hệ thống Phần mềm KTNB 4.0 do **
   2. Chọn file BB_Kiem_Ke_TSBD.pdf
   3. Đặt mã tham chiếu (Cross-reference): WP-TD-01.A
   4. Bấm "Lưu bằng chứng"
+  5. Tại dòng bằng chứng vừa tải, bấm nút **"Xem trước"**
 - **Dữ liệu đầu vào mẫu (Test Input):** File đính kèm: PDF hoặc XLSX (dung lượng < 25MB)
-- **Kết quả mong đợi (Expected Result):** File tải lên thành công, hiển thị trong danh mục bằng chứng của WP, bấm vào xem trước (preview) được.
+- **Kết quả mong đợi (Expected Result):** File tải lên thành công, hiển thị trong danh mục bằng chứng của WP. Với định dạng xem trước được (PDF/ảnh/CSV/TXT), nút **"Xem trước"** mở tệp ngay trong tab mới (không tải xuống); với định dạng Office (.docx/.xlsx), nút này được ẩn và chỉ còn nút "Tải".
+- **Ghi chú kỹ thuật:** Backend trả `Content-Disposition: inline` khi gọi kèm `?inline=true`; trước đây UI chỉ có nút "Tải" nên không thể xem trước bằng chứng.
 - **Vai trò nghiệp vụ:** `Thành viên đoàn (Auditor)`
 - **Tài khoản đăng nhập test:** `datnc3` (Mật khẩu: `@Lpbank2026!`)
 - **Nhân sự thực hiện test:**

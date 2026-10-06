@@ -13,6 +13,8 @@ describe('RolesService', () => {
       save: jest.fn((entity) => Promise.resolve(entity)),
       find: jest.fn().mockResolvedValue([]),
       findOneBy: jest.fn().mockResolvedValue(null),
+      // remove() loads the role with its users relation (FEAT-3 guard)
+      findOne: jest.fn().mockResolvedValue(null),
       update: jest.fn().mockResolvedValue({ affected: 1 }),
       delete: jest.fn().mockResolvedValue({ affected: 1 }),
     };
@@ -67,9 +69,41 @@ describe('RolesService', () => {
     expect(res?.description).toBe('Updated');
   });
 
-  it('should remove role', async () => {
+  it('should remove role when it exists and has no assigned users', async () => {
+    repo.findOne.mockResolvedValue({ id: 1, name: 'Auditor', users: [] });
+
     const res = await service.remove(1);
+
+    expect(repo.findOne).toHaveBeenCalledWith({
+      where: { id: 1 },
+      relations: ['users'],
+    });
     expect(repo.delete).toHaveBeenCalledWith(1);
-    expect(res).toEqual({ success: true });
+    expect(res).toEqual({
+      success: true,
+      message: 'Đã xóa nhóm quyền "Auditor" thành công.',
+    });
+  });
+
+  it('should throw when removing a role that does not exist', async () => {
+    repo.findOne.mockResolvedValue(null);
+
+    await expect(service.remove(999)).rejects.toThrow(
+      'Không tìm thấy nhóm quyền với ID 999',
+    );
+    expect(repo.delete).not.toHaveBeenCalled();
+  });
+
+  it('should throw and not delete when the role is still assigned to users', async () => {
+    repo.findOne.mockResolvedValue({
+      id: 1,
+      name: 'AuditLead',
+      users: [{ id: 10 }, { id: 11 }],
+    });
+
+    await expect(service.remove(1)).rejects.toThrow(
+      'Không thể xóa nhóm quyền "AuditLead" vì hiện đang có 2 nhân sự được gán vào nhóm quyền này. Vui lòng gán lại nhóm quyền cho các nhân sự trước khi xóa.',
+    );
+    expect(repo.delete).not.toHaveBeenCalled();
   });
 });

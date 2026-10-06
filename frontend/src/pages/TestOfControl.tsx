@@ -602,7 +602,7 @@ export const TestOfControl: React.FC = () => {
             </Card>
 
             {/* Exception Log */}
-            <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
+            <Divider titlePlacement="left" style={{ margin: '16px 0 12px 0' }}>
               <Space>
                 <WarningOutlined style={{ color: '#ea580c' }} />
                 <span style={{ fontWeight: 700 }}>Danh sách Ngoại lệ (Exception Log) ({selectedTest.exceptions?.length || 0})</span>

@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
 import { ScopeFilterService } from '../utils/scope-filter.service';
+import {
+  teamMembersContainsClause,
+  teamMembersJsonParam,
+} from '../common/utils/team-members-filter.util';
 
 @Injectable()
 export class TasksService {
@@ -86,10 +90,10 @@ export class TasksService {
             });
           } else {
             qb.andWhere(
-              '(eng.leadAuditorId = :userId OR eng.teamMembers LIKE :likeUserId OR eng.ownerTeam = :team)',
+              `(eng.leadAuditorId = :userId OR ${teamMembersContainsClause('eng')} OR eng.ownerTeam = :team)`,
               {
                 userId: user.userId,
-                likeUserId: `%"userId":${user.userId}%`,
+                jsonUser: teamMembersJsonParam(user.userId),
                 team: user.teamCode,
               },
             );
@@ -100,6 +104,41 @@ export class TasksService {
           } else {
             qb.andWhere('task.teamCode = :teamCode', { teamCode: user.teamCode });
           }
+        } else {
+          // FIX (data segregation): sourceType VẮNG MẶT (hoặc mang giá trị lạ)
+          // KHÔNG được miễn trừ phân tách dữ liệu. Trước đây nhánh scope chỉ chạy
+          // khi client gửi đúng 'Audit'/'General', nên `GET /tasks` không kèm
+          // sourceType khiến người dùng không phải admin đọc được TOÀN BỘ công
+          // việc của mọi đoàn/đơn vị.
+          //
+          // Quy tắc an toàn: áp ĐỒNG THỜI cả hai bộ quy tắc và OR chúng với nhau
+          // (không AND, nếu không sẽ luôn rỗng) để người dùng vẫn thấy việc của
+          // mình ở cả hai loại 'Audit' và 'General', nhưng không bao giờ thấy
+          // việc ngoài phạm vi của mình.
+          const auditScope = isAuditee
+            ? 'eng.legacyAuditedDepartment = :dept'
+            : `(eng.leadAuditorId = :userId OR ${teamMembersContainsClause('eng')} OR eng.ownerTeam = :team)`;
+          const generalScope = isKtv
+            ? 'task.assignedToId = :userId'
+            : 'task.teamCode = :teamCode';
+
+          const scopeParams: Record<string, any> = {};
+          if (isAuditee) {
+            // Đơn vị được kiểm toán: chỉ thấy cuộc KT của phòng ban mình (Audit)
+            // hoặc việc ngoài đoàn của chính đơn vị mình (General).
+            scopeParams.dept = user.legacyDepartment;
+          } else {
+            scopeParams.userId = user.userId;
+            scopeParams.jsonUser = teamMembersJsonParam(user.userId);
+            scopeParams.team = user.teamCode;
+          }
+          if (isKtv) {
+            scopeParams.userId = user.userId;
+          } else {
+            scopeParams.teamCode = user.teamCode;
+          }
+
+          qb.andWhere(`(${auditScope} OR ${generalScope})`, scopeParams);
         }
       }
     }

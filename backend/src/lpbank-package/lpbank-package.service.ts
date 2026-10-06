@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DataSource } from 'typeorm';
@@ -13,6 +13,52 @@ export class LpbankPackageService {
   );
 
   constructor(private readonly dataSource: DataSource) {}
+
+  /** Chuẩn hoá giá trị ô exceljs (richText/formula/hyperlink/Date) về giá trị thuần. */
+  private cellToValue(value: ExcelJS.CellValue): unknown {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value !== 'object' || value instanceof Date) return value;
+    const v = value as unknown as Record<string, unknown>;
+    if (Array.isArray(v.richText)) {
+      return (v.richText as { text: string }[]).map((t) => t.text).join('');
+    }
+    if ('result' in v) return this.cellToValue(v.result as ExcelJS.CellValue);
+    if ('text' in v) return v.text;
+    return undefined;
+  }
+
+  /**
+   * Đọc sheet đầu tiên thành mảng object theo tiêu đề dòng 1
+   * (tương đương XLSX.utils.sheet_to_json: bỏ dòng trống và ô trống).
+   */
+  private async readRows(filePath: string): Promise<Record<string, any>[]> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) return [];
+
+    const headers: string[] = [];
+    sheet.getRow(1).eachCell((cell, col) => {
+      const h = this.cellToValue(cell.value);
+      if (h !== undefined && h !== '') headers[col] = String(h).trim();
+    });
+
+    const rows: Record<string, any>[] = [];
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const obj: Record<string, any> = {};
+      let hasData = false;
+      row.eachCell((cell, col) => {
+        const key = headers[col];
+        const val = this.cellToValue(cell.value);
+        if (!key || val === undefined || val === '') return;
+        obj[key] = val;
+        hasData = true;
+      });
+      if (hasData) rows.push(obj);
+    });
+    return rows;
+  }
 
   getPackageFiles() {
     if (!fs.existsSync(this.uploadDir)) {
@@ -52,10 +98,7 @@ export class LpbankPackageService {
         '01_Co_Cau_To_Chuc_Phong_Ban_Chi_Nhanh_LPBank.xlsx',
       );
       if (fs.existsSync(deptFile)) {
-        const wb = XLSX.readFile(deptFile);
-        const rows: any[] = XLSX.utils.sheet_to_json(
-          wb.Sheets[wb.SheetNames[0]],
-        );
+        const rows = await this.readRows(deptFile);
         let inserted = 0;
         for (const r of rows) {
           const code = r['Mã đơn vị'];
@@ -90,10 +133,7 @@ export class LpbankPackageService {
         '04_Tieu_Chi_Danh_Gia_Rui_Ro_Criteria.xlsx',
       );
       if (fs.existsSync(critFile)) {
-        const wb = XLSX.readFile(critFile);
-        const rows: any[] = XLSX.utils.sheet_to_json(
-          wb.Sheets[wb.SheetNames[0]],
-        );
+        const rows = await this.readRows(critFile);
         let inserted = 0;
         for (const r of rows) {
           const name = r['Tên tiêu chí'];
@@ -128,10 +168,7 @@ export class LpbankPackageService {
         '09_Luat_Kiem_Toan_Giam_Sat_Lien_Tuc_Rules.xlsx',
       );
       if (fs.existsSync(rulesFile)) {
-        const wb = XLSX.readFile(rulesFile);
-        const rows: any[] = XLSX.utils.sheet_to_json(
-          wb.Sheets[wb.SheetNames[0]],
-        );
+        const rows = await this.readRows(rulesFile);
         let inserted = 0;
         for (const r of rows) {
           const ruleCode = r['Rule ID'];
@@ -166,10 +203,7 @@ export class LpbankPackageService {
         '06_Thu_Vien_Rui_Ro_Kiem_Soat_RCM_LPBank.xlsx',
       );
       if (fs.existsSync(rcmFile)) {
-        const wb = XLSX.readFile(rcmFile);
-        const rows: any[] = XLSX.utils.sheet_to_json(
-          wb.Sheets[wb.SheetNames[0]],
-        );
+        const rows = await this.readRows(rcmFile);
         let inserted = 0;
         for (const r of rows) {
           const procName = r['Tên quy trình'];
@@ -204,10 +238,7 @@ export class LpbankPackageService {
         '03_Vu_Tru_Doi_Tuong_Kiem_Toan_Universe.xlsx',
       );
       if (fs.existsSync(uniFile)) {
-        const wb = XLSX.readFile(uniFile);
-        const rows: any[] = XLSX.utils.sheet_to_json(
-          wb.Sheets[wb.SheetNames[0]],
-        );
+        const rows = await this.readRows(uniFile);
         let inserted = 0;
         for (const r of rows) {
           const name = r['Tên quy trình / hoạt động'];
@@ -236,10 +267,7 @@ export class LpbankPackageService {
         '08_Danh_Muc_Phat_Hien_Mau_Audit_Findings.xlsx',
       );
       if (fs.existsSync(findFile)) {
-        const wb = XLSX.readFile(findFile);
-        const rows: any[] = XLSX.utils.sheet_to_json(
-          wb.Sheets[wb.SheetNames[0]],
-        );
+        const rows = await this.readRows(findFile);
         results['08_Audit_Findings_Mẫu'] = {
           totalRows: rows.length,
           inserted: rows.length,
@@ -263,10 +291,7 @@ export class LpbankPackageService {
       for (const f of otherFiles) {
         const fp = path.join(this.uploadDir, f);
         if (fs.existsSync(fp)) {
-          const wb = XLSX.readFile(fp);
-          const rows: any[] = XLSX.utils.sheet_to_json(
-            wb.Sheets[wb.SheetNames[0]],
-          );
+          const rows = await this.readRows(fp);
           results[f.replace('.xlsx', '')] = {
             totalRows: rows.length,
             inserted: rows.length,

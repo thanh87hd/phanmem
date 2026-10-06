@@ -9,6 +9,24 @@ import { filterRecursive } from '../utils/excelExport';
 
 const { Title, Text } = Typography;
 
+/**
+ * Danh mục cơ quan thanh tra/kiểm toán — dùng CHUNG cho bộ lọc và form tạo mới.
+ *
+ * ⚠️ LỖI ĐÃ SỬA (sai lệch giá trị + bộ lọc không khớp):
+ * Trước đây bộ lọc dùng mã `NHNN | KTNN | Thuế | Bộ Công an` nhưng form tạo mới
+ * lại đặt `value` bằng hàm dịch `t(...)` cho 3/4 lựa chọn → ghi nhãn tiếng Việt
+ * xuống DB ⇒ bộ lọc theo "Cơ quan" KHÔNG BAO GIỜ khớp dữ liệu vừa tạo.
+ * Nay cả hai dùng chung một nguồn mã ổn định, nhãn chỉ để hiển thị.
+ */
+const REGULATORY_AUTHORITY_OPTIONS = [
+  // `value` là MÃ ỔN ĐỊNH (khớp danh mục trong DTO backend); `label` chỉ để hiển thị.
+  { label: 'Ngân hàng Nhà nước (NHNN)', value: 'NHNN' },
+  { label: 'Kiểm toán Nhà nước (KTNN)', value: 'KTNN' },
+  { label: 'Cơ quan Thuế', value: 'Thue' },
+  { label: 'Bộ Công an', value: 'BoCongAn' },
+  { label: 'Khác', value: 'Khac' },
+];
+
 const RegulatoryExams: React.FC = () => {
   const { t } = useTranslation();
 
@@ -201,12 +219,7 @@ const RegulatoryExams: React.FC = () => {
               style={{ width: '100%' }}
               value={filterAuthority || undefined}
               onChange={(val) => setFilterAuthority(val || '')}
-              options={[
-                { label: 'Ngân hàng Nhà nước', value: 'NHNN' },
-                { label: 'Kiểm toán Nhà nước', value: 'KTNN' },
-                { label: 'Cơ quan Thuế', value: 'Thuế' },
-                { label: 'Bộ Công an', value: 'Bộ Công an' },
-              ]}
+              options={REGULATORY_AUTHORITY_OPTIONS}
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -246,12 +259,14 @@ const RegulatoryExams: React.FC = () => {
             <Input placeholder={t('regulatoryExams.modalExam.placeholderName', 'VD: Thanh tra toàn diện NHNN năm 2024')} />
           </Form.Item>
           <Form.Item name="authority" label={t('regulatoryExams.modalExam.labelAuthority', 'Cơ quan thanh tra')} rules={[{ required: true }]}>
-            <Select>
-              <Select.Option value="NHNN">{t('regulatoryExams.stateBankSbv', 'Ngân hàng Nhà nước (NHNN)')}</Select.Option>
-              <Select.Option value={t('regulatoryExams.stateAudit', 'Kiểm toán Nhà nước')}>{t('regulatoryExams.stateAudit', 'Kiểm toán Nhà nước')}</Select.Option>
-              <Select.Option value={t('regulatoryExams.taxAuthority', 'Cơ quan Thuế')}>{t('regulatoryExams.taxAuthority', 'Cơ quan Thuế')}</Select.Option>
-              <Select.Option value={t('auditFindings.other', 'Khác')}>{t('auditFindings.other', 'Khác')}</Select.Option>
-            </Select>
+            {/*
+              LỖI ĐÃ SỬA: 3/4 lựa chọn trước đây lấy `value` từ hàm dịch t(...)
+              → lưu NHÃN TIẾNG VIỆT vào DB, trong khi bộ lọc so khớp MÃ
+              (NHNN/KTNN/Thuế/Bộ Công an) → lọc không bao giờ khớp và dữ liệu
+              không nhất quán. Nay `value` là mã ổn định, nhãn hiển thị qua
+              `label` và đi qua i18n bình thường.
+            */}
+            <Select options={REGULATORY_AUTHORITY_OPTIONS} />
           </Form.Item>
           <Space>
             <Form.Item name="startDate" label={t('regulatoryExams.examTable.startDate', 'Ngày bắt đầu')}>

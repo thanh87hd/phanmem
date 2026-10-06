@@ -7,10 +7,18 @@ import { CreateWorkingPaperDto } from './dto/create-working-paper.dto';
 import { UpdateWorkingPaperDto } from './dto/update-working-paper.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { WorkingPaper } from './entities/working-paper.entity';
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import {
+  WorkingPaper,
+  WorkingPaperSampleStats,
+} from './entities/working-paper.entity';
 import { AuditWorkstream } from '../audit-engagements/entities/audit-workstream.entity';
 import { AuditEngagement } from '../audit-engagements/entities/audit-engagement.entity';
 import { ScopeFilterService } from '../utils/scope-filter.service';
+import {
+  teamMembersContainsClause,
+  teamMembersJsonParam,
+} from '../common/utils/team-members-filter.util';
 import * as fs from 'fs';
 import * as path from 'path';
 const PizZip = require('pizzip');
@@ -24,8 +32,43 @@ import { AuditMinutesService } from '../audit-findings/audit-minutes.service';
 import { AuditReviewNotesService } from './audit-review-notes.service';
 import type { AuthUserContext } from './dto/working-paper-types';
 
+interface SampleDocxRow {
+  cif?: string;
+  accountNumber?: string;
+  customerName?: string;
+  testResult?: string;
+  note?: string;
+  sampleData?: { ghi_chu?: string };
+}
+
 @Injectable()
 export class WorkingPapersService {
+  /**
+   * Các trường "nghiệp vụ soát xét" được phép ghi kể cả khi WP đã nộp/đã duyệt.
+   * Mọi trường KHÁC trong payload PATCH được coi là NỘI DUNG của Giấy tờ làm việc.
+   */
+  private static readonly REVIEW_META_FIELDS: ReadonlySet<string> = new Set([
+    'status',
+    'reviewerId',
+    'reviewedAt',
+    'reviewNotes',
+    'reviewHistory',
+    'signoffStatus',
+    'leadAuditorId',
+    'leadApprovedAt',
+    'submittedAt',
+  ]);
+
+  /**
+   * Trạng thái Giấy tờ làm việc bị KHÓA CHỈNH SỬA NỘI DUNG
+   * (UAT TC-WP-05 "Khóa chỉnh sửa đối với KTV lập" sau khi nộp,
+   *  UAT TC-WP-08 "Không ai có thể chỉnh sửa nội dung nữa" sau khi duyệt).
+   */
+  private static readonly CONTENT_LOCKED_STATUSES: readonly string[] = [
+    'Submitted',
+    'Approved',
+  ];
+
   constructor(
     @InjectRepository(WorkingPaper)
     private readonly workingPaperRepository: Repository<WorkingPaper>,
@@ -39,23 +82,12 @@ export class WorkingPapersService {
     private readonly auditReviewNotesService: AuditReviewNotesService,
   ) {}
 
-  async getSampleStatsForWorkingPapers(wpIds: number[]): Promise<
-    Record<
-      number,
-      {
-        total: number;
-        tested: number;
-        untested: number;
-        passed: number;
-        failed: number;
-        completionRate: number;
-        isCompleted: boolean;
-      }
-    >
-  > {
+  async getSampleStatsForWorkingPapers(
+    wpIds: number[],
+  ): Promise<Record<number, WorkingPaperSampleStats>> {
     if (!wpIds || wpIds.length === 0) return {};
 
-    const statsMap: Record<number, any> = {};
+    const statsMap: Record<number, WorkingPaperSampleStats> = {};
     for (const id of wpIds) {
       statsMap[id] = {
         total: 0,
@@ -104,7 +136,7 @@ export class WorkingPapersService {
           isCompleted,
         };
       }
-    } catch (err: any) {
+    } catch {
       // Fallback gracefully if tables are empty or query fails
     }
 
@@ -257,8 +289,8 @@ export class WorkingPapersService {
       );
     } else if (user && !isAdmin) {
       query.andWhere(
-        '(wp.creatorId = :userId OR wp.reviewerId = :userId OR engagement.leadAuditorId = :userId OR engagement.teamMembers LIKE :likeUserId OR workstream.assignedAuditorId = :userId OR workstream.reviewerId = :userId)',
-        { userId: user.userId, likeUserId: `%"userId":${user.userId}%` },
+        `(wp.creatorId = :userId OR wp.reviewerId = :userId OR engagement.leadAuditorId = :userId OR ${teamMembersContainsClause('engagement')} OR workstream.assignedAuditorId = :userId OR workstream.reviewerId = :userId)`,
+        { userId: user.userId, jsonUser: teamMembersJsonParam(user.userId) },
       );
     }
     const wps = await query.getMany();
@@ -266,7 +298,7 @@ export class WorkingPapersService {
     const statsMap = await this.getSampleStatsForWorkingPapers(wpIds);
 
     return wps.map((wp) => {
-      (wp as any).sampleStats = statsMap[wp.id] || {
+      wp.sampleStats = statsMap[wp.id] || {
         total: 0,
         tested: 0,
         untested: 0,
@@ -286,7 +318,7 @@ export class WorkingPapersService {
     });
     if (wp) {
       const statsMap = await this.getSampleStatsForWorkingPapers([wp.id]);
-      (wp as any).sampleStats = statsMap[wp.id] || {
+      wp.sampleStats = statsMap[wp.id] || {
         total: 0,
         tested: 0,
         untested: 0,
@@ -299,10 +331,54 @@ export class WorkingPapersService {
     return wp;
   }
 
+  /**
+   * Liệt kê các trường NỘI DUNG (không thuộc nghiệp vụ soát xét) có trong payload.
+   * Dùng cho khóa chỉnh sửa nội dung ở trạng thái Submitted/Approved.
+   */
+  private getContentFields(dto?: UpdateWorkingPaperDto): string[] {
+    if (!dto) return [];
+    return Object.keys(dto).filter(
+      (key) =>
+        (dto as Record<string, unknown>)[key] !== undefined &&
+        !WorkingPapersService.REVIEW_META_FIELDS.has(key),
+    );
+  }
+
+  /**
+   * Nguyên tắc 4 mắt (Four-Eyes) + phân quyền phê duyệt.
+   * Dùng CHUNG cho approve() (POST /:id/approve) và update() khi PATCH chuyển
+   * trạng thái sang 'Approved' — tránh bypass qua endpoint PATCH chung.
+   */
+  private assertCanApprove(wp: WorkingPaper, user?: AuthUserContext): void {
+    // Nguyên tắc 4 mắt: KTV lập không được tự duyệt WP của chính mình
+    if (wp.creatorId && user?.userId && wp.creatorId === user.userId) {
+      throw new BadRequestException(
+        'Theo nguyên tắc 4 mắt (Four-Eyes), kiểm toán viên lập hồ sơ không được tự phê duyệt Working Paper của chính mình',
+      );
+    }
+
+    const isReviewer = !!user?.userId && wp.reviewerId === user.userId;
+    const isLead = !!user?.userId && wp.engagement?.leadAuditorId === user.userId;
+    const isWorkstreamReviewer =
+      !!user?.userId && wp.workstream?.reviewerId === user.userId;
+    const isAdmin = ScopeFilterService.isAdminRole(user?.role);
+    if (!isReviewer && !isLead && !isWorkstreamReviewer && !isAdmin) {
+      throw new BadRequestException(
+        'Chỉ Trưởng đoàn hoặc Người soát xét mới có quyền phê duyệt Giấy tờ làm việc',
+      );
+    }
+  }
+
   async update(
     id: number,
     updateWorkingPaperDto: UpdateWorkingPaperDto,
     user?: AuthUserContext,
+    /**
+     * Cờ NỘI BỘ cho các luồng đồng bộ hợp lệ (importSyncOffline / import Excel):
+     * cho phép ghi nội dung kể cả khi WP đang ở trạng thái Submitted/Approved.
+     * Controller PATCH KHÔNG bao giờ truyền cờ này.
+     */
+    options?: { allowContentEditWhileLocked?: boolean },
   ) {
     const currentWp = await this.findOne(id);
     if (!currentWp) {
@@ -314,6 +390,21 @@ export class WorkingPapersService {
       );
     }
 
+    // ═══ KHÓA CHỈNH SỬA NỘI DUNG (UAT TC-WP-05 & TC-WP-08) ═══
+    // WP ở trạng thái Submitted/Approved chỉ nhận các trường nghiệp vụ soát xét
+    // (trạng thái, người duyệt, ghi chú soát xét...). Mọi thay đổi nội dung bị chặn.
+    if (
+      !options?.allowContentEditWhileLocked &&
+      WorkingPapersService.CONTENT_LOCKED_STATUSES.includes(currentWp.status)
+    ) {
+      const contentFields = this.getContentFields(updateWorkingPaperDto);
+      if (contentFields.length > 0) {
+        throw new BadRequestException(
+          `Giấy tờ làm việc đang ở trạng thái ${currentWp.status} nên không thể chỉnh sửa nội dung (${contentFields.join(', ')}). Vui lòng yêu cầu Trưởng đoàn trả lại hồ sơ (Rework) nếu cần thay đổi.`,
+        );
+      }
+    }
+
     // ═══ COMPLETION GATE: Ràng buộc hoàn thành ma trận mẫu trước khi nộp duyệt ═══
     const isSubmittingOrApproving =
       updateWorkingPaperDto.status === 'PendingReview' ||
@@ -321,7 +412,7 @@ export class WorkingPapersService {
       updateWorkingPaperDto.status === 'Approved';
 
     if (isSubmittingOrApproving) {
-      const stats = (currentWp as any)?.sampleStats;
+      const stats = currentWp?.sampleStats;
       if (stats && stats.total > 0 && stats.untested > 0) {
         throw new BadRequestException(
           `Không thể nộp hoặc phê duyệt Giấy tờ làm việc: Ma trận mẫu kiểm tra được phân giao còn ${stats.untested}/${stats.total} mẫu chưa được kiểm tra đánh giá kết quả. Vui lòng hoàn thành toàn bộ các mẫu trước khi nộp!`,
@@ -329,19 +420,34 @@ export class WorkingPapersService {
       }
     }
 
+    // ═══ FOUR-EYES + IIA 1311 ═══
+    // PATCH chuyển trạng thái sang 'Approved' phải tuân thủ ĐÚNG các kiểm soát của
+    // approve() (Four-Eyes, phân quyền người soát xét, cổng chất lượng IIA 1311) —
+    // nếu không sẽ bị bypass qua endpoint PATCH chung.
+    if (updateWorkingPaperDto.status === 'Approved') {
+      this.assertCanApprove(currentWp, user);
+      await this.auditReviewNotesService.assertCanSignOff(
+        id,
+        currentWp.workstreamId,
+      );
+    }
+
     if (
       user &&
       (updateWorkingPaperDto.status === 'Approved' ||
         updateWorkingPaperDto.status === 'Rejected')
     ) {
-      if (!(updateWorkingPaperDto as any).reviewerId) {
-        (updateWorkingPaperDto as any).reviewerId = user.userId;
+      if (!updateWorkingPaperDto.reviewerId) {
+        updateWorkingPaperDto.reviewerId = user.userId;
       }
-      if (!(updateWorkingPaperDto as any).reviewedAt) {
-        (updateWorkingPaperDto as any).reviewedAt = new Date();
+      if (!updateWorkingPaperDto.reviewedAt) {
+        updateWorkingPaperDto.reviewedAt = new Date();
       }
     }
-    await this.workingPaperRepository.update(id, updateWorkingPaperDto);
+    await this.workingPaperRepository.update(
+      id,
+      updateWorkingPaperDto as QueryDeepPartialEntity<WorkingPaper>,
+    );
     const updated = await this.findOne(id);
     if (
       updateWorkingPaperDto.status === 'Approved' &&
@@ -370,7 +476,7 @@ export class WorkingPapersService {
     }
 
     // Completion gate: kiểm tra 100% mẫu đã được đánh giá
-    const stats = (wp as any)?.sampleStats;
+    const stats = wp?.sampleStats;
     if (stats && stats.total > 0 && stats.untested > 0) {
       throw new BadRequestException(
         `Không thể nộp duyệt: Còn ${stats.untested}/${stats.total} mẫu chưa được kiểm tra đánh giá. Vui lòng hoàn thành 100% mẫu kiểm tra trước khi nộp!`,
@@ -539,15 +645,12 @@ export class WorkingPapersService {
       );
     }
 
-    // Nguyên tắc 4 mắt (Four-Eyes Principle): KTV lập không được tự duyệt
-    if (wp.creatorId && user?.userId && wp.creatorId === user.userId) {
-      throw new BadRequestException(
-        'Theo nguyên tắc 4 mắt (Four-Eyes), kiểm toán viên lập hồ sơ không được tự phê duyệt Working Paper của chính mình',
-      );
-    }
+    // Nguyên tắc 4 mắt (Four-Eyes) + phân quyền người phê duyệt
+    // (dùng chung helper với update() để không lộ đường bypass qua PATCH)
+    this.assertCanApprove(wp, user);
 
     // Completion gate: Ma trận mẫu phải hoàn thành 100%
-    const stats = (wp as any)?.sampleStats;
+    const stats = wp?.sampleStats;
     if (stats && stats.total > 0 && stats.untested > 0) {
       throw new BadRequestException(
         `Không thể phê duyệt: Ma trận mẫu còn ${stats.untested}/${stats.total} mẫu chưa được đánh giá.`,
@@ -557,15 +660,7 @@ export class WorkingPapersService {
     // IIA 1311 Quality Gate: Toàn bộ Review Notes (MB-10) phải ở trạng thái CLOSED
     await this.auditReviewNotesService.assertCanSignOff(id, wp.workstreamId);
 
-    const isReviewer = wp.reviewerId === user?.userId;
-    const isLead = wp.engagement?.leadAuditorId === user?.userId;
-    const isWorkstreamReviewer = wp.workstream?.reviewerId === user?.userId;
-    const isAdmin = ScopeFilterService.isAdminRole(user?.role);
-    if (!isReviewer && !isLead && !isWorkstreamReviewer && !isAdmin) {
-      throw new BadRequestException(
-        'Chỉ Trưởng đoàn hoặc Người soát xét mới có quyền phê duyệt Giấy tờ làm việc',
-      );
-    }
+    const isLead = !!user?.userId && wp.engagement?.leadAuditorId === user.userId;
 
     const history = Array.isArray(wp.reviewHistory)
       ? [...wp.reviewHistory]
@@ -688,7 +783,7 @@ export class WorkingPapersService {
       sampleSelection: stripHtml(wp.sampleSelection) || 'Không có chọn mẫu',
       riskDescription: stripHtml(wp.riskDescription) || 'Không có rủi ro',
       conclusion: stripHtml(wp.conclusion) || 'Không có kết luận',
-      samples: samples.map((s: any) => ({
+      samples: (samples as SampleDocxRow[]).map((s) => ({
         cif: s.cif || s.accountNumber || 'N/A',
         customerName: s.customerName || 'N/A',
         testResult: s.testResult || 'N/A',
@@ -747,12 +842,16 @@ export class WorkingPapersService {
   ) {
     const workbook = new ExcelJS.Workbook();
     if (Buffer.isBuffer(filePathOrBuffer)) {
-      await workbook.xlsx.load(filePathOrBuffer as any);
+      await workbook.xlsx.load(
+        filePathOrBuffer as unknown as Parameters<
+          typeof workbook.xlsx.load
+        >[0],
+      );
     } else {
       await workbook.xlsx.readFile(filePathOrBuffer);
     }
     const worksheet = workbook.worksheets[0];
-    const aoa: any[][] = [];
+    const aoa: unknown[][] = [];
     worksheet.eachRow((row) => {
       const rowValues = Array.isArray(row.values) ? row.values.slice(1) : [];
       aoa.push(rowValues);
@@ -764,7 +863,7 @@ export class WorkingPapersService {
     let riskDescription = '';
     let sampleSelection = '';
     let procedures = '';
-    let wpId = null;
+    let wpId: unknown = null;
 
     for (let i = 0; i < aoa.length; i++) {
       const row = aoa[i];
@@ -806,6 +905,10 @@ export class WorkingPapersService {
         // syncSource: 'ExcelOfflineSync', // Removed because not in DTO
       },
       user,
+      // Cờ nội bộ: luồng đồng bộ Excel ngoại tuyến được phép ghi nội dung
+      // kể cả khi WP đang Submitted/Approved (đồng bộ sẽ đưa WP về Draft),
+      // trong khi endpoint PATCH thông thường vẫn bị khóa chỉnh sửa.
+      { allowContentEditWhileLocked: true },
     );
 
     return updatedWp;

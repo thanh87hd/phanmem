@@ -92,18 +92,17 @@ describe('AuditRatingView Page (AR-01 -> AR-04)', { timeout: 15000 }, () => {
       expect(screen.getByText('Kiểm toán Chi nhánh Hà Nội')).toBeDefined();
     });
 
-    const selects = document.querySelectorAll('select');
-    const filterSelect = selects[selects.length - 1];
-    expect(filterSelect).toBeDefined();
-    if (filterSelect) {
-      fireEvent.change(filterSelect, { target: { value: 'Generally Satisfactory' } });
-      await waitFor(() => {
-        expect(api.get).toHaveBeenCalledWith(
-          '/audit-ratings',
-          expect.objectContaining({ params: expect.objectContaining({ rating: 'Generally Satisfactory' }) }),
-        );
+    // The rating-tier filter is the select rendering the "-- Tất cả mức xếp hạng --" option
+    const filterSelect = screen.getByDisplayValue('-- Tất cả mức xếp hạng --') as HTMLSelectElement;
+    expect(filterSelect.tagName).toBe('SELECT');
+
+    fireEvent.change(filterSelect, { target: { value: 'Generally Satisfactory' } });
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/audit-ratings', {
+        params: { rating: 'Generally Satisfactory' },
       });
-    }
+    });
   });
 
   it('AR-03: calculates preview score in rating simulator', async () => {
@@ -113,16 +112,52 @@ describe('AuditRatingView Page (AR-01 -> AR-04)', { timeout: 15000 }, () => {
       expect(screen.getByText('Kiểm toán Chi nhánh Hà Nội')).toBeDefined();
     });
 
-    const calcBtn = screen.queryByRole('button', { name: /Mô phỏng|Tính toán|Calculate/i }) || screen.queryByText(/Mô phỏng/i);
-    if (calcBtn) {
-      fireEvent.click(calcBtn);
-      await waitFor(() => {
-        expect(api.post).toHaveBeenCalledWith(
-          '/audit-ratings/preview-calculate',
-          expect.anything(),
-        );
+    // The simulator has no "calculate" button: it auto-calls preview-calculate on mount
+    // with the default simulator state.
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/audit-ratings/preview-calculate', {
+        residualRiskScore: 2.2,
+        controlEffectivenessScore: 2.0,
+        criticalIssuesCount: 0,
+        highIssuesCount: 1,
+        moderateIssuesCount: 4,
+        coverageGapPct: 0.05,
+        managementResponseScore: 1.5,
+        scopeLimitation: 'None',
       });
-    }
+    });
+
+    // The preview result card renders the API payload
+    await waitFor(() => {
+      expect(screen.getByText('Kết Quả Đánh Giá Tự Động')).toBeDefined();
+    });
+    const resultCard = screen.getByText('Kết Quả Đánh Giá Tự Động').closest('div.p-5') as HTMLElement;
+    expect(resultCard).not.toBeNull();
+    expect(resultCard.textContent).toContain('85');
+    expect(resultCard.textContent).toContain('Satisfactory (Tốt)');
+    expect(resultCard.textContent).toContain('100% Khớp Excel');
+
+    // Moving the Residual Risk slider re-runs the calculation with the new input
+    const residualRange = document.querySelector('input[type="range"]') as HTMLInputElement;
+    expect(residualRange).not.toBeNull();
+    fireEvent.change(residualRange, { target: { value: '3.5' } });
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/audit-ratings/preview-calculate', {
+        residualRiskScore: 3.5,
+        controlEffectivenessScore: 2.0,
+        criticalIssuesCount: 0,
+        highIssuesCount: 1,
+        moderateIssuesCount: 4,
+        coverageGapPct: 0.05,
+        managementResponseScore: 1.5,
+        scopeLimitation: 'None',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('3.5 / 4.0')).toBeDefined();
+    });
   });
 
   it('AR-04: selects rating row and views detail panel', async () => {
@@ -138,5 +173,14 @@ describe('AuditRatingView Page (AR-01 -> AR-04)', { timeout: 15000 }, () => {
     await waitFor(() => {
       expect(screen.getByText(/RT-2026-001/i)).toBeDefined();
     });
+
+    // The rendered record row exposes the 5 weighted components + hard-rule rationale
+    const recordRow = screen.getByText('RT-2026-001').closest('tr') as HTMLElement;
+    expect(recordRow).not.toBeNull();
+    expect(recordRow.textContent).toContain('CN_HN');
+    expect(recordRow.textContent).toContain('2.1');
+    expect(recordRow.textContent).toContain('82.5');
+    expect(recordRow.textContent).toContain('Generally Satisfactory (Khá)');
+    expect(recordRow.textContent).toContain('Đạt chốt kiểm soát chính');
   });
 });

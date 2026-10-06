@@ -3974,6 +3974,7 @@
     "pleaseEnterYourCurrentPassword": "Please enter your current password",
     "pleaseEnterANewPassword": "Please enter a new password",
     "newPasswordMustBeAtLeast": "PCI DSS 8.3.6",
+    "passwordComplexityRequirement": "The new password must be at least 12 characters and include uppercase, lowercase, a digit and a special character",
     "passwordStrength": "Password strength",
     "pleaseConfirmNewPassword": "Please confirm new password",
     "2factorSecurityForEveryLogin": "2factor security for every login",

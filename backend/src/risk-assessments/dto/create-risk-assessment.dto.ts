@@ -8,7 +8,19 @@ import {
   IsArray,
   IsInt,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
+import {
+  CriterionScoringItem,
+  ImpactScoringItem,
+  LikelihoodScoringItem,
+} from '../unified-risk-engine.service';
+
+export interface RiskModifiers {
+  isRecurring?: boolean;
+  isOverdueCritical?: boolean;
+  isEmergingRisk?: boolean;
+}
 
 export class CreateRiskAssessmentDto {
   @IsOptional()
@@ -45,7 +57,7 @@ export class CreateRiskAssessmentDto {
   totalScore?: number;
 
   @IsOptional()
-  criteriaScores?: any; // JSON chi tiết chấm điểm từng tiêu chí
+  criteriaScores?: CriterionScoringItem[]; // JSON chi tiết chấm điểm từng tiêu chí
 
   @IsOptional()
   @IsInt()
@@ -107,10 +119,10 @@ export class CreateRiskAssessmentDto {
   // ==================== THUCTE Scoring Model: Impact / Likelihood / Control Components ====================
 
   @IsOptional()
-  impactScores?: any[]; // Chi tiết 5 thành phần Impact (THUCTE)
+  impactScores?: ImpactScoringItem[]; // Chi tiết 5 thành phần Impact (THUCTE)
 
   @IsOptional()
-  likelihoodScores?: any[]; // Chi tiết 4 thành phần Likelihood (THUCTE)
+  likelihoodScores?: LikelihoodScoringItem[]; // Chi tiết 4 thành phần Likelihood (THUCTE)
 
   @IsOptional()
   @IsNumber()
@@ -125,10 +137,22 @@ export class CreateRiskAssessmentDto {
   operatingEffectiveness?: number; // 0 | 0.5 | 1 — Trọng số 60%
 
   @IsOptional()
-  modifiers?: any; // { isRecurring, isOverdueCritical, isEmergingRisk }
+  modifiers?: RiskModifiers; // { isRecurring, isOverdueCritical, isEmergingRisk }
 
   @IsOptional()
-  highRiskFactors?: any; // 12 tiêu chí nhận diện đơn vị rủi ro cao (Điều 4.3 QT 3002)
+  @IsBoolean()
+  isRecurring?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isOverdueCritical?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isEmergingRisk?: boolean;
+
+  @IsOptional()
+  highRiskFactors?: Record<string, unknown>; // 12 tiêu chí nhận diện đơn vị rủi ro cao (Điều 4.3 QT 3002)
 
   // ==================== Scoring Metadata (Client-side computed, stored for display) ====================
 

@@ -189,7 +189,7 @@ export const MODULE_KEY_MAPS: Record<string, Record<string, string>> = {
     'đơn vị': 'department',
     department: 'department',
     'phòng': 'department',
-    legacyDepartment: 'department',
+    legacydepartment: 'department',
     'chức danh': 'jobTitle',
     'chức danh chuyên môn': 'jobTitle',
     'chức danh hệ thống': 'jobTitle',

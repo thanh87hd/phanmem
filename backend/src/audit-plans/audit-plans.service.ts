@@ -3,6 +3,7 @@ import {
   Inject,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -23,6 +24,7 @@ import { isHighRiskAssessment } from '../risk-assessments/helpers/risk-classific
 
 @Injectable()
 export class AuditPlansService {
+  private readonly logger = new Logger(AuditPlansService.name);
   constructor(
     @InjectRepository(AuditPlan)
     private readonly auditPlanRepository: Repository<AuditPlan>,
@@ -264,7 +266,7 @@ export class AuditPlansService {
         return cached;
       }
     } catch (err) {
-      console.warn('Cache manager lookup failed, reading from DB:', err);
+      this.logger.warn('Cache manager lookup failed, reading from DB:', err);
     }
 
     const universes = await this.auditUniverseRepository.find({
@@ -323,7 +325,7 @@ export class AuditPlansService {
       // TTL: 5 minutes = 300,000 ms
       await this.cacheManager.set(cacheKey, result, 300000);
     } catch (err) {
-      console.warn('Failed to save to Redis/cache:', err);
+      this.logger.warn('Failed to save to Redis/cache:', err);
     }
 
     return result;
@@ -348,7 +350,7 @@ export class AuditPlansService {
         ]);
       }
     } catch (err) {
-      console.warn('Failed to invalidate universe risk cache:', err);
+      this.logger.warn('Failed to invalidate universe risk cache:', err);
     }
   }
 
@@ -551,7 +553,7 @@ export class AuditPlansService {
     try {
       await this.decomposeIntoEngagements(plan.id);
     } catch (e) {
-      console.warn('Auto decompose notice:', e.message);
+      this.logger.warn('Auto decompose notice:', e.message);
     }
 
     await this.invalidateUniverseRiskCache(plan.year);

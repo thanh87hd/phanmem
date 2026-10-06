@@ -61,6 +61,7 @@ const Recommendations: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [slaFilter, setSlaFilter] = useState<string>('All');
   const [closureStatusFilter, setClosureStatusFilter] = useState<string>('All');
+  const [quickTab, setQuickTab] = useState<string>('all');
   const [selfMonitorWatch, setSelfMonitorWatch] = useState(false);
   const [customFieldsDef, setCustomFieldsDef] = useState<any[]>([]);
   const watchedDeptId = Form.useWatch('departmentId', createForm);
@@ -128,10 +129,17 @@ const Recommendations: React.FC = () => {
     
     const queryParams = new URLSearchParams(location.search);
     const queryClosureStatus = queryParams.get('closureStatus');
+    const queryTab = queryParams.get('tab');
     const stateClosureStatus = location.state?.closureStatus;
     const targetClosureStatus = stateClosureStatus || queryClosureStatus;
     if (targetClosureStatus) {
       setClosureStatusFilter(targetClosureStatus);
+      if (targetClosureStatus === 'PendingKTNBReview') {
+        setQuickTab('pendingVerify');
+      }
+    }
+    if (queryTab) {
+      setQuickTab(queryTab);
     }
 
     if (location.state && location.state.autoCreate) {
@@ -469,16 +477,16 @@ const Recommendations: React.FC = () => {
           }}>
             {t('recommendations.actionBtns.selfMonitor', 'Tự theo dõi')}
           </Button>
-          {record.status === 'Completed' && (
-            <Tooltip title="KTV xác nhận khắc phục">
+          {(record.status === 'Completed' || record.closureStatus === 'PendingKTNBReview' || (record.progressPercent === 100 && record.status !== 'Verified')) && (
+            <Tooltip title="KTV xác nhận nghiệm thu kết quả khắc phục (100%)">
               <Button
                 type="primary"
                 size="small"
                 icon={<SafetyOutlined />}
-                className="bg-purple-500 border-purple-500"
+                className="bg-purple-600 border-purple-600 hover:bg-purple-700 font-semibold"
                 onClick={() => handleOpenVerify(record)}
               >
-                Verify
+                Nghiệm thu đóng 📋
               </Button>
             </Tooltip>
           )}
@@ -493,7 +501,14 @@ const Recommendations: React.FC = () => {
   const filteredData = data
     .filter((item: any) => filterRecursive(item, searchText))
     .filter((item: any) => slaFilter === 'All' || (item.slaStatus || 'ChuaDenHan') === slaFilter)
-    .filter((item: any) => closureStatusFilter === 'All' || (item.closureStatus || 'Open') === closureStatusFilter);
+    .filter((item: any) => closureStatusFilter === 'All' || (item.closureStatus || 'Open') === closureStatusFilter)
+    .filter((item: any) => {
+      if (quickTab === 'inProgress') return item.status === 'InProgress';
+      if (quickTab === 'pendingVerify') return item.status === 'Completed' || item.closureStatus === 'PendingKTNBReview' || (item.progressPercent === 100 && item.status !== 'Verified');
+      if (quickTab === 'overdue') return item.status === 'Overdue' || item.slaStatus === 'QuaHan';
+      if (quickTab === 'closed') return item.status === 'Verified' || item.closureStatus === 'Closed';
+      return true;
+    });
 
   const handleExportExcel = () => {
     exportToExcel(filteredData, columns, 'Theo_doi_kien_nghi');
@@ -510,7 +525,7 @@ const Recommendations: React.FC = () => {
           <Select value={closureStatusFilter} onChange={(val) => setClosureStatusFilter(val)} style={{ width: 195 }} placeholder="Quy trình đóng hồ sơ...">
             <Option value="All">Tất cả quy trình đóng</Option>
             <Option value="Open">Chưa yêu cầu đóng</Option>
-            <Option value="PendingKTNBReview">Chờ KTV thẩm tra (B4)</Option>
+            <Option value="PendingKTNBReview">Chờ KTV nghiệm thu (Báo cáo 100%)</Option>
             <Option value="PendingLeadOpinion">Chờ Trưởng đoàn (B5)</Option>
             <Option value="PendingCAEApproval">Chờ CAE phê duyệt</Option>
             <Option value="Closed">Đã đóng hồ sơ</Option>
@@ -651,6 +666,53 @@ const Recommendations: React.FC = () => {
 
       {/* Main Table */}
       <Card variant="borderless" className="shadow-sm">
+        <Tabs
+          activeKey={quickTab}
+          onChange={setQuickTab}
+          className="mb-3"
+          items={[
+            {
+              key: 'all',
+              label: (
+                <span>
+                  Tất cả ({data.length})
+                </span>
+              ),
+            },
+            {
+              key: 'inProgress',
+              label: (
+                <span>
+                  Đang khắc phục ({data.filter((i: any) => i.status === 'InProgress').length})
+                </span>
+              ),
+            },
+            {
+              key: 'pendingVerify',
+              label: (
+                <span className="font-semibold text-purple-700">
+                  <SafetyOutlined /> Chờ KTV nghiệm thu ({data.filter((i: any) => i.status === 'Completed' || i.closureStatus === 'PendingKTNBReview' || (i.progressPercent === 100 && i.status !== 'Verified')).length})
+                </span>
+              ),
+            },
+            {
+              key: 'overdue',
+              label: (
+                <span className="text-red-600 font-medium">
+                  <ExclamationCircleOutlined /> Quá hạn ({data.filter((i: any) => i.status === 'Overdue' || i.slaStatus === 'QuaHan').length})
+                </span>
+              ),
+            },
+            {
+              key: 'closed',
+              label: (
+                <span>
+                  <CheckCircleOutlined /> Đã đóng / Nghiệm thu ({data.filter((i: any) => i.status === 'Verified' || i.closureStatus === 'Closed').length})
+                </span>
+              ),
+            },
+          ]}
+        />
         <Table
           columns={columns}
           dataSource={filteredData}
@@ -717,7 +779,7 @@ const Recommendations: React.FC = () => {
                   {getEscalationAlert()}
                   <RecommendationTimeline 
                     recommendation={record} 
-                    onRefresh={fetchRecommendations} 
+                    onRefresh={fetchAll} 
                   />
                   
                   <Tabs

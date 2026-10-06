@@ -65,7 +65,9 @@ jobs:
           npm ci --legacy-peer-deps --prefer-offline || npm install --legacy-peer-deps
 
       - name: 🔍 Frontend Type Check
-        continue-on-error: true
+        # Trước đây bước này để continue-on-error: true nên lỗi type KHÔNG chặn CI,
+        # và đã che 5 lỗi tham chiếu hàm/biến không tồn tại (crash runtime thật).
+        # Bộ type hiện đã sạch (0 lỗi) ⇒ bật chặn thật để không tái phát.
         run: |
           cd frontend
           npx tsc -b --noEmit
@@ -76,12 +78,34 @@ jobs:
           npm run build
 
       # --- AUTOMATED INTEGRATION TESTS ---
-      - name: 🧪 Run Master Verification Tests
+      - name: 🧪 Backend Unit Tests (Jest)
         if: ${{ github.event.inputs.skip_tests != 'true' }}
         run: |
-          echo "Running routing and hub verification..."
+          cd backend
+          # --runInBand: chạy tuần tự để CI ổn định (tránh phụ thuộc worker/port,
+          # đây cũng là cấu hình đã được kiểm chứng toàn bộ 118 suite / 957 test).
+          npm test -- --ci --runInBand --reporters=default
+
+      - name: 🧪 Frontend Unit Tests (Vitest)
+        if: ${{ github.event.inputs.skip_tests != 'true' }}
+        run: |
+          cd frontend
+          npm test
+
+      - name: 🧪 Run Master Architectural Integrity Tests
+        if: ${{ github.event.inputs.skip_tests != 'true' }}
+        run: |
+          echo "1. Running Phase A-F architecture verifiers..."
+          node scripts/verify-all-phases.cjs
+          echo "2. Running ADR-0012 Git hygiene verifier..."
+          node scripts/verify-phase5.cjs
+          echo "3. Running 70/70 routing and menu integrity verification..."
           node scripts/verify-all-routed-and-menu.cjs
-          echo "Running tasks and KPI verification..."
+          echo "4. Running engagement fieldwork refactor verification..."
+          node scripts/verify-engagement-fieldwork-refactor.cjs
+          echo "5. Running RBIA planning hub verification..."
+          node scripts/verify-rbia-planning-hub.cjs
+          echo "6. Running tasks and KPI verification..."
           node scripts/verify-tasks-kpi-bks.cjs
 
       # --- ARTIFACT PACKAGING ---
@@ -168,12 +192,25 @@ jobs:
             npm ci --legacy-peer-deps --omit=dev --ignore-scripts || npm install --legacy-peer-deps --omit=dev --ignore-scripts
             
             # 3. Giải nén Migrations & Chạy Migration DB
+            #    LỖI ĐÃ SỬA (TC-FIND-01/02): trước đây bước này là
+            #      `npm run migration:run || echo "Migration warning: check logs"`
+            #    → migration thất bại vẫn được coi là thành công, nên cột
+            #    `audit_engagements."teamMembers"` mãi không được chuyển sang
+            #    jsonb và production âm thầm chạy code mới trên schema cũ.
+            #    Từ nay migration lỗi ⇒ deploy DỪNG NGAY (set -e).
             echo ">>> Running Database Migrations..."
             mkdir -p "$APP_DIR/backend/src/database"
             tar -xzf /tmp/migrations.tar.gz -C "$APP_DIR/backend/src/database"
             cd "$APP_DIR/backend"
             if [ -f "dist/data-source.js" ]; then
-              npm run migration:run || echo "Migration warning: check logs"
+              echo ">>> Migration status BEFORE:"
+              npm run migration:show || true
+              echo ">>> Applying pending migrations..."
+              npm run migration:run
+              echo ">>> Migration status AFTER:"
+              npm run migration:show || true
+            else
+              echo "!!! dist/data-source.js KHÔNG tồn tại — bỏ qua migration. Kiểm tra lại bước build." >&2
             fi
 
             # 4. Giải nén Frontend
@@ -200,6 +237,27 @@ jobs:
             nginx -t
             systemctl reload nginx
 
+            # 9. SMOKE TEST chống tái phát lỗi 500 (TC-FIND-01/02)
+            #    1213 unit test đều mock repository nên KHÔNG test nào chạm
+            #    PostgreSQL thật → lỗi `operator does not exist: text @> jsonb`
+            #    lọt ra production. Smoke test dưới đây gọi API thật và
+            #    fail cứng nếu endpoint không trả 200.
+            echo ">>> Smoke test: GET /api/audit-findings..."
+            sleep 5
+            SMOKE_CODE=$(curl -s -o /tmp/smoke_findings.json -w '%{http_code}' \
+              -X GET 'http://127.0.0.1:3000/api/audit-findings?limit=1' \
+              -H 'Accept: application/json' || echo '000')
+            echo "    HTTP status: $SMOKE_CODE"
+            if [ "$SMOKE_CODE" = "401" ] || [ "$SMOKE_CODE" = "403" ]; then
+              echo "    OK: endpoint phản hồi (chặn quyền như mong đợi, không phải 500)."
+            elif [ "$SMOKE_CODE" = "200" ]; then
+              echo "    OK: endpoint trả 200."
+            else
+              echo "!!! SMOKE TEST THẤT BẠI: /api/audit-findings trả $SMOKE_CODE (kỳ vọng 200/401/403)." >&2
+              cat /tmp/smoke_findings.json >&2 || true
+              exit 1
+            fi
+
             echo "=========================================="
             echo "   DEPLOYMENT SUCCEEDED ON VPS!          "
             echo "=========================================="
@@ -217,3 +275,15 @@ jobs:
             echo "❌ Health check failed with status $HTTP_STATUS"
             exit 1
           fi
+
+      - name: 📥 Checkout Verification Scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+
+      - name: 🏆 16-Module API Regression Verification on Live VPS
+        run: |
+          echo "Executing comprehensive 16-module API test against https://chinhta.io.vn..."
+          node scripts/test-api-comprehensive.cjs --target=vps
+

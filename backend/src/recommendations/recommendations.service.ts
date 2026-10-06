@@ -13,11 +13,17 @@ import {
   SubmitPlanDto,
   ProgressUpdateDto,
 } from './dto/recommendation-types';
+import {
+  teamMembersContainsClause,
+  teamMembersJsonParam,
+} from '../common/utils/team-members-filter.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, Not, In } from 'typeorm';
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Recommendation } from './entities/recommendation.entity';
 import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
+import { User } from '../users/entities/user.entity';
 import { RecommendationExportUtil } from './utils/recommendation-export.util';
 import {
   RecommendationStatus,
@@ -130,20 +136,50 @@ export class RecommendationsService {
           '(rec.legacyDepartment = :dept OR rec.auditeeOwnerId = :userId)',
           { dept: user.legacyDepartment, userId: user.userId },
         );
-        return query.getMany();
+        const auditeeRows = await query.getMany();
+        return auditeeRows.map((rec) => this.withAuditeeAliases(rec));
       }
       query.andWhere(
-        '(engagement.leadAuditorId = :userId OR engagement.teamMembers LIKE :likeUserId OR rec.ktnbReviewerId = :userId OR rec.assignedToId = :userId OR workstream.assignedAuditorId = :userId OR workstream.reviewerId = :userId)',
-        { userId: user.userId, likeUserId: `%"userId":${user.userId}%` },
+        `(engagement.leadAuditorId = :userId OR ${teamMembersContainsClause('engagement')} OR rec.ktnbReviewerId = :userId OR rec.assignedToId = :userId OR workstream.assignedAuditorId = :userId OR workstream.reviewerId = :userId)`,
+        { userId: user.userId, jsonUser: teamMembersJsonParam(user.userId) },
       );
     }
-    return query.getMany();
+    const rows = await query.getMany();
+    return rows.map((rec) => this.withAuditeeAliases(rec));
   }
 
   findOne(id: number) {
-    return this.repo.findOne({
-      where: { id },
-      relations: ['auditFinding', 'auditFinding.engagement', 'assignedToUser'],
+    return this.repo
+      .findOne({
+        where: { id },
+        relations: ['auditFinding', 'auditFinding.engagement', 'assignedToUser'],
+      })
+      .then((rec) => (rec ? this.withAuditeeAliases(rec) : rec));
+  }
+
+  /**
+   * LỖI ĐÃ SỬA (TC-AUD-04 — lệch tên trường giữa DB và cổng ĐVĐKT):
+   *
+   * Cột entity là `legacyAuditeeUnitHead` / `legacyAuditeePoc`, nhưng toàn bộ
+   * frontend (AuditeePortal, ActionPlanTrackerTab, Recommendations,
+   * RecommendationTimeline) đọc `auditeeUnitHead` / `auditeePoc`.
+   *
+   * Hệ quả quan sát được trên production: form "Cập nhật tiến độ" luôn nạp
+   * rỗng cho hai ô "Trưởng Đơn vị chịu trách nhiệm" và "Nhân sự đầu mối của
+   * Đơn vị" — tức là đúng triệu chứng "bấm Cập nhật tiến độ không ra thông tin"
+   * mà Tester báo cáo. Dữ liệu ĐÃ có trong DB nhưng không có đường nào tới UI.
+   *
+   * Sửa ở BIÊN API (thay vì đổi tên cột) để không phải migration dữ liệu và
+   * không phá vỡ các bản ghi cũ; đồng thời giữ nguyên tên cột lịch sử.
+   */
+  private withAuditeeAliases(rec: Recommendation): Recommendation {
+    const legacy = rec as unknown as {
+      legacyAuditeeUnitHead?: string | null;
+      legacyAuditeePoc?: string | null;
+    };
+    return Object.assign(rec, {
+      auditeeUnitHead: legacy.legacyAuditeeUnitHead ?? null,
+      auditeePoc: legacy.legacyAuditeePoc ?? null,
     });
   }
 
@@ -155,7 +191,47 @@ export class RecommendationsService {
     });
   }
 
-  /** Find overdue recommendations and escalate based on the Overdue Escalation Matrix */
+  /**
+   * Payload khôi phục trạng thái khi kiến nghị KHÔNG còn quá hạn (hạn ở tương
+   * lai hoặc đến hạn hôm nay). Dùng CHUNG cho cron `checkAndMarkOverdue()` và
+   * API `update()` để hai đường ghi luôn nhất quán:
+   *  - slaStatus: 'QuaHan' -> 'ChuaDenHan' (giữ nguyên 'GiaHan' — gia hạn chỉ
+   *    chặn việc ghi đè trạng thái SLA, không chặn việc khôi phục mức leo thang).
+   *  - escalationLevel: đưa về 0 khi > 0, nếu không thì lần vi phạm sau sẽ không
+   *    bao giờ gửi được thông báo nữa (điều kiện gửi là `newLevel > storedLevel`)
+   *    và thông báo Level 1 bị "nuốt" im lặng.
+   *  - status: 'Overdue' -> 'InProgress' nếu progressPercent > 0, ngược lại
+   *    'NotStarted'. Nhờ đó getStats().overdue (đếm theo status = 'Overdue')
+   *    không còn tính nhầm một kiến nghị đã được dời hạn và không còn trễ.
+   * Trả về object rỗng khi không có gì cần ghi (tránh update rỗng).
+   */
+  private buildOverdueResetPayload(
+    rec: Pick<
+      Recommendation,
+      'slaStatus' | 'escalationLevel' | 'status' | 'progressPercent'
+    >,
+  ): QueryDeepPartialEntity<Recommendation> {
+    const resetData: QueryDeepPartialEntity<Recommendation> = {};
+    if (rec.slaStatus === 'QuaHan') {
+      resetData.slaStatus = 'ChuaDenHan';
+    }
+    if ((rec.escalationLevel ?? 0) > 0) {
+      resetData.escalationLevel = 0;
+    }
+    if (rec.status === 'Overdue') {
+      resetData.status =
+        (rec.progressPercent ?? 0) > 0 ? 'InProgress' : 'NotStarted';
+    }
+    return resetData;
+  }
+
+  /**
+   * Find overdue recommendations and escalate based on the Overdue Escalation Matrix.
+   *
+   * Quy tắc khôi phục khi kiến nghị KHÔNG còn quá hạn được tập trung trong
+   * `buildOverdueResetPayload()` (xem chú thích ở helper) và được dùng chung với
+   * API `update()` để tránh lệch dữ liệu giữa hai đường ghi.
+   */
   async checkAndMarkOverdue(): Promise<number> {
     const today = new Date().toISOString().split('T')[0];
     const todayMs = new Date(today).getTime();
@@ -164,6 +240,10 @@ export class RecommendationsService {
     const batchSize = 100;
     let offset = 0;
     let hasMore = true;
+
+    // Người nhận báo cáo BKS/CAE cho Level 3, tra cứu tối đa 1 lần cho mỗi lần
+    // chạy: undefined = chưa tra cứu, null = không tìm thấy (dùng dự phòng).
+    let bksRecipientId: number | null | undefined = undefined;
 
     while (hasMore) {
       const pendingRecs = await this.repo.find({
@@ -191,13 +271,13 @@ export class RecommendationsService {
 
           if (daysOverdue >= 60) {
             newLevel = 3;
-            warningMsg = `🔴 CẢNH BÁO CẤP CAO (Level 3 - Quá hạn > 60 ngày): Kiến nghị kiểm toán tại đơn vị '${rec.legacyDepartment}' đã quá hạn ${daysOverdue} ngày. Vấn đề được báo cáo khẩn cấp lên Ban Kiểm Soát & Giám đốc Khối KTNB!`;
+            warningMsg = `🔴 CẢNH BÁO CẤP CAO (Level 3 - Quá hạn ≥ 60 ngày): Kiến nghị kiểm toán tại đơn vị '${rec.legacyDepartment}' đã quá hạn ${daysOverdue} ngày. Vấn đề được báo cáo khẩn cấp lên Ban Kiểm Soát & Giám đốc Khối KTNB!`;
           } else if (daysOverdue >= 30) {
             newLevel = 2;
-            warningMsg = `🟠 CẢNH BÁO CẤP 2 (Level 2 - Quá hạn > 30 ngày): Kiến nghị tại đơn vị '${rec.legacyDepartment}' đã quá hạn ${daysOverdue} ngày. Cảnh báo leo thang gửi Giám đốc Vùng và Phó Tổng Giám đốc phụ trách!`;
+            warningMsg = `🟠 CẢNH BÁO CẤP 2 (Level 2 - Quá hạn ≥ 30 ngày): Kiến nghị tại đơn vị '${rec.legacyDepartment}' đã quá hạn ${daysOverdue} ngày. Cảnh báo leo thang gửi Giám đốc Vùng và Phó Tổng Giám đốc phụ trách!`;
           } else if (daysOverdue >= 15) {
             newLevel = 1;
-            warningMsg = `🟡 CẢNH BÁO CẤP 1 (Level 1 - Quá hạn > 15 ngày): Kiến nghị tại đơn vị '${rec.legacyDepartment}' đã quá hạn ${daysOverdue} ngày. Nhắc nhở gửi trực tiếp Giám đốc Chi nhánh/Đơn vị.`;
+            warningMsg = `🟡 CẢNH BÁO CẤP 1 (Level 1 - Quá hạn ≥ 15 ngày): Kiến nghị tại đơn vị '${rec.legacyDepartment}' đã quá hạn ${daysOverdue} ngày. Nhắc nhở gửi trực tiếp Giám đốc Chi nhánh/Đơn vị.`;
           }
 
           const shouldEscalate = newLevel > rec.escalationLevel;
@@ -225,17 +305,26 @@ export class RecommendationsService {
 
             // Gửi thông báo bổ sung cho Ban Kiểm Soát / CAE khi ở mức Level 3
             if (newLevel === 3) {
+              if (bksRecipientId === undefined) {
+                bksRecipientId = await this.resolveBksRecipientId();
+              }
+              // Báo cáo BKS phải tới đúng Ban Kiểm Soát / Giám đốc Khối KTNB (CAE),
+              // KHÔNG phải người được phân công xử lý kiến nghị. Chỉ khi hệ thống
+              // không tìm được người nhận BKS/CAE mới dùng lại người được phân công
+              // (hoặc Admin id 1 nếu chưa phân công).
+              const reportRecipientId = bksRecipientId ?? notifyRecipientId;
               try {
                 await this.notificationsService.create({
                   type: 'error',
                   title: `BÁO CÁO BAN KIỂM SOÁT`,
-                  message: `Báo cáo khẩn cấp: Đơn vị '${rec.legacyDepartment}' chậm khắc phục kiến nghị quá 60 ngày. Tiêu đề: ${rec.recommendation.substring(0, 40)}...`,
-                  recipientId: notifyRecipientId, // Admin / Trưởng BKS
+                  message: `Báo cáo khẩn cấp: Đơn vị '${rec.legacyDepartment}' chậm khắc phục kiến nghị từ 60 ngày trở lên. Tiêu đề: ${rec.recommendation.substring(0, 40)}...`,
+                  recipientId: reportRecipientId,
                   link: `/recommendations?id=${rec.id}`,
                 });
-              } catch (err: any) {
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : String(err);
                 this.logger.warn(
-                  `Không thể tạo notification cấp 3: ${err.message}`,
+                  `Không thể tạo notification cấp 3: ${msg}`,
                 );
               }
             }
@@ -251,12 +340,21 @@ export class RecommendationsService {
               .catch((e) => this.logger.error('Lỗi gửi email SLA', e));
 
             count++;
+          } else if (rec.escalationLevel > newLevel) {
+            // Hạ mức leo thang khi hạn được dời lại gần hơn nhưng vẫn trong quá
+            // khứ (ví dụ: Level 2 -> còn 5 ngày trễ). Mức lưu trữ phải phản ánh
+            // đúng mức vi phạm hiện tại, nếu không lần vi phạm sau ở cùng mức sẽ
+            // không gửi được thông báo (điều kiện gửi là `newLevel > storedLevel`).
+            updateData.escalationLevel = newLevel;
           }
 
           await this.repo.update(rec.id, updateData);
         } else {
-          if (rec.slaStatus === 'QuaHan') {
-            await this.repo.update(rec.id, { slaStatus: 'ChuaDenHan' });
+          // Kiến nghị không còn quá hạn (hạn ở tương lai hoặc đến hạn hôm nay):
+          // khôi phục trạng thái SLA, mức leo thang và trạng thái xử lý.
+          const resetData = this.buildOverdueResetPayload(rec);
+          if (Object.keys(resetData).length > 0) {
+            await this.repo.update(rec.id, resetData);
           }
         }
       }
@@ -275,9 +373,9 @@ export class RecommendationsService {
     id: number,
     plan: string,
     targetDate?: string,
-    extra?: any,
+    extra?: Partial<SubmitPlanDto>,
   ) {
-    const updatePayload: any = {
+    const updatePayload: Partial<Recommendation> = {
       remediationPlan: plan,
       auditeeTargetDate: targetDate,
       status: 'InProgress',
@@ -292,10 +390,10 @@ export class RecommendationsService {
         updatePayload.auditeeProposal = extra.auditeeProposal;
       if (extra.monitoringCycle)
         updatePayload.monitoringCycle = extra.monitoringCycle;
-      if (extra.legacyAuditeeUnitHead)
-        updatePayload.legacyAuditeeUnitHead = extra.legacyAuditeeUnitHead;
-      if (extra.legacyAuditeePoc)
-        updatePayload.legacyAuditeePoc = extra.legacyAuditeePoc;
+      if (extra.auditeeUnitHead)
+        updatePayload.legacyAuditeeUnitHead = extra.auditeeUnitHead;
+      if (extra.auditeePoc)
+        updatePayload.legacyAuditeePoc = extra.auditeePoc;
     }
     await this.repo.update(id, updatePayload);
     const rec = await this.findOne(id);
@@ -320,9 +418,9 @@ export class RecommendationsService {
     progressPercent: number,
     response?: string,
     notes?: string,
-    extra?: any,
+    extra?: Partial<ProgressUpdateDto>,
   ) {
-    const update: Partial<Recommendation> = { progressPercent };
+    const update: QueryDeepPartialEntity<Recommendation> = { progressPercent };
     if (response) update.response = response;
     if (notes) update.auditeeNotes = notes;
 
@@ -369,7 +467,11 @@ export class RecommendationsService {
   }
 
   /** KTV xác nhận kiến nghị đã được khắc phục */
-  async verify(id: number, notes: string, user?: any) {
+  async verify(
+    id: number,
+    notes: string,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
     this.assertUpdateAccess(rec, user);
@@ -382,7 +484,10 @@ export class RecommendationsService {
     return this.findOne(id);
   }
 
-  async requestClosure(id: number, user?: any) {
+  async requestClosure(
+    id: number,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
     await this.repo.update(id, {
@@ -392,7 +497,11 @@ export class RecommendationsService {
     return this.findOne(id);
   }
 
-  async ktnbReview(id: number, notes: string, user?: any) {
+  async ktnbReview(
+    id: number,
+    notes: string,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string; username?: string; fullName?: string },
+  ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
     const roleStr = (user?.role || '').toString();
@@ -421,7 +530,11 @@ export class RecommendationsService {
     return this.findOne(id);
   }
 
-  async teamLeadOpinion(id: number, opinion: string, user?: any) {
+  async teamLeadOpinion(
+    id: number,
+    opinion: string,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string; username?: string; fullName?: string },
+  ) {
     if (!opinion)
       throw new BadRequestException('Vui lòng nhập ý kiến Trưởng đoàn');
     const rec = await this.findOne(id);
@@ -437,7 +550,11 @@ export class RecommendationsService {
     return this.findOne(id);
   }
 
-  async close(id: number, closedReason: string, user?: any) {
+  async close(
+    id: number,
+    closedReason: string,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
     const roleStr = (user?.role || '').toString();
@@ -468,7 +585,7 @@ export class RecommendationsService {
     id: number,
     selfMonitored: boolean,
     selfMonitorFrequency?: string,
-    user?: any,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
   ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
@@ -490,7 +607,11 @@ export class RecommendationsService {
   }
 
   // ===== IIA Standard 7.3: Management Risk Acceptance Workflow =====
-  async requestRiskAcceptance(id: number, reason: string, user?: any) {
+  async requestRiskAcceptance(
+    id: number,
+    reason: string,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string; fullName?: string; username?: string },
+  ) {
     if (!reason || reason.trim() === '') {
       throw new BadRequestException('Vui lòng nêu rõ lý do xin chấp nhận rủi ro');
     }
@@ -511,7 +632,7 @@ export class RecommendationsService {
     id: number,
     forwardToBks: boolean,
     notes: string,
-    user?: any,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
   ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
@@ -538,7 +659,11 @@ export class RecommendationsService {
     return this.findOne(id);
   }
 
-  async approveRiskAcceptance(id: number, notes: string, user?: any) {
+  async approveRiskAcceptance(
+    id: number,
+    notes: string,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string; fullName?: string; username?: string },
+  ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
     if (
@@ -566,7 +691,11 @@ export class RecommendationsService {
     return this.findOne(id);
   }
 
-  async rejectRiskAcceptance(id: number, notes: string, user?: any) {
+  async rejectRiskAcceptance(
+    id: number,
+    notes: string,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string },
+  ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
     await this.repo.update(id, {
@@ -594,12 +723,55 @@ export class RecommendationsService {
     return RecommendationExportUtil.buildWorkbook(recs, findings);
   }
 
-  private isPrivileged(user?: any) {
+  /**
+   * Xác định người nhận báo cáo cấp cao cho cảnh báo Level 3 (BÁO CÁO BAN KIỂM SOÁT).
+   *
+   * Thứ tự ưu tiên theo vai trò (dùng lại bộ từ khoá ở role-checker.util.ts,
+   * không hard-code username):
+   *   1. Ban Kiểm Soát (BKS)
+   *   2. Lãnh đạo KTNB / Giám đốc Khối (CAE)
+   *   3. Admin
+   * Trả về null khi không tìm được ai — khi đó nơi gọi dùng lại người được phân
+   * công xử lý (assignedToId) hoặc Admin id 1 làm dự phòng.
+   */
+  private async resolveBksRecipientId(): Promise<number | null> {
+    try {
+      const users = await this.repo.manager.getRepository(User).find({
+        relations: ['role'],
+        order: { id: 'ASC' },
+      });
+
+      const roleNameOf = (user: User): string =>
+        (user?.role?.name || (user?.role as unknown as string) || '').toString();
+
+      const findByRole = (
+        matches: (role: string) => boolean,
+      ): User | undefined => users.find((user) => matches(roleNameOf(user)));
+
+      const target =
+        findByRole(isBKSRole) ??
+        findByRole(isLanhDaoRole) ??
+        findByRole(isAdminRole);
+
+      return target?.id ?? null;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Không xác định được người nhận BKS/CAE, dùng người được phân công: ${msg}`,
+      );
+      return null;
+    }
+  }
+
+  private isPrivileged(user?: AuthenticatedUserContext | { role?: string }) {
     const roleStr = (user?.role || '').toString();
     return isAdminRole(roleStr) || isLanhDaoRole(roleStr);
   }
 
-  private async assertTeamLeadAccess(rec: Recommendation, user?: any) {
+  private async assertTeamLeadAccess(
+    rec: Recommendation,
+    user?: AuthenticatedUserContext | { role?: string; userId?: number },
+  ) {
     if (this.isPrivileged(user)) return;
     const roleStr = (user?.role || '').toString();
     if (isAuditeeRole(roleStr)) {
@@ -628,7 +800,10 @@ export class RecommendationsService {
     }
   }
 
-  private assertUpdateAccess(rec: Recommendation, user?: any) {
+  private assertUpdateAccess(
+    rec: Recommendation,
+    user?: AuthenticatedUserContext | { role?: string; userId?: number },
+  ) {
     if (!user) return; // if called internally
     if (this.isPrivileged(user)) return;
 
@@ -640,12 +815,16 @@ export class RecommendationsService {
     }
   }
 
-  async update(id: number, dto: UpdateRecommendationDto, user?: any) {
+  async update(
+    id: number,
+    dto: UpdateRecommendationDto,
+    user?: AuthenticatedUserContext | { role?: string; userId?: number },
+  ) {
     const existingRec = await this.findOne(id);
     if (!existingRec) throw new NotFoundException('Không tìm thấy kiến nghị');
     this.assertUpdateAccess(existingRec, user);
 
-    if ((dto as any).closureStatus === 'Closed' || dto.status === 'Closed') {
+    if (dto.closureStatus === 'Closed' || dto.status === 'Closed') {
       throw new BadRequestException(
         'Không thể đóng kiến nghị trực tiếp qua update. Vui lòng thực hiện quy trình đóng kiến nghị (close) với đầy đủ ý kiến Trưởng đoàn và lý do đóng.',
       );
@@ -663,14 +842,25 @@ export class RecommendationsService {
         rec.closureStatus !== 'Closed'
       ) {
         await this.repo.update(id, { slaStatus: 'QuaHan', status: 'Overdue' });
-      } else if (rec.dueDate >= today && rec.slaStatus !== 'GiaHan') {
-        await this.repo.update(id, { slaStatus: 'ChuaDenHan' });
+      } else if (rec.dueDate >= today) {
+        // Hạn mới không còn ở quá khứ: áp dụng ĐÚNG quy tắc khôi phục của cron
+        // (slaStatus + escalationLevel + status) ngay trong lượt ghi này, thay vì
+        // chỉ đổi slaStatus rồi để escalationLevel/status lệch cho tới lần chạy
+        // cron kế tiếp (tối đa ~24h): getStats().overdue đếm nhầm và lần vi phạm
+        // lại ở cùng mức sẽ không gửi được thông báo.
+        const resetData = this.buildOverdueResetPayload(rec);
+        if (Object.keys(resetData).length > 0) {
+          await this.repo.update(id, resetData);
+        }
       }
     }
     return this.findOne(id);
   }
 
-  async remove(id: number, user?: any) {
+  async remove(
+    id: number,
+    user?: AuthenticatedUserContext | { role?: string; userId?: number },
+  ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
     if (user && !this.isPrivileged(user)) {

@@ -115,7 +115,7 @@ describe('AuditMinutesPage (AM-01 -> AM-06)', { timeout: 15000 }, () => {
       expect(screen.getByText('Trần Văn Trưởng')).toBeDefined();
       expect(screen.getByText('102/QĐ-KTNB')).toBeDefined();
       expect(screen.getByText('Chỉnh sửa Biên bản')).toBeDefined();
-    });
+    }, { timeout: 5000 });
   });
 
   it('AM-03: Triggers Auto-collate from Working Papers', async () => {
@@ -123,16 +123,41 @@ describe('AuditMinutesPage (AM-01 -> AM-06)', { timeout: 15000 }, () => {
 
     render(<AuditMinutesPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Tự động bóc tách từ WP')).toBeDefined();
-    });
+    // Nút "Tự động bóc tách từ WP" có `loading={collating}`; antd BỎ QUA click khi
+    // nút đang loading. Chờ nút hết loading rồi mới click, nếu không test flaky:
+    // khi máy bận, click xảy ra lúc trang còn đang tải ⇒ api.post = 0 lần gọi.
+    await waitFor(
+      () => {
+        const btn = screen
+          .getByText('Tự động bóc tách từ WP')
+          .closest('button') as HTMLButtonElement;
+        expect(btn).not.toBeNull();
+        expect(btn.className).not.toContain('ant-btn-loading');
+        expect(btn.disabled).toBe(false);
+      },
+      { timeout: 15000 },
+    );
 
     const collateBtn = screen.getByText('Tự động bóc tách từ WP');
     fireEvent.click(collateBtn);
 
+    await waitFor(
+      () => {
+        expect(api.post).toHaveBeenCalledWith('/audit-minutes/auto-collate/1');
+      },
+      { timeout: 15000 },
+    );
+
+    // `handleAutoCollate` keeps running after the POST resolves: it raises the
+    // success toast, awaits a full re-fetch of the engagement/minutes/findings
+    // and clears `collating` in its `finally`. Waiting for that re-fetch keeps
+    // the tail inside the test instead of leaving React work queued past its end.
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/audit-minutes/auto-collate/1');
-    });
+      const engagementDetailCalls = (api.get as any).mock.calls.filter(
+        (call: any[]) => call[0] === '/audit-engagements/1',
+      );
+      expect(engagementDetailCalls.length).toBeGreaterThanOrEqual(2);
+    }, { timeout: 5000 });
   });
 
   it('AM-04: Opens Edit Modal and updates minute info', async () => {
@@ -157,6 +182,15 @@ describe('AuditMinutesPage (AM-01 -> AM-06)', { timeout: 15000 }, () => {
     await waitFor(() => {
       expect(api.patch).toHaveBeenCalledWith('/audit-minutes/10', expect.anything());
     });
+
+    // Same async tail as AM-03: success toast, modal close, re-fetch, and the
+    // `finally` that clears the save state.
+    await waitFor(() => {
+      const engagementDetailCalls = (api.get as any).mock.calls.filter(
+        (call: any[]) => call[0] === '/audit-engagements/1',
+      );
+      expect(engagementDetailCalls.length).toBeGreaterThanOrEqual(2);
+    }, { timeout: 5000 });
   });
 
   it('AM-05: Displays business domain findings (KHCN, PTD)', async () => {
@@ -169,6 +203,12 @@ describe('AuditMinutesPage (AM-01 -> AM-06)', { timeout: 15000 }, () => {
   });
 
   it('AM-06: Triggers Word and Excel export when requested', async () => {
+    // jsdom does not implement URL.createObjectURL, so without this stub the
+    // export handlers always take their catch branch and the "success" path is
+    // never exercised. (The jsdom environment is per test file, so no restore.)
+    const createObjectURL = vi.fn(() => 'blob:mock-download-url');
+    (window.URL as any).createObjectURL = createObjectURL;
+
     (api.get as any).mockImplementation((url: string) => {
       if (url.includes('/export/word') || url.includes('/export/excel')) {
         return Promise.resolve({ data: new Blob(['fake-content'], { type: 'application/octet-stream' }) });
@@ -186,12 +226,23 @@ describe('AuditMinutesPage (AM-01 -> AM-06)', { timeout: 15000 }, () => {
       expect(screen.getByText('Chỉnh sửa Biên bản')).toBeDefined();
     });
 
-    const wordBtns = screen.getAllByRole('button').filter(b => b.textContent?.includes('Xuất MB04 Word') || b.querySelector('.anticon-file-word'));
-    if (wordBtns.length > 0) {
-      fireEvent.click(wordBtns[0]);
-      await waitFor(() => {
-        expect(api.get).toHaveBeenCalledWith(expect.stringContaining('/export/word'), expect.anything());
-      });
-    }
+    fireEvent.click(screen.getByRole('button', { name: /Xuất Word MB04 Chi tiết/i }));
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(expect.stringContaining('/export/word'), expect.anything());
+    });
+    // The handler keeps running after the download response resolves: it builds
+    // the blob link (via createObjectURL), raises the success toast and clears
+    // `exportingWord` in its `finally`.
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+    }, { timeout: 5000 });
+
+    fireEvent.click(screen.getByRole('button', { name: /Xuất Excel đối soát/i }));
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(expect.stringContaining('/export/excel'), expect.anything());
+    });
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalledTimes(2);
+    }, { timeout: 5000 });
   });
 });

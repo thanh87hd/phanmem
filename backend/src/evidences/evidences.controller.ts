@@ -59,18 +59,34 @@ export class EvidencesController {
     return this.evidencesService.findAll();
   }
 
-  /** GET /evidences/:id/download — tải file về */
+  /**
+   * GET /evidences/:id/download — tải file về.
+   *
+   * UAT TC-WP-04: thêm tham số `?inline=true` để XEM TRƯỚC bằng chứng ngay
+   * trong trình duyệt thay vì buộc phải tải xuống rồi mở bằng phần mềm ngoài.
+   *
+   * Trước đây endpoint này LUÔN trả `Content-Disposition: attachment` nên UI
+   * Working Paper chỉ có nút "Tải"; trong khi endpoint tương ứng của
+   * `file-assets` đã hỗ trợ `inline` từ trước — tức là backend đã có năng lực
+   * nhưng thiếu ở đúng đường dẫn mà bằng chứng W/P sử dụng.
+   */
   @Get(':id/download')
-  async download(@Param('id') id: string, @Res() res: any) {
+  async download(
+    @Param('id') id: string,
+    @Res() res: any,
+    @Query('inline') inline?: string,
+  ) {
     const evidence = await this.evidencesService.findOne(+id);
     if (!fs.existsSync(evidence.path)) {
       return res
         .status(404)
         .send({ message: 'File không tồn tại trên server' });
     }
+    const dispositionType =
+      inline === 'true' || inline === '1' ? 'inline' : 'attachment';
     res.headers({
       'Content-Type': evidence.mimeType,
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(evidence.originalName)}"`,
+      'Content-Disposition': `${dispositionType}; filename="${encodeURIComponent(evidence.originalName)}"`,
     });
     fs.createReadStream(evidence.path).pipe(res);
   }

@@ -1,6 +1,8 @@
-import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard)
@@ -9,7 +11,7 @@ export class DashboardController {
 
   @Get('stats')
   getStats(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('teamCode') teamCode?: string,
     @Query('unitType') unitType?: string,
     @Query('departmentId') departmentId?: string,
@@ -17,7 +19,7 @@ export class DashboardController {
     @Query('auditUniverse') auditUniverse?: string,
   ) {
     return this.service.getStats(
-      req.user,
+      user,
       teamCode,
       unitType,
       departmentId,
@@ -28,7 +30,7 @@ export class DashboardController {
 
   @Get('risk-distribution')
   getRiskDistribution(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('teamCode') teamCode?: string,
     @Query('unitType') unitType?: string,
     @Query('departmentId') departmentId?: string,
@@ -36,7 +38,7 @@ export class DashboardController {
     @Query('auditUniverse') auditUniverse?: string,
   ) {
     return this.service.getRiskDistribution(
-      req.user,
+      user,
       teamCode,
       unitType,
       departmentId,
@@ -47,7 +49,7 @@ export class DashboardController {
 
   @Get('audit-progress')
   getAuditProgress(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('teamCode') teamCode?: string,
     @Query('unitType') unitType?: string,
     @Query('departmentId') departmentId?: string,
@@ -55,7 +57,7 @@ export class DashboardController {
     @Query('auditUniverse') auditUniverse?: string,
   ) {
     return this.service.getAuditProgress(
-      req.user,
+      user,
       teamCode,
       unitType,
       departmentId,
@@ -66,7 +68,7 @@ export class DashboardController {
 
   @Get('recommendation-by-dept')
   getRecommendationByDept(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('teamCode') teamCode?: string,
     @Query('unitType') unitType?: string,
     @Query('departmentId') departmentId?: string,
@@ -74,7 +76,7 @@ export class DashboardController {
     @Query('auditUniverse') auditUniverse?: string,
   ) {
     return this.service.getRecommendationByDept(
-      req.user,
+      user,
       teamCode,
       unitType,
       departmentId,
@@ -85,14 +87,14 @@ export class DashboardController {
 
   @Get('risk-widgets')
   getRiskWidgets(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('unitType') unitType?: string,
     @Query('departmentId') departmentId?: string,
     @Query('year') year?: string,
     @Query('auditUniverse') auditUniverse?: string,
   ) {
     return this.service.getRiskWidgets(
-      req.user,
+      user,
       unitType,
       departmentId,
       year,
@@ -102,14 +104,14 @@ export class DashboardController {
 
   @Get('executive-grouped-overview')
   getExecutiveGroupedOverview(
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
     @Query('year') year?: string,
     @Query('quarter') quarter?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     return this.service.getExecutiveGroupedOverview(
-      req.user,
+      user,
       year,
       quarter,
       startDate,

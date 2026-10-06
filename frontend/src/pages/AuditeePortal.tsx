@@ -20,6 +20,11 @@ import { exportToExcel, filterRecursive } from '../utils/excelExport';
 import { getColumnSearchProps, getColumnSelectFilterProps, getColumnSorter } from '../utils/tableFilterHelper';
 import { FindingResponseModal } from './auditee-portal/FindingResponseModal';
 import { ActionPlanTrackerTab } from './auditee-portal/ActionPlanTrackerTab';
+import {
+  normalizeRecommendationStatus,
+  canReportProgress,
+  isRecommendationReadOnly,
+} from '../utils/recommendationStatus';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -117,7 +122,15 @@ const AuditeePortal: React.FC = () => {
         api.get('/recommendations', { params: { dept: userDept } }),
         api.get('/audit-findings')
       ]);
-      setData(recsRes.data || []);
+      // TC-AUD-04: chuẩn hoá trạng thái ngay tại biên nhận dữ liệu.
+      // DB production còn nhãn tiếng Việt cũ ('Đã hoàn thành', 'Chưa khắc phục',
+      // 'Đã khắc phục một phần') → nếu để nguyên, statusConfig tra không thấy,
+      // Tag trạng thái trắng và nút "Cập nhật tiến độ" không bao giờ render.
+      const recs = (recsRes.data || []).map((rec: any) => ({
+        ...rec,
+        status: normalizeRecommendationStatus(rec),
+      }));
+      setData(recs);
       setFindingsList(findingsRes.data || []);
     } catch {
       message.error('Lỗi khi tải dữ liệu từ máy chủ');
@@ -603,7 +616,37 @@ const AuditeePortal: React.FC = () => {
         okText={t('common.btnSendPlan', 'Gửi kế hoạch')}
         width={650}
       >
-        <Form form={planForm} layout="vertical" className="mt-4">
+        {planModal.record && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 mb-4 text-xs shadow-sm">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
+              <span className="font-bold text-slate-800 text-sm">
+                📋 Kiến nghị: {planModal.record.code || `#${planModal.record.id}`}
+              </span>
+              <Tag color={statusConfig[planModal.record.status]?.color || 'blue'}>
+                {statusConfig[planModal.record.status]?.label || planModal.record.status}
+              </Tag>
+            </div>
+            <div className="space-y-1.5 text-slate-600">
+              <div>
+                <span className="font-semibold text-slate-700">Nội dung kiến nghị: </span>
+                <span className="text-slate-900 font-medium">{planModal.record.recommendation}</span>
+              </div>
+              {(planModal.record.finding?.findingTitle || planModal.record.finding?.title) && (
+                <div>
+                  <span className="font-semibold text-slate-700">Phát hiện liên quan: </span>
+                  <span className="text-slate-800">{planModal.record.finding?.findingTitle || planModal.record.finding?.title}</span>
+                </div>
+              )}
+              {planModal.record.dueDate && (
+                <div>
+                  <span className="font-semibold text-slate-700">Hạn hoàn thành yêu cầu: </span>
+                  <span className="text-red-600 font-medium">{dayjs(planModal.record.dueDate).format('DD/MM/YYYY')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        <Form form={planForm} layout="vertical" className="mt-2">
           <Alert message="Lưu ý: Sau khi gửi kế hoạch, trạng thái sẽ chuyển sang 'Đang thực hiện'." type="info" showIcon className="mb-4" />
           
           <Row gutter={16}>
@@ -670,7 +713,48 @@ const AuditeePortal: React.FC = () => {
         okText={t('common.btnUpdate', 'Cập nhật')}
         width={700}
       >
-        <Form form={progressForm} layout="vertical" className="mt-4">
+        {progressModal.record && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 mb-4 text-xs shadow-sm">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
+              <span className="font-bold text-slate-800 text-sm">
+                📋 Kiến nghị: {progressModal.record.code || `#${progressModal.record.id}`}
+              </span>
+              <div className="flex items-center gap-2">
+                <Tag color={statusConfig[progressModal.record.status]?.color || 'blue'}>
+                  {statusConfig[progressModal.record.status]?.label || progressModal.record.status}
+                </Tag>
+                <Tag color="cyan">
+                  Tiến độ hiện tại: {progressModal.record.progressPercent || 0}%
+                </Tag>
+              </div>
+            </div>
+            <div className="space-y-1.5 text-slate-600">
+              <div>
+                <span className="font-semibold text-slate-700">Nội dung kiến nghị: </span>
+                <span className="text-slate-900 font-medium">{progressModal.record.recommendation}</span>
+              </div>
+              {(progressModal.record.finding?.findingTitle || progressModal.record.finding?.title) && (
+                <div>
+                  <span className="font-semibold text-slate-700">Phát hiện liên quan: </span>
+                  <span className="text-slate-800">{progressModal.record.finding?.findingTitle || progressModal.record.finding?.title}</span>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                <div>
+                  <span className="font-semibold text-slate-700">Hạn hoàn thành: </span>
+                  <span className="text-red-600 font-medium">
+                    {progressModal.record.dueDate ? dayjs(progressModal.record.dueDate).format('DD/MM/YYYY') : 'Chưa thiết lập'}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-700">Kế hoạch khắc phục: </span>
+                  <span className="text-slate-800">{progressModal.record.plan || progressModal.record.remediationPlan || 'Chưa ghi nhận'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        <Form form={progressForm} layout="vertical" className="mt-2">
           <Row gutter={24}>
             <Col span={12}>
               <Form.Item name="progressPercent" label={<span className="font-semibold text-gray-700">Tiến độ thực tế (%)</span>}>

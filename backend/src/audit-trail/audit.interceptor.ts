@@ -3,13 +3,15 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { AuditTrailService } from './audit-trail.service';
+import { mergeMap } from 'rxjs/operators';
+import { AuditTrailService, LogActionParams } from './audit-trail.service';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(AuditInterceptor.name);
   constructor(private readonly auditTrailService: AuditTrailService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -30,31 +32,49 @@ export class AuditInterceptor implements NestInterceptor {
     const userId = user?.userId || null;
     const username = user?.username || 'Guest';
 
-    // Parse resource name from URL (e.g. /api/users -> users)
-    const resource = url.split('/')[1] || 'Unknown';
-    const resourceId = req.params?.id || null;
+    // Tên tài nguyên = đoạn đường dẫn ĐẦU TIÊN sau khi bỏ tiền tố global 'api'
+    // (main.ts: app.setGlobalPrefix('api')).
+    //   '/api/users'        -> 'users'
+    //   '/api/audit-findings/123' -> 'audit-findings'
+    //   '/api' | '/'        -> 'Unknown'
+    // Bỏ query string và các đoạn rỗng (dấu '/' thừa) để kết quả tất định.
+    const resource = this.parseResource(url);
+    // Một số route dùng ':reqId' (vd. yêu cầu thay đổi của cuộc kiểm toán) thay vì ':id'.
+    const resourceId = req.params?.id ?? req.params?.reqId ?? null;
 
+    const auditParams: LogActionParams = {
+      action,
+      resource,
+      resourceId,
+      userId,
+      username,
+      newValue: body,
+      ipAddress: ip,
+      userAgent,
+    };
+
+    // Ghi nhật ký TRƯỚC khi phát response về client (mergeMap + await) để không mất bản
+    // ghi khi tiến trình chết ngay sau khi trả lời; lỗi ghi log vẫn không làm hỏng request.
     return next.handle().pipe(
-      tap({
-        next: (responseBody: any) => {
-          // Log success
-          this.auditTrailService
-            .log({
-              action,
-              resource,
-              resourceId,
-              userId,
-              username,
-              newValue: body,
-              ipAddress: ip,
-              userAgent,
-            })
-            .catch((err) => console.error('Failed to log audit trail:', err));
-        },
-        error: (err: any) => {
-          // Log failure? Optionally log failed actions as well
-        },
+      mergeMap(async (responseBody: any) => {
+        // Bản ghi phản ánh yêu cầu (body) chứ không phải body phản hồi của handler.
+        try {
+          await this.auditTrailService.log(auditParams);
+        } catch (err) {
+          this.logger.error('Failed to log audit trail:', err);
+        }
+        return responseBody;
       }),
     );
+  }
+
+  /** Lấy tên tài nguyên từ URL, bỏ tiền tố 'api', query string và đoạn rỗng. */
+  private parseResource(url: string): string {
+    const path = (url || '').split('?')[0].split('#')[0];
+    const segments = path.split('/').filter((segment) => segment.length > 0);
+    if (segments[0] === 'api') {
+      segments.shift();
+    }
+    return segments[0] || 'Unknown';
   }
 }

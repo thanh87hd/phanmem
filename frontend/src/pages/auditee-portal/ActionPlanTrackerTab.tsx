@@ -31,6 +31,11 @@ import EvidenceManager from '../../components/EvidenceManager';
 import { RecommendationTimeline } from '../recommendations/RecommendationTimeline';
 import { exportToExcel, filterRecursive } from '../../utils/excelExport';
 import {
+  canReportProgress,
+  isRecommendationReadOnly,
+  normalizeRecommendationStatus,
+} from '../../utils/recommendationStatus';
+import {
   getColumnSearchProps,
   getColumnSelectFilterProps,
   getColumnSorter,
@@ -185,7 +190,11 @@ export const ActionPlanTrackerTab: React.FC<ActionPlanTrackerTabProps> = ({
       fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space wrap>
-          {record.status === 'NotStarted' && (
+          {/* TC-AUD-04: dùng canReportProgress() thay vì so sánh chuỗi trực tiếp.
+              Dữ liệu cũ trong DB là nhãn tiếng Việt ('Chưa khắc phục',
+              'Đã khắc phục một phần') nên `record.status === 'NotStarted'` luôn
+              sai ⇒ nút "Lập kế hoạch" / "Cập nhật" không bao giờ hiện. */}
+          {canReportProgress(record) && record.status !== 'InProgress' && record.status !== 'Overdue' && (
             <Button
               type="primary"
               size="small"
@@ -196,7 +205,8 @@ export const ActionPlanTrackerTab: React.FC<ActionPlanTrackerTabProps> = ({
               Lập kế hoạch
             </Button>
           )}
-          {['InProgress', 'Overdue'].includes(record.status) && (
+          {canReportProgress(record) &&
+            ['InProgress', 'Overdue'].includes(record.status) && (
             <>
               <Button
                 type="primary"
@@ -232,7 +242,7 @@ export const ActionPlanTrackerTab: React.FC<ActionPlanTrackerTabProps> = ({
           <Card variant="borderless" className="shadow-sm border-b-2 border-blue-500">
             <StatisticCard
               title="Đang xử lý"
-              value={data.filter((r) => ['NotStarted', 'InProgress', 'Overdue'].includes(r.status)).length}
+              value={data.filter((r) => ['NotStarted', 'InProgress', 'Overdue'].includes(normalizeRecommendationStatus(r))).length}
               prefix={<InfoCircleOutlined className="text-blue-500" />}
             />
           </Card>
@@ -241,7 +251,7 @@ export const ActionPlanTrackerTab: React.FC<ActionPlanTrackerTabProps> = ({
           <Card variant="borderless" className="shadow-sm border-b-2 border-red-500">
             <StatisticCard
               title="Quá hạn (SLA)"
-              value={data.filter((r) => r.status === 'Overdue').length}
+              value={data.filter((r) => normalizeRecommendationStatus(r) === 'Overdue').length}
               prefix={<WarningOutlined className="text-red-500" />}
             />
           </Card>
@@ -250,7 +260,7 @@ export const ActionPlanTrackerTab: React.FC<ActionPlanTrackerTabProps> = ({
           <Card variant="borderless" className="shadow-sm border-b-2 border-orange-500">
             <StatisticCard
               title="Chờ xác nhận"
-              value={data.filter((r) => r.status === 'Completed').length}
+              value={data.filter((r) => normalizeRecommendationStatus(r) === 'Completed').length}
               prefix={<SendOutlined className="text-orange-500" />}
             />
           </Card>
@@ -259,7 +269,7 @@ export const ActionPlanTrackerTab: React.FC<ActionPlanTrackerTabProps> = ({
           <Card variant="borderless" className="shadow-sm border-b-2 border-green-500">
             <StatisticCard
               title="Đã Verified"
-              value={data.filter((r) => r.status === 'Verified').length}
+              value={data.filter((r) => normalizeRecommendationStatus(r) === 'Verified').length}
               prefix={<CheckCircleOutlined className="text-green-500" />}
             />
           </Card>
@@ -830,7 +840,7 @@ export const ActionPlanTrackerTab: React.FC<ActionPlanTrackerTabProps> = ({
                             <EvidenceManager
                               linkedResource="recommendations"
                               linkedResourceId={record.id}
-                              readOnly={record.status === 'Verified' || record.closureStatus === 'Closed'}
+                              readOnly={isRecommendationReadOnly(record)}
                             />
                           </div>
                         ),

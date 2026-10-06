@@ -34,6 +34,24 @@ vi.mock('../../utils/permission', () => ({
   hasPermission: () => true,
 }));
 
+// The antd static `message` API renders into its own global React root that is never
+// unmounted by RTL cleanup, which leaves pending React work behind at teardown.
+vi.mock('antd', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('antd')>();
+  return {
+    ...actual,
+    message: {
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+      loading: vi.fn(),
+      open: vi.fn(),
+      destroy: vi.fn(),
+    },
+  };
+});
+
 vi.mock('../audit-programs/AuditProgramEditor', () => ({
   AuditProgramEditor: () => <div data-testid="audit-program-editor-mock" />,
 }));
@@ -63,6 +81,15 @@ describe('AuditPrograms Page (AP-01 -> AP-05)', { timeout: 15000 }, () => {
       status: 'PendingReview',
       author: { fullName: 'Lê Soát Xét' },
       createdAt: '2026-09-12T09:00:00Z',
+    },
+    {
+      id: 103,
+      title: 'Kiểm toán quy trình mở tài khoản tại quầy giao dịch',
+      referenceCode: 'WP-TK-2026-03',
+      status: 'Draft',
+      author: { fullName: 'Phạm Kiểm Toán' },
+      createdAt: '2026-09-15T10:00:00Z',
+      plan: { name: 'Kế hoạch kiểm toán vận hành 2026' },
     },
   ];
 
@@ -122,35 +149,45 @@ describe('AuditPrograms Page (AP-01 -> AP-05)', { timeout: 15000 }, () => {
       expect(screen.getByText('WP-TD-2026-01')).toBeDefined();
     });
 
-    const qaBtns = document.querySelectorAll('.anticon-safety');
-    if (qaBtns.length > 0) {
-      const btn = qaBtns[0].closest('button');
-      if (btn) {
-        fireEvent.click(btn);
-        await waitFor(() => {
-          expect(screen.getByTestId('qa-modal-mock')).toBeDefined();
-        });
-      }
-    }
+    // The PendingReview row exposes the "Quality Review" button (wp:review permission)
+    const qaBtn = screen.getByRole('button', { name: /Quality Review/i });
+    expect(qaBtn).toBeDefined();
+    expect(qaBtn.textContent).toContain('Quality Review');
+
+    fireEvent.click(qaBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('qa-modal-mock')).toBeDefined();
+    });
+    expect(api.get).toHaveBeenCalledWith('/quality-reviews?workingPaperId=102');
   });
 
   it('AP-04: triggers delete working paper API', async () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('WP-TD-2026-01')).toBeDefined();
+      expect(screen.getByText('WP-TK-2026-03')).toBeDefined();
     });
 
-    const deleteBtns = document.querySelectorAll('.anticon-delete');
-    if (deleteBtns.length > 0) {
-      const deleteBtn = deleteBtns[0].closest('button');
-      if (deleteBtn) {
-        fireEvent.click(deleteBtn);
-        await waitFor(() => {
-          expect(api.delete).toHaveBeenCalledWith(expect.stringContaining('/working-papers/'));
-        });
-      }
-    }
+    // Only the Draft work paper (id 103) renders the danger delete button (wp:delete permission)
+    const deleteIcons = document.querySelectorAll('.anticon-delete');
+    expect(deleteIcons.length).toBeGreaterThan(0);
+    const deleteBtn = deleteIcons[0].closest('button') as HTMLButtonElement;
+    expect(deleteBtn).not.toBeNull();
+
+    fireEvent.click(deleteBtn);
+
+    await waitFor(() => {
+      expect(api.delete).toHaveBeenCalledWith('/working-papers/103');
+    });
+
+    // The list is re-fetched after a successful delete
+    await waitFor(() => {
+      const refetches = vi
+        .mocked(api.get)
+        .mock.calls.filter((call) => call[0] === '/working-papers?type=Program');
+      expect(refetches.length).toBe(2);
+    });
   });
 
   it('AP-05: handles offline Excel export button click', async () => {
@@ -164,28 +201,36 @@ describe('AuditPrograms Page (AP-01 -> AP-05)', { timeout: 15000 }, () => {
       return Promise.resolve({ data: [] });
     });
 
-    // Mock URL.createObjectURL and revokeObjectURL
+    // Mock URL.createObjectURL and revokeObjectURL + block the jsdom anchor navigation
     window.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
     window.URL.revokeObjectURL = vi.fn();
+    const anchorClickSpy = vi
+      .spyOn(HTMLElement.prototype, 'click')
+      .mockImplementation(() => {});
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('WP-TD-2026-01')).toBeDefined();
+      expect(screen.getByText('WP-TK-2026-03')).toBeDefined();
     });
 
-    const downloadBtns = document.querySelectorAll('.anticon-download');
-    if (downloadBtns.length > 0) {
-      const btn = downloadBtns[0].closest('button');
-      if (btn) {
-        fireEvent.click(btn);
-        await waitFor(() => {
-          expect(api.get).toHaveBeenCalledWith(
-            expect.stringContaining('/export-excel'),
-            expect.anything(),
-          );
-        });
-      }
-    }
+    // The offline export button is only rendered for the Draft work paper
+    const downloadBtn = screen.getByRole('button', { name: /Tải ngoại tuyến/i });
+    expect(downloadBtn).toBeDefined();
+
+    fireEvent.click(downloadBtn);
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/working-papers/103/export-excel', {
+        responseType: 'blob',
+      });
+    });
+
+    await waitFor(() => {
+      expect(window.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+      expect(anchorClickSpy).toHaveBeenCalledTimes(1);
+    });
+
+    anchorClickSpy.mockRestore();
   });
 });

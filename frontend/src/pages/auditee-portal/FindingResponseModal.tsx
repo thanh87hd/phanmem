@@ -84,7 +84,15 @@ export const FindingResponseModal: React.FC<FindingResponseModalProps> = ({
         <Form.Item
           name="auditeeResponse"
           label="Ý kiến giải trình chính thức của Đơn vị (Auditee Official Opinion)"
-          rules={[{ required: true, message: 'Vui lòng nhập ý kiến giải trình của đơn vị trước khi gửi' }]}
+          rules={[
+            {
+              required: true,
+              // `whitespace: true`: chặn cả trường hợp chỉ nhập dấu cách — nếu thiếu
+              // thì ý kiến toàn khoảng trắng vẫn qua validation và bị gửi lên server.
+              whitespace: true,
+              message: 'Vui lòng nhập ý kiến giải trình của đơn vị trước khi gửi',
+            },
+          ]}
         >
           <TextArea
             rows={6}

@@ -15,6 +15,7 @@ import {
   Tooltip,
   Segmented,
 } from 'antd';
+import type { SelectProps } from 'antd';
 import {
   UploadOutlined,
   DownloadOutlined,
@@ -39,6 +40,14 @@ import {
 } from '../../constants/auditConstants';
 
 const { Text } = Typography;
+
+/**
+ * `auditConstants` khai báo các mảng này bằng `as const` (readonly), còn antd yêu
+ * cầu `Select.options` là mảng mutable — ép kiểu tại ranh giới thư viện, giá trị
+ * dùng lúc chạy không đổi.
+ */
+const riskLevelSelectOptions = RISK_LEVEL_OPTIONS as unknown as SelectProps['options'];
+const remediationStatusSelectOptions = REMEDIATION_STATUS_OPTIONS as unknown as SelectProps['options'];
 
 export const PTDRemediationGrid: React.FC<{
   workingPaperId: number;
@@ -615,7 +624,7 @@ export const PTDRemediationGrid: React.FC<{
                 size="small"
                 style={{ width: '100%' }}
                 value={val || 'Trung bình'}
-                options={RISK_LEVEL_OPTIONS}
+                options={riskLevelSelectOptions}
                 onChange={(v) => {
                   handleCellChange(record.id, 'residualRisk', v);
                   handleSaveRow({ ...record, residualRisk: v });
@@ -666,7 +675,7 @@ export const PTDRemediationGrid: React.FC<{
                 size="small"
                 style={{ width: '100%' }}
                 value={val || 'FAIL'}
-                options={REMEDIATION_STATUS_OPTIONS}
+                options={remediationStatusSelectOptions}
                 onChange={(v) => {
                   handleCellChange(record.id, 'testResult', v);
                   handleSaveRow({ ...record, testResult: v });

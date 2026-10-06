@@ -88,14 +88,14 @@ describe('tableFilterHelper', () => {
     it('onFilter matches Vietnamese text case-insensitively', () => {
       const props = getColumnSearchProps<{ name: string }>('name');
       const record = { name: 'Kiểm toán viên' };
-      expect(props.onFilter!('kiem toan', record, [] as any)).toBe(true);
-      expect(props.onFilter!('xyz', record, [] as any)).toBe(false);
+      expect(props.onFilter!('kiem toan', record)).toBe(true);
+      expect(props.onFilter!('xyz', record)).toBe(false);
     });
 
     it('onFilter returns false for null field value', () => {
       const props = getColumnSearchProps<{ name: string | null }>('name');
       const record = { name: null };
-      expect(props.onFilter!('test', record, [] as any)).toBe(false);
+      expect(props.onFilter!('test', record)).toBe(false);
     });
 
     it('supports customGetter', () => {
@@ -105,7 +105,7 @@ describe('tableFilterHelper', () => {
         (r) => r.data.val,
       );
       const record = { data: { val: 'Phát hiện' } };
-      expect(props.onFilter!('phat hien', record, [] as any)).toBe(true);
+      expect(props.onFilter!('phat hien', record)).toBe(true);
     });
   });
 
@@ -137,13 +137,13 @@ describe('tableFilterHelper', () => {
     it('onFilter matches case-insensitively', () => {
       const props = getColumnSelectFilterProps<{ status: string }>('status');
       const record = { status: 'Active' };
-      expect(props.onFilter!('active', record, [] as any)).toBe(true);
-      expect(props.onFilter!('ACTIVE', record, [] as any)).toBe(true);
+      expect(props.onFilter!('active', record)).toBe(true);
+      expect(props.onFilter!('ACTIVE', record)).toBe(true);
     });
 
     it('onFilter returns false for null value', () => {
       const props = getColumnSelectFilterProps<{ status: string | null }>('status');
-      expect(props.onFilter!('Active', { status: null }, [] as any)).toBe(false);
+      expect(props.onFilter!('Active', { status: null })).toBe(false);
     });
 
     it('has filterSearch enabled', () => {

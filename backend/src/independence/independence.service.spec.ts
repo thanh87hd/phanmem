@@ -37,6 +37,15 @@ describe('IndependenceService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
+    // clearAllMocks() clears calls but NOT implementations, so leaked
+    // mockResolvedValue() results from a previous test would survive.
+    // Re-establish neutral defaults to keep every test independent.
+    mockConflictRepo.find.mockResolvedValue([]);
+    mockConflictRepo.findOne.mockResolvedValue(null);
+    mockRotationRepo.find.mockResolvedValue([]);
+    mockUserRepo.find.mockResolvedValue([]);
+    mockUserRepo.findOne.mockResolvedValue(null);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IndependenceService,
@@ -187,24 +196,88 @@ describe('IndependenceService', () => {
 
     it('should return rotation violation when auditor is restricted and before next date', async () => {
       mockConflictRepo.findOne.mockResolvedValue(null);
-      mockRotationRepo.findOne.mockResolvedValue({
-        id: 1,
-        isRestricted: true,
-        nextAllowedAuditDate: '2099-01-01',
-      });
+      // Production queries rotations with find() (many rows per auditor) and then
+      // matches departmentName in memory, so the mock must be on find().
+      mockRotationRepo.find.mockResolvedValue([
+        {
+          id: 1,
+          auditorName: 'Tran B',
+          departmentName: 'Chi nhánh Đà Nẵng',
+          lastAuditDate: '2025-01-01',
+          nextAllowedAuditDate: '2099-01-01',
+          isRestricted: true,
+        },
+      ]);
 
       const result = await service.checkAssignmentSafety(
         1,
         'Tran B',
         'Chi nhánh Đà Nẵng',
       );
+
+      expect(mockRotationRepo.find).toHaveBeenCalledWith({
+        where: { auditorName: 'Tran B', isRestricted: true },
+      });
       expect(result.safe).toBe(false);
       expect(result.reason).toContain('Bắt buộc phải quay vòng kiểm toán viên');
+      expect(result.reason).toContain('2099-01-01');
+      // The rotation branch must short-circuit before the cooling-off lookup.
+      expect(mockUserRepo.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should not flag rotation when the restriction is for another department', async () => {
+      mockConflictRepo.findOne.mockResolvedValue(null);
+      mockRotationRepo.find.mockResolvedValue([
+        {
+          id: 1,
+          auditorName: 'Tran B',
+          departmentName: 'Chi nhánh Hà Nội',
+          lastAuditDate: '2025-01-01',
+          nextAllowedAuditDate: '2099-01-01',
+          isRestricted: true,
+        },
+      ]);
+      mockUserRepo.findOne.mockResolvedValue({ id: 1 });
+
+      const result = await service.checkAssignmentSafety(
+        1,
+        'Tran B',
+        'Chi nhánh Đà Nẵng',
+      );
+
+      expect(result.safe).toBe(true);
+      expect(result.reason).toBeUndefined();
+      // Reaching the cooling-off lookup proves the rotation branch ran and passed.
+      expect(mockUserRepo.findOne).toHaveBeenCalled();
+    });
+
+    it('should not flag rotation when the next allowed audit date has passed', async () => {
+      mockConflictRepo.findOne.mockResolvedValue(null);
+      mockRotationRepo.find.mockResolvedValue([
+        {
+          id: 1,
+          auditorName: 'Tran B',
+          departmentName: 'Chi nhánh Đà Nẵng',
+          lastAuditDate: '2000-01-01',
+          nextAllowedAuditDate: '2000-01-01',
+          isRestricted: true,
+        },
+      ]);
+      mockUserRepo.findOne.mockResolvedValue({ id: 1 });
+
+      const result = await service.checkAssignmentSafety(
+        1,
+        'Tran B',
+        'Chi nhánh Đà Nẵng',
+      );
+
+      expect(result.safe).toBe(true);
+      expect(result.reason).toBeUndefined();
     });
 
     it('should return cooling-off violation when auditor prior department matches and not past date', async () => {
       mockConflictRepo.findOne.mockResolvedValue(null);
-      mockRotationRepo.findOne.mockResolvedValue(null);
+      mockRotationRepo.find.mockResolvedValue([]);
       mockUserRepo.findOne.mockResolvedValue({
         id: 1,
         priorDepartments: 'Phòng Thẻ Hội Sở',
@@ -218,11 +291,12 @@ describe('IndependenceService', () => {
       );
       expect(result.safe).toBe(false);
       expect(result.reason).toContain('Vi phạm thời hạn cách ly độc lập');
+      expect(result.reason).toContain('2099-12-31');
     });
 
     it('should return safe: true when no restrictions found', async () => {
       mockConflictRepo.findOne.mockResolvedValue(null);
-      mockRotationRepo.findOne.mockResolvedValue(null);
+      mockRotationRepo.find.mockResolvedValue([]);
       mockUserRepo.findOne.mockResolvedValue({ id: 1 });
 
       const result = await service.checkAssignmentSafety(
@@ -241,7 +315,7 @@ describe('IndependenceService', () => {
         details: 'Chi nhánh Hà Nội',
         caeApprovalStatus: 'Approved',
       });
-      mockRotationRepo.findOne.mockResolvedValue(null);
+      mockRotationRepo.find.mockResolvedValue([]);
       mockUserRepo.findOne.mockResolvedValue({ id: 1 });
 
       const result = await service.checkAssignmentSafety(

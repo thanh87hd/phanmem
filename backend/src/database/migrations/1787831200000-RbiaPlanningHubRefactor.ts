@@ -273,10 +273,15 @@ export class RbiaPlanningHubRefactor1787831200000 implements MigrationInterface 
         "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
         "updatedAt" TIMESTAMP NOT NULL DEFAULT now()
       );
+      -- ⚠️ THỨ TỰ BẮT BUỘC: phải ADD COLUMN trước khi CREATE INDEX.
+      -- Khi bảng resource_demands ĐÃ tồn tại nhưng thiếu cột "planUnitId",
+      -- CREATE TABLE IF NOT EXISTS không làm gì cả — nếu đặt CREATE INDEX lên
+      -- cột đó trước, PostgreSQL báo "column planUnitId does not exist" và TOÀN BỘ
+      -- chuỗi migration dừng lại (kể cả các migration mới hơn), khiến deploy đỏ.
+      ALTER TABLE resource_demands ADD COLUMN IF NOT EXISTS "planUnitId" integer;
+
       CREATE INDEX IF NOT EXISTS "IDX_resource_demands_quarter" ON resource_demands ("quarter");
       CREATE INDEX IF NOT EXISTS "IDX_resource_demands_planUnitId" ON resource_demands ("planUnitId");
-
-      ALTER TABLE resource_demands ADD COLUMN IF NOT EXISTS "planUnitId" integer;
     `);
 
     await queryRunner.query(`

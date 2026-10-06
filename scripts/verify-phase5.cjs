@@ -98,7 +98,8 @@ requiredGitkeeps.forEach(gitkeep => {
   });
   check(`.gitkeep is tracked in index: ${gitkeep}`, () => {
     const normalized = gitkeep.replace(/\\/g, '/');
-    if (!stagedFiles.includes(normalized)) return 'File is not staged in git index';
+    const isTracked = execSync(`git ls-files "${normalized}"`, { encoding: 'utf-8' }).trim().length > 0;
+    if (!isTracked) return 'File is not tracked in git index';
   });
 });
 

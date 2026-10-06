@@ -129,14 +129,19 @@ describe('QualityReviewsService', () => {
     });
 
     it('should approve overallStatus when independentReviewStatus is Approved', async () => {
+      // Independent review is gated: self review must be Completed (IIA GIAS 2024)
+      // and supervisor review must be Approved before independent review can run.
       const qr = {
         id: 1,
         workingPaperId: 10,
+        selfReviewStatus: 'Completed',
+        supervisorReviewStatus: 'Approved',
         independentReviewStatus: 'Pending',
       };
       mockRepo.findOne.mockResolvedValue(qr);
 
       const result = await service.transition(1, 'independent', 'Approved');
+      expect(result.independentReviewStatus).toBe('Approved');
       expect(result.overallStatus).toBe('Approved');
     });
 
@@ -144,12 +149,71 @@ describe('QualityReviewsService', () => {
       const qr = {
         id: 1,
         workingPaperId: 10,
+        selfReviewStatus: 'Completed',
         supervisorReviewStatus: 'Pending',
       };
       mockRepo.findOne.mockResolvedValue(qr);
 
       const result = await service.transition(1, 'supervisor', 'Rejected');
+      expect(result.supervisorReviewStatus).toBe('Rejected');
       expect(result.overallStatus).toBe('Rejected');
+    });
+
+    it('should allow the supervisor step after self review is completed', async () => {
+      const qr = {
+        id: 1,
+        workingPaperId: 10,
+        selfReviewStatus: 'Pending',
+        supervisorReviewStatus: 'Pending',
+      };
+      mockRepo.findOne.mockResolvedValue(qr);
+
+      const afterSelf = await service.transition(1, 'self', 'Completed');
+      expect(afterSelf.selfReviewStatus).toBe('Completed');
+
+      const afterSupervisor = await service.transition(
+        1,
+        'supervisor',
+        'Approved',
+      );
+      expect(afterSupervisor.supervisorReviewStatus).toBe('Approved');
+    });
+
+    it('should throw when transitioning to supervisor review while self review is not Completed', async () => {
+      const qr = {
+        id: 1,
+        workingPaperId: 10,
+        selfReviewStatus: 'Pending',
+        supervisorReviewStatus: 'Pending',
+      };
+      mockRepo.findOne.mockResolvedValue(qr);
+
+      await expect(
+        service.transition(1, 'supervisor', 'Approved'),
+      ).rejects.toThrow(
+        'Tự soát xét (Self Review) phải hoàn thành (Completed) trước khi Người giám sát/Trưởng đoàn soát xét.',
+      );
+      expect(mockActionRepo.save).not.toHaveBeenCalled();
+      expect(mockRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw when transitioning to independent review while self review is not Completed', async () => {
+      const qr = {
+        id: 1,
+        workingPaperId: 10,
+        selfReviewStatus: 'Pending',
+        supervisorReviewStatus: 'Approved',
+        independentReviewStatus: 'Pending',
+      };
+      mockRepo.findOne.mockResolvedValue(qr);
+
+      await expect(
+        service.transition(1, 'independent', 'Approved'),
+      ).rejects.toThrow(
+        'Tự soát xét (Self Review) phải hoàn thành (Completed) trước khi Soát xét độc lập.',
+      );
+      expect(mockActionRepo.save).not.toHaveBeenCalled();
+      expect(mockRepo.save).not.toHaveBeenCalled();
     });
   });
 

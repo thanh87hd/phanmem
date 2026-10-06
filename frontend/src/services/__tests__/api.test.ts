@@ -11,7 +11,9 @@ describe('services/api interceptors', () => {
   });
 
   afterEach(() => {
-    window.location = originalLocation;
+    // lib.dom khai báo phía ghi của `window.location` là `string & Location`
+    // (jsdom chấp nhận chính đối tượng Location gốc khi gán lúc chạy).
+    window.location = originalLocation as string & Location;
     vi.restoreAllMocks();
   });
 

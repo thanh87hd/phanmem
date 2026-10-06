@@ -10,11 +10,26 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as ExcelJS from 'exceljs';
 import { AuditFinding } from './entities/audit-finding.entity';
+import { AuditEngagement } from '../audit-engagements/entities/audit-engagement.entity';
+import { User } from '../users/entities/user.entity';
 import { AuditWorkstream } from '../audit-engagements/entities/audit-workstream.entity';
 import { Recommendation } from '../recommendations/entities/recommendation.entity';
 import { WorkflowsService } from '../workflows/workflows.service';
 import { ScopeFilterService } from '../utils/scope-filter.service';
 import { AuditFindingsStatisticsService } from './audit-findings-statistics.service';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import {
+  teamMembersContainsClause,
+  teamMembersJsonParam,
+} from '../common/utils/team-members-filter.util';
+
+export interface AuditFindingUserContext {
+  userId?: number;
+  id?: number;
+  role?: string;
+  fullName?: string;
+  username?: string;
+}
 
 @Injectable()
 export class AuditFindingsService {
@@ -38,12 +53,12 @@ export class AuditFindingsService {
     let processCode = 'GEN';
 
     if (engagementId) {
-      const engagement = (await this.auditFindingRepository.manager
-        .getRepository('AuditEngagement')
+      const engagement = await this.auditFindingRepository.manager
+        .getRepository<AuditEngagement>('AuditEngagement')
         .findOne({
           where: { id: engagementId },
           relations: ['plan'],
-        })) as any;
+        });
 
       if (engagement) {
         if (engagement.plan && engagement.plan.year) {
@@ -118,7 +133,10 @@ export class AuditFindingsService {
     return `${prefix}${seq}`;
   }
 
-  async create(createAuditFindingDto: CreateAuditFindingDto, user?: any) {
+  async create(
+    createAuditFindingDto: CreateAuditFindingDto,
+    user?: JwtPayload | AuditFindingUserContext,
+  ) {
     // Auto-fill reportedByAuditorId (Người báo cáo) using the logged in user's ID
     if (user && user.userId && !createAuditFindingDto.reportedByAuditorId) {
       createAuditFindingDto.reportedByAuditorId = user.userId;
@@ -165,7 +183,11 @@ export class AuditFindingsService {
     return (await this.findOne(saved.id)) || saved;
   }
 
-  async findAll(user?: any, engagementId?: number, limit = 500) {
+  async findAll(
+    user?: JwtPayload | AuditFindingUserContext,
+    engagementId?: number,
+    limit = 500,
+  ) {
     const query = this.auditFindingRepository
       .createQueryBuilder('finding')
       .leftJoinAndSelect('finding.engagement', 'engagement')
@@ -207,23 +229,25 @@ export class AuditFindingsService {
       roleLower.includes('auditee');
 
     if (user && isAuditee && user.userId) {
-      const userEnt = (await this.auditFindingRepository.manager
-        .getRepository('User')
-        .findOne({ where: { id: user.userId } })) as any;
-      if (userEnt && userEnt.legacyDepartment) {
+      const userEnt = await this.auditFindingRepository.manager
+        .getRepository<User>('User')
+        .findOne({ where: { id: user.userId } });
+      const legacyDept =
+        (userEnt as unknown as { legacyDepartment?: string })?.legacyDepartment ||
+        userEnt?.department;
+      if (legacyDept) {
         query.andWhere('engagement.legacyAuditedDepartment = :dept', {
-          dept: userEnt.legacyDepartment,
+          dept: legacyDept,
         });
       } else {
         return [];
       }
     } else if (user && !isAdmin) {
       query.andWhere(
-        '(engagement.leadAuditorId = :userId OR engagement."teamMembers" @> :jsonUser::jsonb OR engagement."teamMembers"::text LIKE :likeUserId OR wp.creatorId = :userId OR wp.reviewerId = :userId OR workstream.assignedAuditorId = :userId OR workstream.reviewerId = :userId)',
+        `(engagement.leadAuditorId = :userId OR ${teamMembersContainsClause('engagement')} OR wp.creatorId = :userId OR wp.reviewerId = :userId OR workstream.assignedAuditorId = :userId OR workstream.reviewerId = :userId)`,
         {
           userId: user.userId,
-          jsonUser: JSON.stringify([{ userId: user.userId }]),
-          likeUserId: `%"userId":${user.userId}%`,
+          jsonUser: teamMembersJsonParam(user.userId),
         },
       );
     }
@@ -232,7 +256,7 @@ export class AuditFindingsService {
   }
 
   async getMultiDimensionalStats(
-    user?: any,
+    user?: JwtPayload | AuditFindingUserContext,
     departmentId?: string,
     year?: string,
     auditUniverse?: string,
@@ -264,7 +288,11 @@ export class AuditFindingsService {
     });
   }
 
-  async update(id: number, updateAuditFindingDto: any, user?: any) {
+  async update(
+    id: number,
+    updateAuditFindingDto: UpdateAuditFindingDto,
+    user?: JwtPayload | AuditFindingUserContext,
+  ) {
     const finding = await this.findOne(id);
     if (!finding) throw new NotFoundException('Finding not found');
 
@@ -279,7 +307,7 @@ export class AuditFindingsService {
           );
         }
         finding.withdrawalReason = reason;
-        finding.withdrawnById = user?.userId || null;
+        finding.withdrawnById = user?.userId ?? undefined;
         finding.withdrawnAt = new Date();
       }
 
@@ -292,20 +320,20 @@ export class AuditFindingsService {
       ) {
         const reason =
           updateAuditFindingDto.returnReason?.trim() ||
-          updateAuditFindingDto.reason?.trim();
+          (updateAuditFindingDto as { reason?: string }).reason?.trim();
         if (!reason) {
           throw new BadRequestException(
             `Cần cung cấp lý do trả lại/điều chỉnh (returnReason) khi chuyển ngược phát hiện từ ${finding.status} về ${newStatus}.`,
           );
         }
         finding.returnReason = reason;
-        finding.returnedById = user?.userId || null;
+        finding.returnedById = user?.userId ?? undefined;
         finding.returnedAt = new Date();
       }
 
       // 3. Confirmation audit
       if (newStatus === 'Confirmed') {
-        finding.confirmedById = user?.userId || null;
+        finding.confirmedById = user?.userId ?? undefined;
         finding.confirmedAt = new Date();
       }
     }
@@ -334,7 +362,7 @@ export class AuditFindingsService {
         if (
           user &&
           !(await this.workflowsService.validatePermission(nextStep, [
-            user.role,
+            user.role || '',
           ]))
         ) {
           throw new ForbiddenException(
@@ -359,7 +387,7 @@ export class AuditFindingsService {
     return this.findOne(id);
   }
 
-  async remove(id: number, user?: any) {
+  async remove(id: number, user?: JwtPayload | AuditFindingUserContext) {
     const finding = await this.findOne(id);
     if (!finding) throw new NotFoundException('Finding not found');
 
@@ -457,7 +485,7 @@ export class AuditFindingsService {
     return this.recommendationRepository.save(recommendation);
   }
 
-  async exportFindingsExcel(user?: any) {
+  async exportFindingsExcel(user?: JwtPayload | AuditFindingUserContext) {
     const findings = await this.findAll(user);
 
     const data = findings.map((f) => ({
@@ -503,7 +531,7 @@ export class AuditFindingsService {
     return wb.xlsx.writeBuffer() as unknown as Promise<Buffer>;
   }
 
-  async getKpcsStats(user?: any) {
+  async getKpcsStats(user?: JwtPayload | AuditFindingUserContext) {
     const findings = await this.findAll(user);
 
     const total = findings.length;
@@ -569,8 +597,8 @@ export class AuditFindingsService {
 
     if (user && !this.isPrivilegedUser(user)) {
       recQuery.andWhere(
-        '(engagement.leadAuditorId = :userId OR engagement.teamMembers LIKE :likeUserId OR rec.assignedToId = :userId)',
-        { userId: user.userId, likeUserId: `%"userId":${user.userId}%` },
+        `(engagement.leadAuditorId = :userId OR ${teamMembersContainsClause('engagement')} OR rec.assignedToId = :userId)`,
+        { userId: user.userId, jsonUser: teamMembersJsonParam(user.userId) },
       );
     }
     const recs = await recQuery.getMany();
@@ -593,7 +621,7 @@ export class AuditFindingsService {
     };
   }
 
-  private isPrivilegedUser(user?: any) {
+  private isPrivilegedUser(user?: JwtPayload | AuditFindingUserContext) {
     return ScopeFilterService.isAdminRole(user?.role);
   }
 }

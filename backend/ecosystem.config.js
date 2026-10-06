@@ -10,11 +10,15 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        // Nghiệp vụ ngày/giờ (giao dịch ngoài giờ, gộp trùng theo ngày, SLA quá hạn)
+        // tính theo giờ Việt Nam. Thiếu TZ thì VPS UTC sẽ lệch 7 giờ.
+        TZ: 'Asia/Saigon'
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        TZ: 'Asia/Saigon'
       }
     },
     {

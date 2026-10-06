@@ -198,12 +198,14 @@ export const CreditAuditRulesTab: React.FC<CreditAuditRulesTabProps> = ({ rules,
           </Select>
         </Space>
         <Space>
+          {/* Đã bỏ prop `buttonText` (lỗi tiềm ẩn đã báo cáo): prop này không tồn
+              tại trong BulkImportProps và bị BulkImport bỏ qua lúc chạy — nhãn nút
+              do chính BulkImport render. */}
           <BulkImport 
             module="audit-rules" 
             fileName="DanhSachRule" 
             onSuccess={onRefresh}
             templateData={templateData}
-            buttonText="Import Excel"
           />
           <Button icon={<DownloadOutlined />} onClick={handleExport}>Export Excel</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>

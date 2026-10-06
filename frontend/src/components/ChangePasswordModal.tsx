@@ -218,6 +218,12 @@ const ChangePasswordModal: React.FC<Props> = ({ open, onClose, isMandatory = fal
           rules={[
             { required: true, message: t('changePasswordModal.pleaseEnterANewPassword', 'Vui lòng nhập mật khẩu mới') },
             { min: 12, message: t('changePasswordModal.newPasswordMustBeAtLeast', 'Mật khẩu mới phải có ít nhất 12 ký tự (PCI DSS 8.3.6)') },
+            {
+              validator: (_: unknown, value: string) =>
+                !value || (value.length >= 12 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /[0-9]/.test(value) && /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value))
+                  ? Promise.resolve()
+                  : Promise.reject(new Error(t('changePasswordModal.passwordComplexityRequirement', 'Mật khẩu mới phải có tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt'))),
+            },
           ]}
         >
           <Input.Password
