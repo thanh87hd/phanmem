@@ -31,6 +31,7 @@ import { QualityReviewsService } from '../quality-reviews/quality-reviews.servic
 import { AuditMinutesService } from '../audit-findings/audit-minutes.service';
 import { AuditReviewNotesService } from './audit-review-notes.service';
 import type { AuthUserContext } from './dto/working-paper-types';
+import { assertCanAccessWorkingPaper } from '../common/auth/object-access.util';
 
 interface SampleDocxRow {
   cif?: string;
@@ -311,23 +312,27 @@ export class WorkingPapersService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: AuthUserContext) {
     const wp = await this.workingPaperRepository.findOne({
       where: { id },
       relations: ['workstream', 'engagement', 'creatorUser', 'reviewerUser'],
     });
-    if (wp) {
-      const statsMap = await this.getSampleStatsForWorkingPapers([wp.id]);
-      wp.sampleStats = statsMap[wp.id] || {
-        total: 0,
-        tested: 0,
-        untested: 0,
-        passed: 0,
-        failed: 0,
-        completionRate: 100,
-        isCompleted: true,
-      };
+    if (!wp) return null;
+
+    if (user) {
+      assertCanAccessWorkingPaper(wp, user, 'READ');
     }
+
+    const statsMap = await this.getSampleStatsForWorkingPapers([wp.id]);
+    wp.sampleStats = statsMap[wp.id] || {
+      total: 0,
+      tested: 0,
+      untested: 0,
+      passed: 0,
+      failed: 0,
+      completionRate: 100,
+      isCompleted: true,
+    };
     return wp;
   }
 
@@ -384,10 +389,26 @@ export class WorkingPapersService {
     if (!currentWp) {
       throw new NotFoundException('Không tìm thấy Giấy tờ làm việc');
     }
+
     if (currentWp.status === 'Locked') {
       throw new BadRequestException(
         'Giấy tờ làm việc đã bị Khóa (Locked), không thể chỉnh sửa.',
       );
+    }
+
+    // ═══ FOUR-EYES + IIA 1311 ═══
+    // PATCH chuyển trạng thái sang 'Approved' phải tuân thủ ĐÚNG các kiểm soát của
+    // approve() (Four-Eyes, phân quyền người soát xét, cổng chất lượng IIA 1311)
+    if (updateWorkingPaperDto.status === 'Approved') {
+      this.assertCanApprove(currentWp, user);
+      await this.auditReviewNotesService.assertCanSignOff(
+        id,
+        currentWp.workstreamId,
+      );
+    }
+
+    if (user) {
+      assertCanAccessWorkingPaper(currentWp, user, 'UPDATE');
     }
 
     // ═══ KHÓA CHỈNH SỬA NỘI DUNG (UAT TC-WP-05 & TC-WP-08) ═══
@@ -420,17 +441,7 @@ export class WorkingPapersService {
       }
     }
 
-    // ═══ FOUR-EYES + IIA 1311 ═══
-    // PATCH chuyển trạng thái sang 'Approved' phải tuân thủ ĐÚNG các kiểm soát của
-    // approve() (Four-Eyes, phân quyền người soát xét, cổng chất lượng IIA 1311) —
-    // nếu không sẽ bị bypass qua endpoint PATCH chung.
-    if (updateWorkingPaperDto.status === 'Approved') {
-      this.assertCanApprove(currentWp, user);
-      await this.auditReviewNotesService.assertCanSignOff(
-        id,
-        currentWp.workstreamId,
-      );
-    }
+
 
     if (
       user &&
@@ -728,10 +739,13 @@ export class WorkingPapersService {
     return this.findOne(id);
   }
 
-  async remove(id: number) {
+  async remove(id: number, user?: AuthUserContext) {
     const wp = await this.findOne(id);
     if (!wp) {
       throw new NotFoundException('Không tìm thấy Giấy tờ làm việc');
+    }
+    if (user) {
+      assertCanAccessWorkingPaper(wp, user, 'DELETE');
     }
     if (
       wp.status === 'Submitted' ||

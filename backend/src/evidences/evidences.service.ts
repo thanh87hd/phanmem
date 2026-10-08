@@ -13,6 +13,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { AiService } from '../ai/ai.service';
 import { StorageService } from '../common/storage/storage.service';
 import { FileAssetsService } from '../file-assets/file-assets.service';
+import {
+  assertCanAccessEvidence,
+  ObjectAuthUserContext,
+} from '../common/auth/object-access.util';
 
 @Injectable()
 export class EvidencesService {
@@ -184,14 +188,20 @@ export class EvidencesService {
     return this.repo.find({ order: { uploadedAt: 'DESC' } });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: ObjectAuthUserContext) {
     const evidence = await this.repo.findOneBy({ id });
     if (!evidence) throw new NotFoundException('Không tìm thấy bằng chứng');
+    if (user) {
+      assertCanAccessEvidence(evidence, user, 'READ');
+    }
     return evidence;
   }
 
-  async remove(id: number) {
-    const evidence = await this.findOne(id);
+  async remove(id: number, user?: ObjectAuthUserContext) {
+    const evidence = await this.findOne(id, user);
+    if (user) {
+      assertCanAccessEvidence(evidence, user, 'DELETE');
+    }
     // Xóa file trên disk
     if (fs.existsSync(evidence.path)) {
       fs.unlinkSync(evidence.path);

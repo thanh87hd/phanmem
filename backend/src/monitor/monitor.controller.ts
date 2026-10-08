@@ -15,11 +15,6 @@ export class MonitorController {
     return this.monitorService.getServerStats();
   }
 
-  @Get('server-test')
-  async getServerStatsTest() {
-    return this.monitorService.getServerStats();
-  }
-
   @Get('database')
   @Roles('Admin')
   async getDatabaseStats() {

@@ -163,3 +163,6 @@ test-results/
 # Rò rỉ file này = mất phiên đăng nhập của người dùng thật.
 frontend/e2e/prod/.prod-tokens.json
 frontend/e2e/prod/prod-rbac-results.json
+
+# Báo cáo kiểm thử bảo mật (sinh tự động, không commit)
+security-reports/

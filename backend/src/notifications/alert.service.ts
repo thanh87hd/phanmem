@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Recommendation } from '../recommendations/entities/recommendation.entity';
 import { AuditReport } from '../audit-reports/entities/audit-report.entity';
@@ -42,10 +42,17 @@ export class AlertService implements OnModuleInit {
 
     if (overdueRecs.length > 0) {
       this.logger.warn(`Found ${overdueRecs.length} overdue recommendations.`);
+
+      // Cap nhat trang thai theo lo: truoc day moi ban ghi goi save() rieng le,
+      // gay N+1 lenh UPDATE (N lon se rat cham). TypeORM nhan mang va gop lo.
       for (const rec of overdueRecs) {
         rec.status = 'Overdue';
-        await this.recRepo.save(rec);
+      }
+      await this.recRepo.save(overdueRecs);
 
+      // Thong bao va email la tac dung ngoai, khong gop lo duoc; van gui tuan tu
+      // de tranh lam qua tai may chu SMTP.
+      for (const rec of overdueRecs) {
         if (rec.assignedToId) {
           await this.notificationsService.create({
             type: 'warning',
@@ -241,67 +248,96 @@ export class AlertService implements OnModuleInit {
       where: { status: 'Issued' },
     });
 
-    for (const report of issuedReports) {
-      if (!report.date) continue;
+    // Chi xu ly bao cao da phat hanh qua 7 ngay va co gan cuoc kiem toan.
+    const lateReports = issuedReports.filter(
+      (report) =>
+        report.date &&
+        new Date(report.date) < sevenDaysAgo &&
+        !!report.engagementId,
+    );
+    if (lateReports.length === 0) return;
 
-      const reportDate = new Date(report.date);
+    const engagementIds = [...new Set(lateReports.map((r) => r.engagementId))];
 
-      // Check if it's more than 7 days since report was issued
-      if (reportDate < sevenDaysAgo) {
-        if (!report.engagementId) continue;
+    // Nap TAT CA finding cua cac cuoc kiem toan lien quan trong MOT truy van.
+    // Truoc day moi bao cao truy van mot lan -> N+1.
+    const allFindings = await this.recRepo.manager
+      .getRepository('AuditFinding')
+      .find({ where: { engagementId: In(engagementIds) } });
 
-        // Fetch all findings for this engagement
-        const findings = await this.recRepo.manager
-          .getRepository('AuditFinding')
-          .find({
-            where: { engagementId: report.engagementId },
-          });
+    const findingIdsByEngagement = new Map<string, string[]>();
+    for (const finding of allFindings) {
+      const list = findingIdsByEngagement.get(finding.engagementId) ?? [];
+      list.push(finding.id);
+      findingIdsByEngagement.set(finding.engagementId, list);
+    }
 
-        if (findings.length === 0) continue;
-        const findingIds = findings.map((f) => f.id);
+    // Nap TAT CA kien nghi chua lap ke hoach trong MOT truy van (thay vi N).
+    const allFindingIds = allFindings.map((f) => f.id);
+    const pendingRecs =
+      allFindingIds.length === 0
+        ? []
+        : await this.recRepo
+            .createQueryBuilder('rec')
+            .leftJoinAndSelect('rec.assignedToUser', 'user')
+            .where('rec.findingId IN (:...findingIds)', {
+              findingIds: allFindingIds,
+            })
+            .andWhere('rec.status = :status', { status: 'NotStarted' })
+            .getMany();
 
-        // Find recommendations that are still 'NotStarted' (no plan submitted)
-        const pendingRecs = await this.recRepo
-          .createQueryBuilder('rec')
-          .leftJoinAndSelect('rec.assignedToUser', 'user')
-          .where('rec.findingId IN (:...findingIds)', { findingIds })
-          .andWhere('rec.status = :status', { status: 'NotStarted' })
-          .getMany();
+    const recsByFindingId = new Map<string, Recommendation[]>();
+    for (const rec of pendingRecs) {
+      const list = recsByFindingId.get(rec.findingId) ?? [];
+      list.push(rec);
+      recsByFindingId.set(rec.findingId, list);
+    }
 
-        if (pendingRecs.length > 0) {
-          this.logger.warn(
-            `Found ${pendingRecs.length} recommendations late in plan formulation for report: ${report.title}`,
-          );
+    // Nang bac tat ca trong MOT lo. Truoc day save() tung ban ghi -> N+1.
+    for (const rec of pendingRecs) {
+      rec.escalationLevel = 1;
+      rec.escalatedAt = new Date();
+    }
+    if (pendingRecs.length > 0) {
+      await this.recRepo.save(pendingRecs);
+    }
 
-          for (const rec of pendingRecs) {
-            // Update escalation level to 1 (Cảnh báo chậm lập kế hoạch)
-            rec.escalationLevel = 1;
-            rec.escalatedAt = new Date();
-            await this.recRepo.save(rec);
+    // Gui thong bao theo tung bao cao (giu nguyen hanh vi cu).
+    for (const report of lateReports) {
+      const reportFindingIds =
+        findingIdsByEngagement.get(report.engagementId) ?? [];
+      const reportRecs = reportFindingIds.flatMap(
+        (id) => recsByFindingId.get(id) ?? [],
+      );
+      if (reportRecs.length > 0) {
+        this.logger.warn(
+          `Found ${reportRecs.length} recommendations late in plan formulation for report: ${report.title}`,
+        );
 
-            // Send in-app notification
-            if (rec.assignedToId) {
-              await this.notificationsService.create({
-                type: 'warning',
-                title: 'Trễ hạn lập kế hoạch khắc phục (7 ngày)',
-                message: `Kiến nghị "${rec.recommendation.substring(0, 50)}..." thuộc báo cáo "${report.title}" chậm lập kế hoạch khắc phục quá 7 ngày.`,
-                recipientId: rec.assignedToId,
-                relatedEntity: 'Recommendation',
-                relatedEntityId: rec.id,
-                link: '/auditee-portal',
-              });
+        for (const rec of reportRecs) {
+          // Send in-app notification
+          if (rec.assignedToId) {
+            await this.notificationsService.create({
+              type: 'warning',
+              title: 'Trễ hạn lập kế hoạch khắc phục (7 ngày)',
+              message: `Kiến nghị "${rec.recommendation.substring(0, 50)}..." thuộc báo cáo "${report.title}" chậm lập kế hoạch khắc phục quá 7 ngày.`,
+              recipientId: rec.assignedToId,
+              relatedEntity: 'Recommendation',
+              relatedEntityId: rec.id,
+              link: '/auditee-portal',
+            });
 
-              // Send email alert with Escalation Level
-              if (rec.assignedToUser?.email) {
-                const frontendUrl = this.configService.get(
-                  'FRONTEND_URL',
-                  'http://localhost:5173',
-                );
-                await this.mailService
-                  .sendMail({
-                    to: rec.assignedToUser.email,
-                    subject: `[KTNB] [CẢNH BÁO NÂNG BẬC CẤP 1] Chậm lập kế hoạch khắc phục - ${rec.legacyDepartment}`,
-                    html: `
+            // Send email alert with Escalation Level
+            if (rec.assignedToUser?.email) {
+              const frontendUrl = this.configService.get(
+                'FRONTEND_URL',
+                'http://localhost:5173',
+              );
+              await this.mailService
+                .sendMail({
+                  to: rec.assignedToUser.email,
+                  subject: `[KTNB] [CẢNH BÁO NÂNG BẬC CẤP 1] Chậm lập kế hoạch khắc phục - ${rec.legacyDepartment}`,
+                  html: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; border: 2px solid #cf1322; border-radius: 8px;">
                       <h2 style="color: #cf1322; text-align: center;">🚨 CẢNH BÁO NÂNG BẬC CẢNH CÁO (CẤP ĐỘ 1)</h2>
                       <p style="font-weight: bold; color: #555;">Kính gửi Đơn vị phụ trách và Ban Lãnh đạo Đơn vị,</p>
@@ -332,14 +368,13 @@ export class AlertService implements OnModuleInit {
                       <p style="color: #999; font-size: 11px; text-align: center;">Email cảnh báo tự động từ Hệ thống Smart Audit LPBank</p>
                     </div>
                   `,
-                  })
-                  .catch((e) =>
-                    this.logger.error(
-                      `Failed to send escalation email to ${rec.assignedToUser.email}`,
-                      e,
-                    ),
-                  );
-              }
+                })
+                .catch((e) =>
+                  this.logger.error(
+                    `Failed to send escalation email to ${rec.assignedToUser.email}`,
+                    e,
+                  ),
+                );
             }
           }
         }

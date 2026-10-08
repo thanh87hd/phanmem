@@ -1,9 +1,10 @@
 const { Client } = require('f:/Phan mem KTNB 4.0/backend/node_modules/pg');
 const bcrypt = require('f:/Phan mem KTNB 4.0/backend/node_modules/bcrypt');
 
-const DB_CONFIGS = [
-  { name: 'Local', host: 'localhost', port: 5432, user: 'ktnb', password: 'ktnb_password_prod', database: 'ktnb_v4' },
-];
+// Thong tin ket noi lay tu bien moi truong (hoac backend/.env), KHONG ghi cung
+// mat khau trong ma nguon.
+const { loadDbConfig } = require('./lib/db-config');
+const DB_CONFIGS = [{ name: 'Local', ...loadDbConfig() }];
 
 async function setupUsersForDb(config) {
   console.log(`\n=== Setting up UAT test accounts on [${config.name}] ===`);
@@ -12,7 +13,15 @@ async function setupUsersForDb(config) {
     await client.connect();
     
     // Hash password
-    const passwordHash = await bcrypt.hash('@Lpbank2026!', 10);
+    // Mat khau tai khoan UAT lay tu bien moi truong UAT_USER_PASSWORD.
+    const uatPassword = process.env.UAT_USER_PASSWORD;
+    if (!uatPassword) {
+      throw new Error(
+        'Thieu bien moi truong UAT_USER_PASSWORD. Dat mat khau manh truoc khi chay, vi du:\n' +
+          "  $env:UAT_USER_PASSWORD='<mat-khau-manh>'; node scripts/ensure-uat-users.cjs",
+      );
+    }
+    const passwordHash = await bcrypt.hash(uatPassword, 10);
 
     // Get roles
     const rolesRes = await client.query('SELECT id, name FROM roles');

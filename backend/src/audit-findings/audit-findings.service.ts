@@ -22,6 +22,7 @@ import {
   teamMembersContainsClause,
   teamMembersJsonParam,
 } from '../common/utils/team-members-filter.util';
+import { assertCanAccessFinding } from '../common/auth/object-access.util';
 
 export interface AuditFindingUserContext {
   userId?: number;
@@ -269,10 +270,12 @@ export class AuditFindingsService {
     );
   }
 
-  findOne(id: number) {
-    return this.auditFindingRepository.findOne({
+  async findOne(id: number, user?: JwtPayload | AuditFindingUserContext) {
+    const finding = await this.auditFindingRepository.findOne({
       where: { id },
       relations: [
+        'engagement',
+        'workingPaper',
         'personnel',
         'minute',
         'internalDefectCodeEntity',
@@ -286,6 +289,10 @@ export class AuditFindingsService {
         'recommendations',
       ],
     });
+    if (finding && user) {
+      assertCanAccessFinding(finding, user, 'READ');
+    }
+    return finding;
   }
 
   async update(
@@ -295,6 +302,10 @@ export class AuditFindingsService {
   ) {
     const finding = await this.findOne(id);
     if (!finding) throw new NotFoundException('Finding not found');
+
+    if (user) {
+      assertCanAccessFinding(finding, user, 'UPDATE');
+    }
 
     const newStatus = updateAuditFindingDto.status;
     if (newStatus && newStatus !== finding.status) {
@@ -392,6 +403,7 @@ export class AuditFindingsService {
     if (!finding) throw new NotFoundException('Finding not found');
 
     if (user) {
+      assertCanAccessFinding(finding, user, 'DELETE');
       const isAdmin = ScopeFilterService.isAdminRole(user.role);
 
       if (!isAdmin) {

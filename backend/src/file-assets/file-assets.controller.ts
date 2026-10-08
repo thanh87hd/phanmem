@@ -112,9 +112,10 @@ export class FileAssetsController {
     @Param('linkId', ParseIntPipe) linkId: number,
     @Res() res: FastifyReply,
     @Query('inline') inline?: string,
+    @Request() req?: any,
   ) {
     const { stream, asset } =
-      await this.fileAssetsService.getFileStreamByLinkId(linkId);
+      await this.fileAssetsService.getFileStreamByLinkId(linkId, req?.user);
 
     const dispositionType =
       inline === 'true' || inline === '1' ? 'inline' : 'attachment';
@@ -158,8 +159,11 @@ export class FileAssetsController {
    * Gỡ liên kết file (Unlink)
    */
   @Delete('links/:linkId')
-  async removeLink(@Param('linkId', ParseIntPipe) linkId: number) {
-    return this.fileAssetsService.removeLink(linkId);
+  async removeLink(
+    @Param('linkId', ParseIntPipe) linkId: number,
+    @Request() req?: any,
+  ) {
+    return this.fileAssetsService.removeLink(linkId, req?.user);
   }
 
   /**

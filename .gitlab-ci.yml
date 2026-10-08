@@ -117,6 +117,39 @@ test:frontend-vitest:
     - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
 
 # ─────────────────────────────────────────────────────────────────────────────
+# KIỂM THỬ BẢO MẬT (OWASP TOP 10 + SAST + CHUỖI CUNG ỨNG)
+# Chặn merge nếu có phát hiện mức critical/high. Xem docs/infosec/SECURITY_TESTING_GUIDE.md
+# ─────────────────────────────────────────────────────────────────────────────
+test:security-sast:
+  stage: test
+  script:
+    # Quét tĩnh mã nguồn + lỗ hổng phụ thuộc (không cần backend đang chạy)
+    - node scripts/security/run-security-suite.js --only=SAST,A06 --fail-on=critical,high --out security-reports/ci
+    - echo "Báo cáo bảo mật đã sinh tại security-reports/ci/"
+  artifacts:
+    when: always
+    paths:
+      - security-reports/ci/
+    expire_in: 30 days
+    reports:
+      # Hiển thị trên tab Security của GitLab
+      sast: security-reports/ci/security-report.sarif
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+      allow_failure: false
+
+test:security-selftest:
+  stage: test
+  script:
+    # Xác minh chính bộ kiểm thử: phát hiện đủ 15/15 lỗ hổng đã cắm cờ
+    # và không báo động giả trên ứng dụng đã cấu hình đúng chuẩn.
+    - node scripts/security/test/verify-detection.js
+    - node scripts/security/test/verify-no-false-positives.js
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+      allow_failure: false
+
+# ─────────────────────────────────────────────────────────────────────────────
 # STAGE 4: CONTINUOUS DEPLOYMENT (VPS CHINHTA.IO.VN)
 # ─────────────────────────────────────────────────────────────────────────────
 deploy:production:

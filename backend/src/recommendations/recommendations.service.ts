@@ -41,6 +41,7 @@ import {
   isAuditeeRole,
   isTeamLeadRole,
 } from '../utils/role-checker.util';
+import { assertCanAccessRecommendation } from '../common/auth/object-access.util';
 
 @Injectable()
 export class RecommendationsService {
@@ -148,13 +149,29 @@ export class RecommendationsService {
     return rows.map((rec) => this.withAuditeeAliases(rec));
   }
 
-  findOne(id: number) {
-    return this.repo
-      .findOne({
-        where: { id },
-        relations: ['auditFinding', 'auditFinding.engagement', 'assignedToUser'],
-      })
-      .then((rec) => (rec ? this.withAuditeeAliases(rec) : rec));
+  async findOne(
+    id: number,
+    user?:
+      | AuthenticatedUserContext
+      | {
+          userId?: number;
+          id?: number;
+          role?: string;
+          legacyDepartment?: string;
+          department?: string;
+          jobTitle?: string;
+        },
+  ) {
+    const rec = await this.repo.findOne({
+      where: { id },
+      relations: ['auditFinding', 'auditFinding.engagement', 'assignedToUser'],
+    });
+    if (!rec) return null;
+    const mapped = this.withAuditeeAliases(rec);
+    if (user) {
+      assertCanAccessRecommendation(mapped, user, 'READ');
+    }
+    return mapped;
   }
 
   /**
@@ -374,7 +391,14 @@ export class RecommendationsService {
     plan: string,
     targetDate?: string,
     extra?: Partial<SubmitPlanDto>,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string; legacyDepartment?: string; department?: string; jobTitle?: string },
   ) {
+    const existingRec = await this.findOne(id);
+    if (!existingRec) throw new NotFoundException('Không tìm thấy kiến nghị');
+    if (user) {
+      assertCanAccessRecommendation(existingRec, user, 'UPDATE');
+    }
+
     const updatePayload: Partial<Recommendation> = {
       remediationPlan: plan,
       auditeeTargetDate: targetDate,
@@ -419,7 +443,14 @@ export class RecommendationsService {
     response?: string,
     notes?: string,
     extra?: Partial<ProgressUpdateDto>,
+    user?: AuthenticatedUserContext | { userId?: number; role?: string; legacyDepartment?: string; department?: string; jobTitle?: string },
   ) {
+    const existingRec = await this.findOne(id);
+    if (!existingRec) throw new NotFoundException('Không tìm thấy kiến nghị');
+    if (user) {
+      assertCanAccessRecommendation(existingRec, user, 'UPDATE');
+    }
+
     const update: QueryDeepPartialEntity<Recommendation> = { progressPercent };
     if (response) update.response = response;
     if (notes) update.auditeeNotes = notes;
@@ -490,6 +521,9 @@ export class RecommendationsService {
   ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
+    if (user) {
+      assertCanAccessRecommendation(rec, user, 'UPDATE');
+    }
     await this.repo.update(id, {
       status: rec.status === 'NotStarted' ? 'InProgress' : rec.status,
       closureStatus: 'PendingKTNBReview',
@@ -557,6 +591,9 @@ export class RecommendationsService {
   ) {
     const rec = await this.findOne(id);
     if (!rec) throw new NotFoundException('Không tìm thấy kiến nghị');
+    if (user) {
+      assertCanAccessRecommendation(rec, user, 'CLOSE');
+    }
     const roleStr = (user?.role || '').toString();
     if (isAuditeeRole(roleStr)) {
       throw new ForbiddenException(
@@ -822,6 +859,9 @@ export class RecommendationsService {
   ) {
     const existingRec = await this.findOne(id);
     if (!existingRec) throw new NotFoundException('Không tìm thấy kiến nghị');
+    if (user) {
+      assertCanAccessRecommendation(existingRec, user, 'UPDATE');
+    }
     this.assertUpdateAccess(existingRec, user);
 
     if (dto.closureStatus === 'Closed' || dto.status === 'Closed') {

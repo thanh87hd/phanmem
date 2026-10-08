@@ -1,12 +1,11 @@
 const { Client } = require('f:/Phan mem KTNB 4.0/backend/node_modules/pg');
 
-const client = new Client({
-  host: 'localhost',
-  port: 5432,
-  user: 'ktnb',
-  password: 'ktnb_password_prod',
-  database: 'ktnb_v4'
-});
+// Thong tin ket noi lay tu bien moi truong, KHONG ghi cung mat khau trong ma.
+// Dat truoc khi chay, vi du:
+//   $env:DB_PASSWORD='...'; node scripts/list-roles-users.cjs
+require('./lib/db-config');
+const dbConfig = require('./lib/db-config').loadDbConfig();
+const client = new Client(dbConfig);
 
 async function run() {
   await client.connect();

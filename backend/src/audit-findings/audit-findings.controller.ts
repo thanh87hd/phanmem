@@ -156,8 +156,11 @@ export class AuditFindingsController {
 
   @Get(':id')
   @CheckPolicies((ability) => ability.can(Action.Read, AuditFinding))
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.auditFindingsService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.auditFindingsService.findOne(id, user);
   }
 
   @Patch(':id')

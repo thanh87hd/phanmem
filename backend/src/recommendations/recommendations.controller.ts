@@ -121,8 +121,8 @@ export class RecommendationsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(+id);
+  findOne(@Param('id') id: string, @Request() req?: any) {
+    return this.service.findOne(+id, req?.user);
   }
 
   /** ĐVĐKT cập nhật tiến độ khắc phục */
@@ -131,8 +131,15 @@ export class RecommendationsController {
   submitPlan(
     @Param('id') id: string,
     @Body() dto: SubmitRemediationPlanDto,
+    @Request() req?: any,
   ) {
-    return this.service.submitRemediationPlan(+id, dto.plan, dto.targetDate);
+    return this.service.submitRemediationPlan(
+      +id,
+      dto.plan,
+      dto.targetDate,
+      dto,
+      req?.user,
+    );
   }
 
   @Post(':id/progress')
@@ -158,6 +165,7 @@ export class RecommendationsController {
         legacyAuditeePoc: dto.auditeePoc,
         evidenceLink: dto.evidenceLink,
       },
+      req?.user,
     );
     await this.auditTrailService.log({
       action: 'UPDATE',

@@ -17,6 +17,11 @@
     "test:load:all": "node scripts/load-test/run-load-test-comprehensive.js --scenario=all",
     "test:security": "node scripts/security/run-security-suite.js",
     "test:security:vps": "node scripts/security/run-security-suite.js --target=vps",
+    "test:security:prod": "node scripts/security/run-security-suite.js --target=prod",
+    "test:security:verbose": "node scripts/security/run-security-suite.js --verbose",
+    "test:security:json": "node scripts/security/run-security-suite.js --json",
+    "test:security:sast": "node scripts/security/run-security-suite.js --only=SAST,A06",
+    "test:security:selftest": "node scripts/security/test/verify-detection.js && node scripts/security/test/verify-no-false-positives.js",
     "test:subagents": "node scripts/subagent_multirole_audit_test.mjs",
     "test:audit-team": "playwright test e2e/tests/e2e_audit_team_lifecycle.spec.ts --project=chromium",
     "package:ubuntu": "node scripts/package-for-ubuntu.js",
@@ -37,7 +42,7 @@
   },
   "devDependencies": {
     "husky": "^9.0.11",
-    "lint-staged": "^15.2.2"
+    "lint-staged": "^17.6.0"
   },
   "lint-staged": {
     "backend/**/*.{js,ts}": [

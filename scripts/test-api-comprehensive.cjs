@@ -55,7 +55,8 @@ function sendRequest(endpoint, method = 'GET', data = null, customHeaders = {}) 
     path: urlObj.pathname + urlObj.search,
     method,
     headers,
-    rejectUnauthorized: false,
+    // Mac dinh XAC THUC chung chi TLS; dat KTNB_ALLOW_INSECURE_TLS=1 de tat (khong khuyen khich).
+    rejectUnauthorized: process.env.KTNB_ALLOW_INSECURE_TLS !== '1',
     timeout: 20000,
   };
 

@@ -13,6 +13,10 @@ import { EvidenceVerification } from './entities/evidence-verification.entity';
 import { StorageService } from '../common/storage/storage.service';
 import { CreateFileLinkDto } from './dto/create-file-link.dto';
 import { VerifyEvidenceDto } from './dto/verify-evidence.dto';
+import {
+  assertCanAccessFileLink,
+  ObjectAuthUserContext,
+} from '../common/auth/object-access.util';
 
 @Injectable()
 export class FileAssetsService {
@@ -222,8 +226,12 @@ export class FileAssetsService {
    */
   async getFileStreamByLinkId(
     linkId: number,
+    user?: ObjectAuthUserContext,
   ): Promise<{ stream: fs.ReadStream; asset: FileAsset; link: FileLink }> {
     const link = await this.findLinkById(linkId);
+    if (user) {
+      assertCanAccessFileLink(link, user, 'READ');
+    }
     if (!link.fileAsset) {
       throw new NotFoundException('Không tìm thấy thông tin file asset của liên kết');
     }
@@ -240,8 +248,14 @@ export class FileAssetsService {
   /**
    * Xóa liên kết file (Unlink)
    */
-  async removeLink(linkId: number): Promise<{ success: boolean; message: string }> {
+  async removeLink(
+    linkId: number,
+    user?: ObjectAuthUserContext,
+  ): Promise<{ success: boolean; message: string }> {
     const link = await this.findLinkById(linkId);
+    if (user) {
+      assertCanAccessFileLink(link, user, 'DELETE');
+    }
     await this.linkRepo.delete(linkId);
     return {
       success: true,

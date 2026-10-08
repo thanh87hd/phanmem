@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const standardRcmData = [
   // 1. Cho vay Khách hàng Cá nhân (Bán lẻ)
@@ -335,7 +335,7 @@ async function seedRcm(dbConfig) {
   }
 }
 
-function generateExcelTemplate() {
+async function generateExcelTemplate() {
   const excelRows = standardRcmData.map(item => ({
     'Tên quy trình': item.processName,
     'Quy trình con': item.subProcess,
@@ -352,38 +352,25 @@ function generateExcelTemplate() {
     'Bằng chứng mong đợi': item.expectedEvidence,
   }));
 
-  const worksheet = XLSX.utils.json_to_sheet(excelRows);
-  // Set column widths
-  worksheet['!cols'] = [
-    { wch: 28 }, // Tên quy trình
-    { wch: 28 }, // Quy trình con
-    { wch: 35 }, // Mục tiêu
-    { wch: 35 }, // Tên rủi ro
-    { wch: 45 }, // Mô tả rủi ro
-    { wch: 18 }, // Mức độ rủi ro
-    { wch: 35 }, // Tên chốt
-    { wch: 45 }, // Mô tả chốt
-    { wch: 18 }, // Loại kiểm soát
-    { wch: 15 }, // Tần suất
-    { wch: 18 }, // Mức độ tự động
-    { wch: 45 }, // Thủ tục kiểm toán
-    { wch: 40 }, // Bằng chứng
-  ];
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Standard_RCM_LPBank');
+  // Dung ExcelJS thay cho goi 'xlsx' cua SheetJS (ban npm khong con duoc va loi).
+  const widths = [28, 28, 35, 35, 45, 18, 35, 45, 18, 15, 18, 45, 40];
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Standard_RCM_LPBank');
+  const headers = excelRows.length > 0 ? Object.keys(excelRows[0]) : [];
+  worksheet.columns = headers.map((h, i) => ({ header: h, key: h, width: widths[i] || 20 }));
+  worksheet.addRows(excelRows);
 
   const publicDir = path.resolve(__dirname, '../../frontend/public');
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
   const filePath = path.join(publicDir, 'Bo_RCM_Chuan_LPBank.xlsx');
-  XLSX.writeFile(workbook, filePath);
+  await workbook.xlsx.writeFile(filePath);
   console.log(`✅ Generated Excel file: ${filePath}`);
 }
 
 async function main() {
-  generateExcelTemplate();
+  await generateExcelTemplate();
 
   // Local database config
   const localConfig = {

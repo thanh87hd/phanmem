@@ -75,8 +75,9 @@ export class EvidencesController {
     @Param('id') id: string,
     @Res() res: any,
     @Query('inline') inline?: string,
+    @Request() req?: any,
   ) {
-    const evidence = await this.evidencesService.findOne(+id);
+    const evidence = await this.evidencesService.findOne(+id, req?.user);
     if (!fs.existsSync(evidence.path)) {
       return res
         .status(404)
@@ -93,8 +94,8 @@ export class EvidencesController {
 
   /** DELETE /evidences/:id */
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.evidencesService.remove(+id);
+  remove(@Param('id') id: string, @Request() req?: any) {
+    return this.evidencesService.remove(+id, req?.user);
   }
 
   /** POST /evidences/:id/ai-verify — thủ công chạy AI thẩm định */

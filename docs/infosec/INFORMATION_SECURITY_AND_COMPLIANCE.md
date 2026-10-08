@@ -178,3 +178,87 @@ Bảng `audit_trails` được bảo vệ nghiêm ngặt:
   * **RPO (Recovery Point Objective)** $\le 15\text{ phút}$.
   * **RTO (Recovery Time Objective)** $\le 2\text{ giờ}$.
 * **Kiểm thử Phục hồi Thảm họa**: Định kỳ 06 tháng/lần, Khối CNTT phối hợp với Khối KTNB thực hiện diễn tập khôi phục hệ thống từ bản sao lưu sang môi trường DR dự phòng.
+
+---
+
+## 7. KIỂM THỬ BẢO MẬT & XÁC MINH (SECURITY TESTING & VERIFICATION)
+
+Tài liệu này quy định **chiến lược** phòng chống; mục này quy định **cách chứng minh** chiến lược đó
+được thực thi đúng, thông qua bộ kiểm thử tự động tại `scripts/security/`.
+
+### 7.1. Nguyên Tắc: Bằng Chứng Thay Vì Tuyên Bố
+
+Mọi biện pháp kiểm soát nêu tại Mục 3–6 phải có **bằng chứng khách quan** sinh ra từ bộ kiểm thử tự động,
+không chỉ được mô tả trên văn bản. Báo cáo kiểm thử được lưu cùng hồ sơ nghiệm thu an ninh.
+
+### 7.2. Bao Phủ Đầy Đủ OWASP Top 10:2021
+
+Mục 3 của tài liệu này mô tả các biện pháp phòng chống cho A01–A05, A07, A09.
+Bộ kiểm thử bổ sung và bao phủ **đầy đủ 10 nhóm**, đồng thời bổ sung các nhóm còn thiếu trong mô tả:
+
+| Mã | Nhóm | Biện pháp bổ sung cần bảo đảm |
+| :--- | :--- | :--- |
+| **A06** | Vulnerable and Outdated Components | Quản lý lỗ hổng chuỗi cung ứng: chạy `npm audit` trong CI, nâng cấp gói có CVE đã biết, không dùng phiên bản lỗi thời. |
+| **A08** | Software and Data Integrity Failures | Kiểm tra tệp tải lên theo **magic bytes** (không chỉ phần mở rộng); tắt DTD/entity ngoài khi phân tích XML; bật Subresource Integrity cho tài nguyên ngoài. |
+| **A10** | Server-Side Request Forgery | Allowlist tên miền cho mọi tham số URL; chặn dải IP nội bộ (`127.0.0.0/8`, `169.254.0.0/16`, `10/8`, `172.16/12`, `192.168/16`); không tự động theo redirect; chỉ cho phép `http`/`https`. |
+
+### 7.3. Tự Kiểm Chứng Độ Tin Cậy Của Bộ Kiểm Thử
+
+Một bộ kiểm thử bảo mật chỉ có giá trị khi bản thân nó được kiểm chứng. Bộ kiểm thử được xác minh
+theo **hai chiều** bằng hai ứng dụng giả lập có kiểm soát:
+
+| Phép kiểm chứng | Mục tiêu | Tiêu chí đạt | Kết quả |
+| :--- | :--- | :--- | :--- |
+| Khả năng phát hiện | Ứng dụng cố ý chứa 15 lỗ hổng đã cắm cờ | Phát hiện 15/15, không bỏ sót | ✅ Đạt |
+| Không báo động giả | Ứng dụng đã cấu hình đúng chuẩn | 0 phát hiện mức critical/high | ✅ Đạt |
+
+Phép kiểm chứng thứ hai đặc biệt quan trọng: nó chứng minh hệ thống **không bị đánh giá sai là mất an toàn**
+khi đã tuân thủ đúng, tránh việc vô hiệu hoá cảnh báo do quá nhiều dương tính giả.
+
+### 7.4. Ngưỡng Chấp Nhận & Chặn Triển Khai
+
+* **Điều kiện bắt buộc để triển khai production:** bộ kiểm thử trả về **mã thoát 0**, tức **không có
+  phát hiện ở mức `critical` hoặc `high`**.
+* Phát hiện mức `medium`/`low`/`info` phải được ghi nhận vào sổ theo dõi và khắc phục theo thời hạn
+  quy định tại Mục 6 của [Hướng dẫn kiểm thử bảo mật](./SECURITY_TESTING_GUIDE.md).
+* Job `security-scan` trong `.gitlab-ci.yml` **chặn merge** vào nhánh `develop`/`main` khi vi phạm ngưỡng.
+
+### 7.5. Thời Hạn Khắc Phục
+
+| Mức độ | Thời hạn khắc phục |
+| :--- | :--- |
+| critical | 24 giờ |
+| high | 07 ngày |
+| medium | 30 ngày |
+| low | 90 ngày |
+
+### 7.7. Nhật Ký Khắc Phục (Remediation Log)
+
+Ghi nhận đợt khắc phục đã hoàn tất, kèm bằng chứng chạy lại bộ kiểm thử. Báo cáo đầy đủ nằm trong
+`security-reports/final-verify3/` (JSON, Markdown, SARIF).
+
+| # | Phát hiện | Mức độ | Khắc phục | Bằng chứng |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | Endpoint `GET /api/monitor/server-test` lộ thông tin hệ thống, chỉ cần đăng nhập | high | Xóa endpoint; `GET /api/monitor/server` đã có `@Roles('Admin')` | `GET` trả 404 (đã xóa), `server` trả 403 với vai trò thấp |
+| 2 | `POST /api/lpbank-package/seed-all` cho mọi người dùng đã đăng nhập ghi hàng loạt vào CSDL | high | Thêm `RolesGuard` + `@Roles('Admin')` ở cấp controller | Vai trò thấp nhận 403; khách ẩn danh nhận 401 |
+| 3 | `xlsx` (SheetJS) trên npm không còn được phát hành bản vá, dính CVE prototype pollution/ReDoS | high | Chuyển 2 script sang `exceljs` (đã có sẵn), gỡ hẳn gói `xlsx` | `npm audit` backend: 0 high; xuất/nhập tệp Excel kiểm chứng giữ nguyên tiếng Việt |
+| 4 | 13 CVE thư viện phụ thuộc (frontend: axios, dompurify, tiptap/prosemirror; root: lint-staged/micromatch/braces) | high | Đồng nhất `@tiptap` về `3.31.4`, nâng axios/dompurify/lint-staged, dùng `overrides` cho `uuid`/`argparse` | `npm audit`: 0 high/critical ở cả 3 gói gốc; frontend build thành công |
+| 5 | Script kiểm thử đặt `rejectUnauthorized: false` mặc định | medium | Mặc định xác thực TLS; chỉ tắt khi đặt `KTNB_ALLOW_INSECURE_TLS=1` | `node --check` đạt; giá trị mặc định đã xác thực |
+| 6 | Mật khẩu CSDL và mật khẩu tài khoản UAT ghi cứng trong `scripts/*.cjs` | medium | Đọc từ biến môi trường/`backend/.env` qua `scripts/lib/db-config.js`; thiếu biến thì báo lỗi rõ và dừng | `git grep` không còn mật khẩu ngoài danh sách chặn hợp lệ trong `main.ts` |
+
+**Kết quả trước và sau:**
+
+| Lần chạy | critical | high | medium | low | Kết luận |
+| :--- | ---: | ---: | ---: | ---: | :--- |
+| Ban đầu | 0 | 14 | 3 | 11 | KHÔNG ĐẠT |
+| Sau khắc phục | 0 | 0 | 1 | 7 | **ĐẠT** |
+
+Phát hiện `medium` còn lại là cảnh báo SAST về nội suy chuỗi trong script nội bộ
+(`scripts/verify-phase5.cjs`) chỉ dùng hằng số và đường dẫn nội bộ, không có dữ liệu do người dùng
+kiểm soát — không phải lỗ hổng có thể khai thác. Phát hiện `low` là các mục thông tin/cấu hình
+khuyến nghị, theo dõi theo thời hạn tại Mục 7.5.
+
+### 7.6. Tài Liệu Liên Quan
+
+Chi tiết kỹ thuật, danh mục 11 nhóm kiểm thử, cách đọc báo cáo và quy trình vá lỗi:
+xem **[Hướng dẫn kiểm thử bảo mật KTNB 4.0](./SECURITY_TESTING_GUIDE.md)**.

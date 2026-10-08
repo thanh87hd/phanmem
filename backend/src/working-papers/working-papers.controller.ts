@@ -120,8 +120,8 @@ export class WorkingPapersController {
 
   @Get(':id')
   @CheckPolicies((ability) => ability.can(Action.Read, WorkingPaper))
-  findOne(@Param('id') id: string) {
-    return this.workingPapersService.findOne(+id);
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.workingPapersService.findOne(+id, user);
   }
 
   @Patch(':id')
@@ -184,7 +184,7 @@ export class WorkingPapersController {
       userId: user.userId,
       username: user.username,
     });
-    return this.workingPapersService.remove(+id);
+    return this.workingPapersService.remove(+id, user);
   }
 
   // ═══════════════════════════════════════════════════════════════

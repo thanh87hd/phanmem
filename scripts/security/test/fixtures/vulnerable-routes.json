@@ -1,0 +1,116 @@
+[
+  {
+    "method": "GET",
+    "path": "/health",
+    "url": "/api/health",
+    "controller": "AppController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [
+      "Public"
+    ],
+    "isPublic": true,
+    "hasRoles": false,
+    "sampleUrl": "/api/health"
+  },
+  {
+    "method": "GET",
+    "path": "/users/:id",
+    "url": "/api/users/:id",
+    "controller": "UsersController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/users/1"
+  },
+  {
+    "method": "GET",
+    "path": "/audit-logs",
+    "url": "/api/audit-logs",
+    "controller": "AuditController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/audit-logs"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "url": "/api/auth/login",
+    "controller": "AuthController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [
+      "Public"
+    ],
+    "isPublic": true,
+    "hasRoles": false,
+    "sampleUrl": "/api/auth/login"
+  },
+  {
+    "method": "GET",
+    "path": "/auth/me",
+    "url": "/api/auth/me",
+    "controller": "AuthController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/auth/me"
+  },
+  {
+    "method": "GET",
+    "path": "/search",
+    "url": "/api/search",
+    "controller": "SearchController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/search"
+  },
+  {
+    "method": "GET",
+    "path": "/render",
+    "url": "/api/render",
+    "controller": "RenderController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/render"
+  },
+  {
+    "method": "POST",
+    "path": "/upload",
+    "url": "/api/upload",
+    "controller": "UploadController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/upload"
+  },
+  {
+    "method": "GET",
+    "path": "/proxy",
+    "url": "/api/proxy",
+    "controller": "ProxyController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/proxy"
+  },
+  {
+    "method": "GET",
+    "path": "/working-papers/:id",
+    "url": "/api/working-papers/:id",
+    "controller": "WorkingPapersController",
+    "file": "test/fixtures/vulnerable-app.js",
+    "decorators": [],
+    "isPublic": false,
+    "hasRoles": false,
+    "sampleUrl": "/api/working-papers/1"
+  }
+]

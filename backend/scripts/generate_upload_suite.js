@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const uploadDir = path.resolve(__dirname, '../../docs/THUCTE/UPLOAD');
 const thucTeDir = path.resolve(__dirname, '../../docs/THUCTE');
@@ -9,15 +9,17 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-function writeExcel(filename, sheetName, data, colWidths = []) {
-  const ws = XLSX.utils.json_to_sheet(data);
-  if (colWidths.length > 0) {
-    ws['!cols'] = colWidths.map(w => ({ wch: w }));
-  }
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+// Dung ExcelJS (da la phu thuoc san co cua backend) thay cho goi 'xlsx' cua
+// SheetJS: goi 'xlsx' tren npm khong con duoc phat hanh ban va loi va dinh CVE
+// prototype pollution / ReDoS khong co ban sua.
+async function writeExcel(filename, sheetName, data, colWidths = []) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(sheetName);
+  const headers = data.length > 0 ? Object.keys(data[0]) : [];
+  ws.columns = headers.map((h, i) => ({ header: h, key: h, width: colWidths[i] || 20 }));
+  ws.addRows(data);
   const filePath = path.join(uploadDir, filename);
-  XLSX.writeFile(wb, filePath);
+  await wb.xlsx.writeFile(filePath);
   console.log(`✅ Created: ${filename} (${data.length} records)`);
 }
 
@@ -565,14 +567,14 @@ function copyExistingWorkingPapers() {
 async function main() {
   console.log('Generating complete upload suite in docs/THUCTE/UPLOAD...');
   
-  writeExcel('02_Danh_Sach_Nhan_Su_KTV_LPBank.xlsx', 'Nhan_Su_KTV', personnelData, [18, 18, 26, 28, 18, 32, 26, 20, 24]);
-  writeExcel('03_Vu_Tru_Doi_Tuong_Kiem_Toan_Universe.xlsx', 'Audit_Universe', universeData, [45, 30, 20, 16, 25, 25, 25, 25, 18, 22, 18]);
-  writeExcel('04_Tieu_Chi_Danh_Gia_Rui_Ro_Criteria.xlsx', 'Risk_Criteria', criteriaData, [45, 14, 20, 22, 60]);
-  writeExcel('05_Bang_Danh_Gia_Rui_Ro_Don_Vi_Assessments.xlsx', 'Risk_Assessments', assessmentData, [35, 25, 30, 18, 15, 14, 14, 20, 16, 16, 20, 16, 18, 40]);
-  writeExcel('06_Thu_Vien_Rui_Ro_Kiem_Soat_RCM_LPBank.xlsx', 'RCM_LPBank', rcmExcelRows, [28, 28, 35, 35, 45, 18, 35, 45, 18, 15, 18, 45, 40]);
-  writeExcel('07_Tap_Mau_Giao_Dich_Chon_Mau_Tin_Dung.xlsx', 'Tap_Mau_Giao_Dich', sampleTransactions, [22, 16, 32, 22, 16, 30, 35, 26, 26, 26, 45]);
-  writeExcel('08_Danh_Muc_Phat_Hien_Mau_Audit_Findings.xlsx', 'Findings', findingsData, [45, 60, 45, 45, 60, 18]);
-  writeExcel('09_Luat_Kiem_Toan_Giam_Sat_Lien_Tuc_Rules.xlsx', 'Audit_Rules', auditRulesData, [18, 25, 45, 18, 18, 55, 50]);
+  await writeExcel('02_Danh_Sach_Nhan_Su_KTV_LPBank.xlsx', 'Nhan_Su_KTV', personnelData, [18, 18, 26, 28, 18, 32, 26, 20, 24]);
+  await writeExcel('03_Vu_Tru_Doi_Tuong_Kiem_Toan_Universe.xlsx', 'Audit_Universe', universeData, [45, 30, 20, 16, 25, 25, 25, 25, 18, 22, 18]);
+  await writeExcel('04_Tieu_Chi_Danh_Gia_Rui_Ro_Criteria.xlsx', 'Risk_Criteria', criteriaData, [45, 14, 20, 22, 60]);
+  await writeExcel('05_Bang_Danh_Gia_Rui_Ro_Don_Vi_Assessments.xlsx', 'Risk_Assessments', assessmentData, [35, 25, 30, 18, 15, 14, 14, 20, 16, 16, 20, 16, 18, 40]);
+  await writeExcel('06_Thu_Vien_Rui_Ro_Kiem_Soat_RCM_LPBank.xlsx', 'RCM_LPBank', rcmExcelRows, [28, 28, 35, 35, 45, 18, 35, 45, 18, 15, 18, 45, 40]);
+  await writeExcel('07_Tap_Mau_Giao_Dich_Chon_Mau_Tin_Dung.xlsx', 'Tap_Mau_Giao_Dich', sampleTransactions, [22, 16, 32, 22, 16, 30, 35, 26, 26, 26, 45]);
+  await writeExcel('08_Danh_Muc_Phat_Hien_Mau_Audit_Findings.xlsx', 'Findings', findingsData, [45, 60, 45, 45, 60, 18]);
+  await writeExcel('09_Luat_Kiem_Toan_Giam_Sat_Lien_Tuc_Rules.xlsx', 'Audit_Rules', auditRulesData, [18, 25, 45, 18, 18, 55, 50]);
 
   copyExistingWorkingPapers();
 

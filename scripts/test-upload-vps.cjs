@@ -31,7 +31,9 @@ async function uploadVps() {
       'https://chinhta.io.vn/api/import/users',
       {
         method: 'POST',
-        rejectUnauthorized: false,
+        // Mac dinh XAC THUC chung chi TLS. Chi tat khi thuc su can (vi du chung chi
+        // tu ky tren moi truong thu) bang cach dat KTNB_ALLOW_INSECURE_TLS=1.
+        rejectUnauthorized: process.env.KTNB_ALLOW_INSECURE_TLS !== '1',
         headers: {
           ...form.getHeaders(),
           'Authorization': `Bearer ${token}`
