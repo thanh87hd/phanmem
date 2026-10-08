@@ -1317,28 +1317,73 @@ export class AuditReportsExportService {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
 
-      // Setup fonts
-      const fontRegularPath = 'C:/Windows/Fonts/arial.ttf';
-      const fontBoldPath = 'C:/Windows/Fonts/arialbd.ttf';
-      const fontItalicPath = 'C:/Windows/Fonts/ariali.ttf';
+      // Setup fonts with cross-platform paths and fallback
+      const fontPaths = {
+        regular: [
+          'C:/Windows/Fonts/arial.ttf',
+          'C:/Windows/Fonts/calibri.ttf',
+          '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+          '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+          '/System/Library/Fonts/Arial.ttf',
+          '/Library/Fonts/Arial.ttf',
+        ],
+        bold: [
+          'C:/Windows/Fonts/arialbd.ttf',
+          'C:/Windows/Fonts/calibrib.ttf',
+          '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+          '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+          '/System/Library/Fonts/Arial Bold.ttf',
+          '/Library/Fonts/Arial Bold.ttf',
+        ],
+        italic: [
+          'C:/Windows/Fonts/ariali.ttf',
+          'C:/Windows/Fonts/calibrii.ttf',
+          '/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf',
+          '/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf',
+          '/System/Library/Fonts/Arial Italic.ttf',
+          '/Library/Fonts/Arial Italic.ttf',
+        ],
+      };
 
-      if (fs.existsSync(fontRegularPath)) {
-        doc.registerFont('Arial', fontRegularPath);
-        doc.registerFont('Arial-Bold', fontBoldPath);
-        doc.registerFont('Arial-Italic', fontItalicPath);
-        doc.font('Arial');
+      const findFontPath = (paths: string[]): string | null => {
+        for (const p of paths) {
+          try {
+            if (fs.existsSync(p)) return p;
+          } catch {
+            // ignore
+          }
+        }
+        return null;
+      };
+
+      const regularPath = findFontPath(fontPaths.regular);
+      const boldPath = findFontPath(fontPaths.bold);
+      const italicPath = findFontPath(fontPaths.italic);
+
+      let fontRegular = 'Helvetica';
+      let fontBold = 'Helvetica-Bold';
+      let fontItalic = 'Helvetica-Oblique';
+
+      if (regularPath && boldPath && italicPath) {
+        doc.registerFont('AppArial', regularPath);
+        doc.registerFont('AppArial-Bold', boldPath);
+        doc.registerFont('AppArial-Italic', italicPath);
+        fontRegular = 'AppArial';
+        fontBold = 'AppArial-Bold';
+        fontItalic = 'AppArial-Italic';
       }
+      doc.font(fontRegular);
 
       // Header with styling
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(13)
         .fillColor('#003366')
         .text('NGÂN HÀNG THƯƠNG MẠI CỔ PHẦN LỘC PHÁT VIỆT NAM (LPBANK)', {
           align: 'left',
         });
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(11)
         .fillColor('#333333')
         .text('KHỐI KIỂM TOÁN NỘI BỘ', { align: 'left' });
@@ -1346,12 +1391,12 @@ export class AuditReportsExportService {
 
       // Title
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(20)
         .fillColor('#003366')
         .text('BÁO CÁO KIỂM TOÁN NỘI BỘ', { align: 'center' });
       doc
-        .font('Arial-Italic')
+        .font(fontItalic)
         .fontSize(14)
         .fillColor('#444444')
         .text(report.title, { align: 'center' });
@@ -1375,7 +1420,7 @@ export class AuditReportsExportService {
       // Metadata Info Box
       const boxY = doc.y;
       doc.rect(40, boxY, 515, 90).fillAndStroke('#F8FAFC', '#CBD5E1');
-      doc.fillColor('#000000').font('Arial').fontSize(10);
+      doc.fillColor('#000000').font(fontRegular).fontSize(10);
       doc.text(
         `Cuộc kiểm toán: ${report.plan || eng?.name || '---'}`,
         50,
@@ -1405,12 +1450,12 @@ export class AuditReportsExportService {
 
       // Ratings Section
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(12)
         .fillColor('#003366')
         .text('BẢNG XẾP HẠNG HOẠT ĐỘNG KIỂM SOÁT NỘI BỘ VÀ MA TRẬN ĐVKD:');
       doc.moveDown(0.4);
-      doc.font('Arial').fontSize(10).fillColor('#000000');
+      doc.font(fontRegular).fontSize(10).fillColor('#000000');
       doc.text(
         `1. Nghiệp vụ Tín dụng KHCN: ${report.branchRatingCreditPersonal || 'Đạt yêu cầu'}`,
       );
@@ -1424,7 +1469,7 @@ export class AuditReportsExportService {
         `4. Nghiệp vụ Quản lý PGDBĐ: ${report.branchRatingPgdbd || 'Đạt yêu cầu'}`,
       );
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .text(
           `★ XẾP HẠNG TỔNG THỂ CHI NHÁNH: ${report.branchOverallRating || report.auditRating || 'Đạt yêu cầu'}`,
         );
@@ -1432,12 +1477,12 @@ export class AuditReportsExportService {
 
       // Scope
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(12)
         .fillColor('#003366')
         .text('I. PHẠM VI & PHƯƠNG PHÁP KIỂM TOÁN');
       doc
-        .font('Arial')
+        .font(fontRegular)
         .fontSize(10)
         .fillColor('#000000')
         .text(
@@ -1449,12 +1494,12 @@ export class AuditReportsExportService {
 
       // Summary
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(12)
         .fillColor('#003366')
         .text('II. TÓM TẮT KẾT QUẢ VÀ KẾT LUẬN');
       doc
-        .font('Arial')
+        .font(fontRegular)
         .fontSize(10)
         .fillColor('#000000')
         .text(
@@ -1465,9 +1510,9 @@ export class AuditReportsExportService {
       if (report.overallConclusion) {
         doc.moveDown(0.5);
         doc
-          .font('Arial-Bold')
+          .font(fontBold)
           .text('Kết luận chung: ', { continued: true })
-          .font('Arial')
+          .font(fontRegular)
           .text(report.overallConclusion, { align: 'justify' });
       }
       doc.moveDown(1.2);
@@ -1475,7 +1520,7 @@ export class AuditReportsExportService {
       // Findings
       if (findings.length > 0) {
         doc
-          .font('Arial-Bold')
+          .font(fontBold)
           .fontSize(12)
           .fillColor('#003366')
           .text(
@@ -1487,13 +1532,13 @@ export class AuditReportsExportService {
           if (doc.y > 680) doc.addPage();
 
           doc
-            .font('Arial-Bold')
+            .font(fontBold)
             .fontSize(11)
             .fillColor('#003366')
             .text(
               `Phát hiện ${i + 1}: [${f.findingCode || `FD-${f.id}`}] ${f.findingTitle}`,
             );
-          doc.font('Arial').fontSize(9).fillColor('#000000');
+          doc.font(fontRegular).fontSize(9).fillColor('#000000');
 
           const fine = f.actualFineAmount
             ? `${f.actualFineAmount.toLocaleString('vi-VN')} VND`
@@ -1536,12 +1581,12 @@ export class AuditReportsExportService {
       if (relatedRecs.length > 0) {
         if (doc.y > 650) doc.addPage();
         doc
-          .font('Arial-Bold')
+          .font(fontBold)
           .fontSize(12)
           .fillColor('#003366')
           .text('IV. BẢNG TỔNG HỢP KIẾN NGHỊ VÀ THEO DÕI SLA');
         doc.moveDown(0.4);
-        doc.font('Arial').fontSize(9).fillColor('#000000');
+        doc.font(fontRegular).fontSize(9).fillColor('#000000');
         relatedRecs.forEach((r, idx) => {
           doc.text(
             `${idx + 1}. ${r.recommendation} [Đơn vị: ${r.legacyDepartment || auditeeName} | Hạn: ${r.dueDate || 'Chưa xác định'} | SLA: ${r.slaStatus || 'Chưa đến hạn'}]`,
@@ -1554,22 +1599,22 @@ export class AuditReportsExportService {
       if (doc.y > 680) doc.addPage();
       const sigY = doc.y;
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(11)
         .text('TRƯỞNG ĐOÀN KIỂM TOÁN', 80, sigY);
       doc.text('TRƯỞNG BAN KIỂM TOÁN NỘI BỘ', 340, sigY);
       doc
-        .font('Arial-Italic')
+        .font(fontItalic)
         .fontSize(9)
         .text('(Ký và ghi rõ họ tên)', 100, sigY + 15);
       doc.text('(Ký, đóng dấu / Ký số)', 370, sigY + 15);
 
       doc
-        .font('Arial-Bold')
+        .font(fontBold)
         .fontSize(10)
         .text(leadAuditor, 80, sigY + 65);
       doc
-        .font('Arial')
+        .font(fontRegular)
         .fontSize(9)
         .text(report.isSigned ? 'ĐÃ KÝ SỐ CA ✔' : '...', 350, sigY + 65);
 

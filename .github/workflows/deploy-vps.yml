@@ -27,10 +27,18 @@ jobs:
     name: 🧪 Continuous Integration (Test & Build)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      TZ: Asia/Saigon
+      APP_TZ: Asia/Saigon
 
     steps:
       - name: 📥 Checkout Source Code
         uses: actions/checkout@v4
+
+      - name: 🔤 Install Fonts for PDF Generation
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-liberation fonts-dejavu-core
 
       - name: ⚙️ Setup Node.js 20 LTS
         uses: actions/setup-node@v4

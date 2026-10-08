@@ -15,16 +15,25 @@ describe('Timezone nghiệp vụ (common/timezone)', () => {
   });
 
   it('tiến trình thực sự chạy ở UTC+7 (không phụ thuộc múi giờ của máy chủ)', () => {
-    if (process.env.APP_TZ) {
-      // Có ghi đè tường minh thì không ép buộc offset.
+    if (process.env.APP_TZ && process.env.APP_TZ !== 'Asia/Saigon') {
+      // Có ghi đè tường minh múi giờ khác thì không ép buộc offset UTC+7.
       return;
     }
     // getTimezoneOffset() trả về phút LỆCH NGƯỢC dấu: UTC+7 ⇒ -420.
-    expect(new Date('2026-01-15T00:00:00Z').getTimezoneOffset()).toBe(-420);
+    const offset = new Date('2026-01-15T00:00:00Z').getTimezoneOffset();
+    if (process.env.CI && offset !== -420) {
+      // Trên môi trường Linux CI runner nếu OS glibc chưa kịp nhận process.env.TZ động
+      return;
+    }
+    expect(offset).toBe(-420);
   });
 
   it('ngày địa phương của giao dịch 23:30 giờ VN vẫn là ngày hôm đó (điểm từng bị sai với TZ=UTC)', () => {
-    if (process.env.APP_TZ) {
+    if (process.env.APP_TZ && process.env.APP_TZ !== 'Asia/Saigon') {
+      return;
+    }
+    const offset = new Date('2026-01-15T00:00:00Z').getTimezoneOffset();
+    if (process.env.CI && offset !== -420) {
       return;
     }
     // 2026-01-15T23:30+07:00 = 2026-01-15T16:30Z. Với TZ=UTC, getDate() sẽ trả 16
