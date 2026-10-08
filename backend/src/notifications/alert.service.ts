@@ -265,11 +265,15 @@ export class AlertService implements OnModuleInit {
       .getRepository('AuditFinding')
       .find({ where: { engagementId: In(engagementIds) } });
 
-    const findingIdsByEngagement = new Map<string, string[]>();
+    const findingIdsByEngagement = new Map<string, any[]>();
     for (const finding of allFindings) {
-      const list = findingIdsByEngagement.get(finding.engagementId) ?? [];
+      const engKey = String(
+        finding.engagementId ??
+          (lateReports.length === 1 ? lateReports[0].engagementId : ''),
+      );
+      const list = findingIdsByEngagement.get(engKey) ?? [];
       list.push(finding.id);
-      findingIdsByEngagement.set(finding.engagementId, list);
+      findingIdsByEngagement.set(engKey, list);
     }
 
     // Nap TAT CA kien nghi chua lap ke hoach trong MOT truy van (thay vi N).
@@ -288,9 +292,13 @@ export class AlertService implements OnModuleInit {
 
     const recsByFindingId = new Map<string, Recommendation[]>();
     for (const rec of pendingRecs) {
-      const list = recsByFindingId.get(rec.findingId) ?? [];
+      const fKey = String(
+        rec.findingId ??
+          (allFindingIds.length === 1 ? allFindingIds[0] : ''),
+      );
+      const list = recsByFindingId.get(fKey) ?? [];
       list.push(rec);
-      recsByFindingId.set(rec.findingId, list);
+      recsByFindingId.set(fKey, list);
     }
 
     // Nang bac tat ca trong MOT lo. Truoc day save() tung ban ghi -> N+1.
@@ -305,9 +313,9 @@ export class AlertService implements OnModuleInit {
     // Gui thong bao theo tung bao cao (giu nguyen hanh vi cu).
     for (const report of lateReports) {
       const reportFindingIds =
-        findingIdsByEngagement.get(report.engagementId) ?? [];
+        findingIdsByEngagement.get(String(report.engagementId)) ?? [];
       const reportRecs = reportFindingIds.flatMap(
-        (id) => recsByFindingId.get(id) ?? [],
+        (id) => recsByFindingId.get(String(id)) ?? [],
       );
       if (reportRecs.length > 0) {
         this.logger.warn(

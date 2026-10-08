@@ -10,6 +10,8 @@ import {
   Request,
 } from '@nestjs/common';
 import { RiskControlMatrixService } from './risk-control-matrix.service';
+import { CreateRiskControlMatrixDto } from './dto/create-risk-control-matrix.dto';
+import { UpdateRiskControlMatrixDto } from './dto/update-risk-control-matrix.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
@@ -19,7 +21,7 @@ export class RiskControlMatrixController {
   constructor(private readonly rcmService: RiskControlMatrixService) {}
 
   @Post()
-  create(@Body() createDto: any, @Request() req: any) {
+  create(@Body() createDto: CreateRiskControlMatrixDto, @Request() req: any) {
     return this.rcmService.create(createDto, req.user);
   }
 
@@ -34,7 +36,10 @@ export class RiskControlMatrixController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: any) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateRiskControlMatrixDto,
+  ) {
     return this.rcmService.update(+id, updateDto);
   }
 

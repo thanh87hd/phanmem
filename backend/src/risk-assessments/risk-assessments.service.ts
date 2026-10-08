@@ -20,6 +20,7 @@ import { RiskSnapshot } from './entities/risk-snapshot.entity';
 import { RiskAuditLog } from './entities/risk-audit-log.entity';
 
 import { UnifiedRiskEngineService } from './unified-risk-engine.service';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 import {
   isHighRiskAssessment,
   classifyByAdjustedResidual,
@@ -222,12 +223,12 @@ export class RiskAssessmentsService {
     }
     if (filters?.riskLevel) {
       qb.andWhere('ra.riskLevel LIKE :riskLevel', {
-        riskLevel: `%${filters.riskLevel}%`,
+        riskLevel: toLikePattern(filters.riskLevel),
       });
     }
     if (filters?.department) {
       qb.andWhere('ra.legacyDepartmentName LIKE :department', {
-        department: `%${filters.department}%`,
+        department: toLikePattern(filters.department),
       });
     }
     if (filters?.auditUniverseId) {
@@ -238,7 +239,7 @@ export class RiskAssessmentsService {
     if (filters?.search) {
       qb.andWhere(
         '(ra.legacyUniverseName ILIKE :search OR ra.legacyDepartmentName ILIKE :search)',
-        { search: `%${filters.search}%` },
+        { search: toLikePattern(filters.search) },
       );
     }
 

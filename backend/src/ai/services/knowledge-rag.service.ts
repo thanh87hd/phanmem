@@ -6,6 +6,7 @@ import { FindingKnowledge } from '../entities/finding-knowledge.entity';
 import { DocumentChunk } from '../entities/document-chunk.entity';
 import { ExtractionService } from '../../extraction/extraction.service';
 import { OllamaService } from '../ollama.service';
+import { toLikePattern } from '../../common/utils/sql-escape.util';
 
 export interface RegulatoryChunkMatch {
   chunkId: number;
@@ -46,7 +47,7 @@ export class KnowledgeRagService {
       qb.where(
         'reg.title ILIKE :q OR reg.summary ILIKE :q OR reg.code ILIKE :q',
         {
-          q: `%${query.trim()}%`,
+          q: toLikePattern(query.trim()),
         },
       );
     }
@@ -73,7 +74,7 @@ export class KnowledgeRagService {
       .innerJoinAndSelect('chunk.regulatoryKnowledge', 'reg')
       .where(
         'chunk.content ILIKE :fullQuery OR chunk.heading ILIKE :fullQuery OR reg.title ILIKE :fullQuery OR reg.code ILIKE :fullQuery',
-        { fullQuery: `%${trimmed}%` },
+        { fullQuery: toLikePattern(trimmed) },
       );
 
     if (terms.length > 1) {
@@ -81,7 +82,7 @@ export class KnowledgeRagService {
         qb.orWhere(
           `chunk.content ILIKE :term${idx} OR chunk.heading ILIKE :term${idx}`,
           {
-            [`term${idx}`]: `%${term}%`,
+            [`term${idx}`]: toLikePattern(term),
           },
         );
       });
@@ -111,7 +112,7 @@ export class KnowledgeRagService {
       qb.where(
         'kb.title ILIKE :q OR kb.defectDescription ILIKE :q OR kb.defectCode ILIKE :q',
         {
-          q: `%${query.trim()}%`,
+          q: toLikePattern(query.trim()),
         },
       );
     }

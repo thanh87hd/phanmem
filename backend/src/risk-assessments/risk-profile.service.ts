@@ -14,6 +14,7 @@ import {
 import { RiskProfileHistory } from './entities/risk-profile-history.entity';
 import * as ExcelJS from 'exceljs';
 import type { AuthUserContext } from './dto/risk-types';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 
 @Injectable()
 export class RiskProfileService {
@@ -39,7 +40,7 @@ export class RiskProfileService {
     }
     if (filters?.targetEntity) {
       query.andWhere('rp.targetEntity LIKE :target', {
-        target: `%${filters.targetEntity}%`,
+        target: toLikePattern(filters.targetEntity),
       });
     }
     return query.orderBy('rp.id', 'ASC').getMany();

@@ -10,6 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { TimesheetsService } from './timesheets.service';
+import { CreateTimesheetDto } from './dto/create-timesheet.dto';
+import { UpdateTimesheetDto } from './dto/update-timesheet.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
@@ -18,7 +20,7 @@ export class TimesheetsController {
   constructor(private readonly service: TimesheetsService) {}
 
   @Post()
-  create(@Body() createDto: any) {
+  create(@Body() createDto: CreateTimesheetDto) {
     return this.service.create(createDto);
   }
 
@@ -38,7 +40,7 @@ export class TimesheetsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: any) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateTimesheetDto) {
     return this.service.update(+id, updateDto);
   }
 

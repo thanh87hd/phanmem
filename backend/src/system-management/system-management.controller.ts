@@ -26,6 +26,8 @@ import {
   CurrentUser,
   JwtPayload,
 } from '../auth/decorators/current-user.decorator';
+import { SmtpConfigDto, TestSmtpConfigDto } from './dto/smtp-config.dto';
+import { CreateSsoProviderDto, UpdateSsoProviderDto } from './dto/sso-provider.dto';
 import * as express from 'express';
 
 @Controller('system-management')
@@ -199,8 +201,11 @@ export class SystemManagementController {
   }
 
   @Post('smtp-config')
-  async saveSmtpConfig(@Body() body: any, @CurrentUser() user: JwtPayload) {
-    const result = this.integrationService.saveSmtpConfig(body);
+  async saveSmtpConfig(
+    @Body() body: SmtpConfigDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const result = this.integrationService.saveSmtpConfig(body as any);
     await this.auditTrailService.log({
       action: 'UPDATE',
       resource: 'smtp_config',
@@ -218,8 +223,8 @@ export class SystemManagementController {
   }
 
   @Post('smtp-config/test')
-  async testSmtpConfig(@Body() body: any) {
-    const result = await this.integrationService.testSmtpConfig(body);
+  async testSmtpConfig(@Body() body: TestSmtpConfigDto) {
+    const result = await this.integrationService.testSmtpConfig(body as any);
     if (!result.success) {
       throw new Error(result.message);
     }
@@ -234,7 +239,10 @@ export class SystemManagementController {
   }
 
   @Post('sso-providers')
-  async createSsoProvider(@Body() body: any, @CurrentUser() user: JwtPayload) {
+  async createSsoProvider(
+    @Body() body: CreateSsoProviderDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
     await this.auditTrailService.log({
       action: 'CREATE',
       resource: 'sso_provider',
@@ -243,13 +251,13 @@ export class SystemManagementController {
       username: user.username,
       newValue: { name: body.name, type: body.type, host: body.host },
     });
-    return this.integrationService.createSsoProvider(body);
+    return this.integrationService.createSsoProvider(body as any);
   }
 
   @Patch('sso-providers/:id')
   async updateSsoProvider(
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: UpdateSsoProviderDto,
     @CurrentUser() user: JwtPayload,
   ) {
     await this.auditTrailService.log({
@@ -260,7 +268,7 @@ export class SystemManagementController {
       username: user.username,
       newValue: body,
     });
-    return this.integrationService.updateSsoProvider(+id, body);
+    return this.integrationService.updateSsoProvider(+id, body as any);
   }
 
   @Delete('sso-providers/:id')

@@ -10,6 +10,8 @@ import {
   Request,
 } from '@nestjs/common';
 import { WorkflowsService } from './workflows.service';
+import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
+import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../casl/policies.guard';
 import { CheckPolicies } from '../casl/check-policies.decorator';
@@ -43,13 +45,13 @@ export class WorkflowsController {
 
   @Post()
   @CheckPolicies((ability) => ability.can(Action.Manage, 'Workflow'))
-  create(@Body() data: any) {
+  create(@Body() data: CreateWorkflowDefinitionDto) {
     return this.workflowsService.createDefinition(data);
   }
 
   @Patch(':id')
   @CheckPolicies((ability) => ability.can(Action.Manage, 'Workflow'))
-  update(@Param('id') id: string, @Body() data: any) {
+  update(@Param('id') id: string, @Body() data: UpdateWorkflowDefinitionDto) {
     return this.workflowsService.updateDefinition(+id, data);
   }
 }

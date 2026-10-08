@@ -17,6 +17,7 @@ import {
   teamMembersContainsClause,
   teamMembersJsonParam,
 } from '../common/utils/team-members-filter.util';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, Not, In } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
@@ -111,7 +112,7 @@ export class RecommendationsService {
     }
     if (filters?.department) {
       query.andWhere('rec.legacyDepartment LIKE :department', {
-        department: `%${filters.department}%`,
+        department: toLikePattern(filters.department),
       });
     }
     if (filters?.selfMonitored !== undefined) {

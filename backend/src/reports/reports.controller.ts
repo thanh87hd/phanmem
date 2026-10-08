@@ -10,6 +10,8 @@ import {
   Request,
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
+import { CreateReportDefinitionDto } from './dto/create-report-definition.dto';
+import { UpdateReportDefinitionDto } from './dto/update-report-definition.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller(['report-definitions', 'reports'])
@@ -35,12 +37,12 @@ export class ReportsController {
   }
 
   @Post()
-  create(@Body() createDto: any) {
+  create(@Body() createDto: CreateReportDefinitionDto) {
     return this.reportsService.create(createDto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: any) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateReportDefinitionDto) {
     return this.reportsService.update(+id, updateDto);
   }
 

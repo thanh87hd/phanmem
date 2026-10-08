@@ -14,6 +14,7 @@ import { ResourceDemand } from '../resource-capacity/entities/resource-demand.en
 import { StaffRoster } from '../resource-capacity/entities/staff-roster.entity';
 import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
 import { MonitoringAlert } from '../continuous-monitoring/entities/monitoring-alert.entity';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 
 export interface RiskSignalItem {
   id: string;
@@ -241,7 +242,7 @@ export class RiskPlanningService {
       const alertQb = this.alertRepo.createQueryBuilder('a');
       if (universe?.department) {
         alertQb.where('(a.unitName ILIKE :dept OR a.title ILIKE :dept)', {
-          dept: `%${universe.department}%`,
+          dept: toLikePattern(universe.department),
         });
       }
       alertQb.orderBy('a.createdAt', 'DESC').take(15);
@@ -338,7 +339,7 @@ export class RiskPlanningService {
         findingQb.where('f.auditUniverseId = :uId', { uId: universeId });
       } else if (universe?.department) {
         findingQb.where('f.auditeeUnit ILIKE :dept', {
-          dept: `%${universe.department}%`,
+          dept: toLikePattern(universe.department),
         });
       }
       findingQb.orderBy('f.createdAt', 'DESC').take(15);

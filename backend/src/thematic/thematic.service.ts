@@ -11,6 +11,7 @@ import { CreateThematicThemeDto } from './dto/create-thematic-theme.dto';
 import { UpdateThematicThemeDto } from './dto/update-thematic-theme.dto';
 import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
 import { RiskRegister } from '../risk-register/entities/risk-register.entity';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 
 @Injectable()
 export class ThematicService implements OnModuleInit {
@@ -57,7 +58,7 @@ export class ThematicService implements OnModuleInit {
     if (query?.search) {
       qb.andWhere(
         '(theme.themeId ILIKE :search OR theme.themeTitle ILIKE :search OR theme.systemicRootCause ILIKE :search)',
-        { search: `%${query.search}%` },
+        { search: toLikePattern(query.search) },
       );
     }
 

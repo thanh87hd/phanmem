@@ -4,6 +4,7 @@ import { Repository, Like } from 'typeorm';
 import { TestOfControl } from './entities/test-of-control.entity';
 import { ControlException } from './entities/control-exception.entity';
 import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 
 @Injectable()
 export class TestOfControlService {
@@ -50,7 +51,7 @@ export class TestOfControlService {
     if (query.search) {
       qb.andWhere(
         '(toc.testId ILIKE :s OR toc.controlDescription ILIKE :s OR toc.controlOwner ILIKE :s OR toc.riskId ILIKE :s)',
-        { s: `%${query.search}%` },
+        { s: toLikePattern(query.search) },
       );
     }
 

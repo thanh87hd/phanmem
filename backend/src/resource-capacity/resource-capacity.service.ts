@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { StaffRoster } from './entities/staff-roster.entity';
 import { ResourceDemand } from './entities/resource-demand.entity';
 import { ResourceAllocation } from './entities/resource-allocation.entity';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 
 @Injectable()
 export class ResourceCapacityService {
@@ -28,7 +29,7 @@ export class ResourceCapacityService {
         '(s.primarySkill = :skill OR s.secondarySkills ILIKE :skillSearch)',
         {
           skill: query.skill,
-          skillSearch: `%${query.skill}%`,
+          skillSearch: toLikePattern(query.skill),
         },
       );
     }

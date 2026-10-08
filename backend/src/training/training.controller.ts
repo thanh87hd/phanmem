@@ -11,6 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { TrainingService } from './training.service';
+import { CreateTrainingRecordDto } from './dto/create-training-record.dto';
+import { UpdateTrainingRecordDto } from './dto/update-training-record.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
@@ -19,7 +21,7 @@ export class TrainingController {
   constructor(private readonly service: TrainingService) {}
 
   @Post()
-  create(@Body() dto: any) {
+  create(@Body() dto: CreateTrainingRecordDto) {
     return this.service.create(dto);
   }
 
@@ -42,7 +44,7 @@ export class TrainingController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: any) {
+  update(@Param('id') id: string, @Body() dto: UpdateTrainingRecordDto) {
     return this.service.update(+id, dto);
   }
 

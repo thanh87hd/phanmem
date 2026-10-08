@@ -11,6 +11,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { AuditTasksService } from './audit-tasks.service';
+import { CreateTaskDto, UpdateTaskDto } from '../tasks/dto/task.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
@@ -19,7 +20,7 @@ export class AuditTasksController {
   constructor(private readonly service: AuditTasksService) {}
 
   @Post()
-  create(@Body() createDto: any) {
+  create(@Body() createDto: CreateTaskDto) {
     return this.service.create(createDto);
   }
 
@@ -44,7 +45,7 @@ export class AuditTasksController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: any) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateTaskDto) {
     return this.service.update(+id, updateDto);
   }
 

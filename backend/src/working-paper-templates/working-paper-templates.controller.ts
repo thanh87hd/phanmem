@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { WorkingPaperTemplatesService } from './working-paper-templates.service';
 import { CreateWorkingPaperTemplateDto } from './dto/create-working-paper-template.dto';
+import { UpdateWorkingPaperTemplateDto } from './dto/update-working-paper-template.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('working-paper-templates')
@@ -33,7 +34,10 @@ export class WorkingPaperTemplatesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: any) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkingPaperTemplateDto,
+  ) {
     return this.service.update(+id, dto);
   }
 

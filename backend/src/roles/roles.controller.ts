@@ -9,6 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../casl/policies.guard';
 import { CheckPolicies } from '../casl/check-policies.decorator';
@@ -22,9 +24,7 @@ export class RolesController {
   // Chỉ Admin / Lãnh đạo KTNB mới được tạo Role mới
   @Post()
   @CheckPolicies((ability) => ability.can(Action.Manage, 'SystemManagement'))
-  create(
-    @Body() dto: { name: string; description?: string; permissions?: string },
-  ) {
+  create(@Body() dto: CreateRoleDto) {
     return this.rolesService.create(dto);
   }
 
@@ -42,7 +42,7 @@ export class RolesController {
   // Chỉ Admin mới được sửa permissions của Role
   @Patch(':id')
   @CheckPolicies((ability) => ability.can(Action.Manage, 'SystemManagement'))
-  update(@Param('id') id: string, @Body() dto: any) {
+  update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.rolesService.update(+id, dto);
   }
 

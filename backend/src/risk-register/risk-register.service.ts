@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { RiskRegister } from './entities/risk-register.entity';
 import { CreateRiskRegisterDto } from './dto/create-risk-register.dto';
 import { UpdateRiskRegisterDto } from './dto/update-risk-register.dto';
+import { toLikePattern } from '../common/utils/sql-escape.util';
 
 @Injectable()
 export class RiskRegisterService {
@@ -109,7 +110,7 @@ export class RiskRegisterService {
     if (query.search) {
       qb.andWhere(
         '(r.riskTitle ILIKE :search OR r.riskDescription ILIKE :search OR r.hsrrCode ILIKE :search)',
-        { search: `%${query.search}%` },
+        { search: toLikePattern(query.search) },
       );
     }
 
