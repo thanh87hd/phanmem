@@ -154,4 +154,51 @@ describe('JwtStrategy.validate - User Context Contract', () => {
 
     expect(cacheGet).not.toHaveBeenCalled();
   });
+
+  it('từ chối khi tài khoản có status không phải Active (Suspended/Resigned)', async () => {
+    const { strategy } = buildStrategy({ ...baseUser, status: 'Suspended' });
+
+    await expect(
+      strategy.validate(reqWithCookie('valid-token'), payload),
+    ).rejects.toThrow('Tài khoản không ở trạng thái hoạt động (Suspended).');
+  });
+
+  it('từ chối token được cấp trước thời điểm đổi mật khẩu (passwordChangedAt)', async () => {
+    // payload.iat là 1700000000 (giây), mật khẩu đổi lúc 1700000500 * 1000 (sau khi cấp token)
+    const { strategy } = buildStrategy({
+      ...baseUser,
+      passwordChangedAt: new Date(1700000500 * 1000),
+    });
+
+    await expect(
+      strategy.validate(reqWithCookie('valid-token'), payload),
+    ).rejects.toThrow('Mật khẩu tài khoản đã thay đổi. Vui lòng đăng nhập lại.');
+  });
+
+  it('chấp nhận token được cấp sau thời điểm đổi mật khẩu (passwordChangedAt)', async () => {
+    // payload.iat là 1700000000 (giây), mật khẩu đổi lúc 1699999000 * 1000 (trước khi cấp token)
+    const { strategy } = buildStrategy({
+      ...baseUser,
+      passwordChangedAt: new Date(1699999000 * 1000),
+    });
+
+    await expect(
+      strategy.validate(reqWithCookie('valid-token'), payload),
+    ).resolves.toMatchObject({ userId: 2 });
+  });
+
+  it('luôn lấy vai trò (role) cập nhật mới nhất từ DB thay vì payload tĩnh', async () => {
+    // Trong token role là 'Admin', nhưng trong DB user đã bị hạ xuống 'Auditor'
+    const { strategy } = buildStrategy({
+      ...baseUser,
+      role: { name: 'Auditor', permissions: 'read' },
+    });
+
+    const result = await strategy.validate(reqWithCookie('valid-token'), {
+      ...payload,
+      role: 'Admin',
+    });
+
+    expect(result.role).toBe('Auditor');
+  });
 });

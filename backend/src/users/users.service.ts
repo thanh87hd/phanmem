@@ -171,6 +171,7 @@ export class UsersService {
     if (password) {
       const salt = await bcrypt.genSalt(12);
       rest.passwordHash = await bcrypt.hash(password, salt);
+      rest.passwordChangedAt = new Date();
     }
     await this.userRepository.update(id, rest);
     const updated = await this.findOne(id);

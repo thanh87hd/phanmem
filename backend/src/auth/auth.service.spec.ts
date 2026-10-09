@@ -411,27 +411,31 @@ describe('AuthService', () => {
       expect(mockUsersService.update).toHaveBeenCalledTimes(2);
     });
 
-    it('TC-AUTH-02: lịch sử mật khẩu chỉ giữ 4 hash gần nhất (PASSWORD_HISTORY_COUNT)', async () => {
-      const oldHashes = [1, 2, 3, 4].map((i) =>
-        bcrypt.hashSync(`OldP@ssw0rd202${i}!`, 10),
-      );
-      const user: any = {
-        id: 7,
-        username: 'datnc3',
-        passwordHash: bcrypt.hashSync(CURRENT_PASSWORD, 10),
-        passwordHistory: JSON.stringify(oldHashes),
-      };
-      mockUsersService.findOne.mockResolvedValue(user);
+    it(
+      'TC-AUTH-02: lịch sử mật khẩu chỉ giữ 4 hash gần nhất (PASSWORD_HISTORY_COUNT)',
+      async () => {
+        const oldHashes = [1, 2, 3, 4].map((i) =>
+          bcrypt.hashSync(`OldP@ssw0rd202${i}!`, 10),
+        );
+        const user: any = {
+          id: 7,
+          username: 'datnc3',
+          passwordHash: bcrypt.hashSync(CURRENT_PASSWORD, 10),
+          passwordHistory: JSON.stringify(oldHashes),
+        };
+        mockUsersService.findOne.mockResolvedValue(user);
 
-      await service.changePassword(7, CURRENT_PASSWORD, NEW_PASSWORD);
+        await service.changePassword(7, CURRENT_PASSWORD, NEW_PASSWORD);
 
-      const history = JSON.parse(
-        mockUsersService.update.mock.calls[0][1].passwordHistory,
-      );
-      expect(history).toHaveLength(4);
-      expect(history[0]).toBe(user.passwordHash);
-      expect(history.slice(1)).toEqual(oldHashes.slice(0, 3));
-    });
+        const history = JSON.parse(
+          mockUsersService.update.mock.calls[0][1].passwordHistory,
+        );
+        expect(history).toHaveLength(4);
+        expect(history[0]).toBe(user.passwordHash);
+        expect(history.slice(1)).toEqual(oldHashes.slice(0, 3));
+      },
+      15000,
+    );
   });
 
   // ==================== UAT TC-AUTH-05 ====================

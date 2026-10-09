@@ -184,12 +184,16 @@ describe('AlertService', () => {
         },
       ]);
 
+      // Du lieu gia phai phan anh dung that: dich vu gom nhom finding theo
+      // engagementId va kien nghi theo findingId (truoc day loc trong SQL nen
+      // mock thieu truong van chay duoc, nay thi khong).
       recRepo.manager.getRepository = jest.fn(() => ({
-        find: jest.fn().mockResolvedValue([{ id: 101 }]),
+        find: jest.fn().mockResolvedValue([{ id: 101, engagementId: 10 }]),
       }));
 
       const mockPendingRec = {
         id: 201,
+        findingId: 101,
         recommendation: 'Cần bổ sung quy trình phê duyệt',
         status: 'NotStarted',
         assignedToId: 15,
@@ -211,6 +215,61 @@ describe('AlertService', () => {
       expect(recRepo.save).toHaveBeenCalled();
       expect(notificationsService.create).toHaveBeenCalled();
       expect(mailService.sendMail).toHaveBeenCalled();
+    });
+
+    it('should query once for many reports instead of once per report (no N+1)', async () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 10);
+
+      // 5 bao cao da phat hanh qua 7 ngay, moi bao cao mot cuoc kiem toan.
+      const reports = Array.from({ length: 5 }, (_, i) => ({
+        id: i + 1,
+        title: `Báo cáo ${i + 1}`,
+        status: 'Issued',
+        date: pastDate.toISOString(),
+        engagementId: 100 + i,
+      }));
+      reportRepo.find.mockResolvedValue(reports);
+
+      const findingFind = jest
+        .fn()
+        .mockResolvedValue(
+          reports.map((r, i) => ({ id: 1000 + i, engagementId: r.engagementId })),
+        );
+      recRepo.manager.getRepository = jest.fn(() => ({ find: findingFind }));
+
+      const getMany = jest.fn().mockResolvedValue(
+        reports.map((_, i) => ({
+          id: 2000 + i,
+          findingId: 1000 + i,
+          recommendation: `Kiến nghị ${i + 1}`,
+          status: 'NotStarted',
+          assignedToId: 15,
+          assignedToUser: { email: 'manager@bank.vn' },
+          legacyDepartment: 'Phòng Tín dụng',
+          escalationLevel: 0,
+        })),
+      );
+      const qb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany,
+      };
+      recRepo.createQueryBuilder = jest.fn(() => qb);
+
+      await service.handleLateRemediationPlans();
+
+      // Truoc day: 5 truy van finding + 5 truy van kien nghi + 5 lenh save.
+      // Nay: 1 truy van finding + 1 truy van kien nghi + 1 lenh save theo lo.
+      expect(findingFind).toHaveBeenCalledTimes(1);
+      expect(recRepo.createQueryBuilder).toHaveBeenCalledTimes(1);
+      expect(recRepo.save).toHaveBeenCalledTimes(1);
+      expect(recRepo.save).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ escalationLevel: 1 }),
+        ]),
+      );
     });
   });
 });

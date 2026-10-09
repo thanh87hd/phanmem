@@ -5,6 +5,7 @@ import { In, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Recommendation } from '../recommendations/entities/recommendation.entity';
 import { AuditReport } from '../audit-reports/entities/audit-report.entity';
+import { AuditFinding } from '../audit-findings/entities/audit-finding.entity';
 import { User } from '../users/entities/user.entity';
 import { NotificationsService } from './notifications.service';
 import { MailService } from '../mail/mail.service';
@@ -261,19 +262,17 @@ export class AlertService implements OnModuleInit {
 
     // Nap TAT CA finding cua cac cuoc kiem toan lien quan trong MOT truy van.
     // Truoc day moi bao cao truy van mot lan -> N+1.
+    // Dung lop entity thay vi ten chuoi: ket qua co kieu that (id, engagementId
+    // deu la number) nen khong phai ep kieu 'any' hay String() nhu truoc.
     const allFindings = await this.recRepo.manager
-      .getRepository('AuditFinding')
+      .getRepository(AuditFinding)
       .find({ where: { engagementId: In(engagementIds) } });
 
-    const findingIdsByEngagement = new Map<string, any[]>();
+    const findingIdsByEngagement = new Map<number, number[]>();
     for (const finding of allFindings) {
-      const engKey = String(
-        finding.engagementId ??
-          (lateReports.length === 1 ? lateReports[0].engagementId : ''),
-      );
-      const list = findingIdsByEngagement.get(engKey) ?? [];
+      const list = findingIdsByEngagement.get(finding.engagementId) ?? [];
       list.push(finding.id);
-      findingIdsByEngagement.set(engKey, list);
+      findingIdsByEngagement.set(finding.engagementId, list);
     }
 
     // Nap TAT CA kien nghi chua lap ke hoach trong MOT truy van (thay vi N).
@@ -290,15 +289,11 @@ export class AlertService implements OnModuleInit {
             .andWhere('rec.status = :status', { status: 'NotStarted' })
             .getMany();
 
-    const recsByFindingId = new Map<string, Recommendation[]>();
+    const recsByFindingId = new Map<number, Recommendation[]>();
     for (const rec of pendingRecs) {
-      const fKey = String(
-        rec.findingId ??
-          (allFindingIds.length === 1 ? allFindingIds[0] : ''),
-      );
-      const list = recsByFindingId.get(fKey) ?? [];
+      const list = recsByFindingId.get(rec.findingId) ?? [];
       list.push(rec);
-      recsByFindingId.set(fKey, list);
+      recsByFindingId.set(rec.findingId, list);
     }
 
     // Nang bac tat ca trong MOT lo. Truoc day save() tung ban ghi -> N+1.
@@ -313,9 +308,9 @@ export class AlertService implements OnModuleInit {
     // Gui thong bao theo tung bao cao (giu nguyen hanh vi cu).
     for (const report of lateReports) {
       const reportFindingIds =
-        findingIdsByEngagement.get(String(report.engagementId)) ?? [];
+        findingIdsByEngagement.get(report.engagementId) ?? [];
       const reportRecs = reportFindingIds.flatMap(
-        (id) => recsByFindingId.get(String(id)) ?? [],
+        (id) => recsByFindingId.get(id) ?? [],
       );
       if (reportRecs.length > 0) {
         this.logger.warn(

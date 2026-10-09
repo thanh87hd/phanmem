@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -20,6 +21,7 @@ import { CheckPolicies } from '../casl/check-policies.decorator';
 import { Action } from '../casl/casl-ability.factory';
 import { User } from './entities/user.entity';
 import { AuditTrailService } from '../audit-trail/audit-trail.service';
+import { isAdminRole, isLanhDaoRole } from '../utils/role-checker.util';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
@@ -103,6 +105,26 @@ export class UsersController {
     @Request() req: any,
   ) {
     const oldUser = await this.usersService.findOne(+id);
+
+    // Chống leo thang đặc quyền: Chỉ Admin / Lãnh đạo mới được thay đổi roleId
+    if (
+      updateUserDto.roleId !== undefined &&
+      oldUser &&
+      updateUserDto.roleId !== oldUser.roleId
+    ) {
+      const userRole = req.user?.role;
+      if (!isAdminRole(userRole) && !isLanhDaoRole(userRole)) {
+        throw new ForbiddenException(
+          'Chỉ Quản trị viên hệ thống hoặc Lãnh đạo KTNB mới có quyền thay đổi vai trò (role) của người dùng.',
+        );
+      }
+      if (req.user?.userId === +id && !isAdminRole(userRole)) {
+        throw new ForbiddenException(
+          'Người dùng không được phép tự thay đổi vai trò của chính mình.',
+        );
+      }
+    }
+
     const result = await this.usersService.update(+id, updateUserDto);
     await this.auditTrailService.log({
       action: 'UPDATE',
@@ -110,7 +132,7 @@ export class UsersController {
       resourceId: +id,
       userId: req.user?.userId,
       username: req.user?.username,
-      oldValue: { username: oldUser?.username, isActive: oldUser?.isActive },
+      oldValue: { username: oldUser?.username, isActive: oldUser?.isActive, roleId: oldUser?.roleId },
       newValue: updateUserDto,
     });
     return result;

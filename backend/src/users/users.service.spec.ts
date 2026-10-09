@@ -542,5 +542,22 @@ describe('UsersService', () => {
       );
       expect(mockUserRepo.update).not.toHaveBeenCalled();
     });
+
+    it('tự động cập nhật passwordChangedAt khi update mật khẩu để vô hiệu hoá token cũ', async () => {
+      const mockUser = { id: 10, username: 'user10', passwordHash: 'old_hash' };
+      mockUserRepo.findOne.mockResolvedValue(mockUser);
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new_hash');
+
+      await service.update(10, { password: 'NewSecurePassword123!' });
+
+      expect(mockUserRepo.update).toHaveBeenCalledWith(
+        10,
+        expect.objectContaining({
+          passwordHash: 'new_hash',
+          passwordChangedAt: expect.any(Date),
+        }),
+      );
+    });
   });
 });
